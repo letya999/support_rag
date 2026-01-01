@@ -1,11 +1,13 @@
 import os
 import psycopg
-from openai import OpenAI
+from langfuse.openai import OpenAI
 from typing import List, Dict, Any
+from langfuse import observe
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+@observe()
 def get_embedding(text: str, model: str = "text-embedding-3-small") -> List[float]:
     if not OPENAI_API_KEY:
         raise ValueError("OPENAI_API_KEY is not set.")
@@ -13,6 +15,7 @@ def get_embedding(text: str, model: str = "text-embedding-3-small") -> List[floa
     text = text.replace("\n", " ")
     return client.embeddings.create(input=[text], model=model).data[0].embedding
 
+@observe()
 def search_documents(query_embedding: List[float], top_k: int = 3) -> List[Dict[str, Any]]:
     if not DATABASE_URL:
         raise ValueError("DATABASE_URL is not set.")
