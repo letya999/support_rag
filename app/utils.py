@@ -3,6 +3,9 @@ import psycopg
 from langfuse.openai import OpenAI
 from typing import List, Dict, Any
 from langfuse import observe
+from dotenv import load_dotenv
+
+load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")

@@ -16,7 +16,8 @@ A typical RAG (Retrieval-Augmented Generation) pipeline for support services, de
 ## Development Commands
 - `pip install -r requirements.txt` - Install dependencies.
 - `python ingest.py --file data.json` - Ingest Q&A data.
-- `python main.py` - Start the RAG pipeline/service.
+- `python evaluate_retrieval.py` - Run Ragas retrieval evaluation.
+- `uvicorn app.main:app --reload` - Start the FastAPI service.
 - `pytest` - Run tests.
 
 ## Build Guidelines
@@ -27,6 +28,7 @@ A typical RAG (Retrieval-Augmented Generation) pipeline for support services, de
 - **Tracing**: All steps must be traced via Langfuse for performance monitoring and evaluation.
 - **Format**: Initially support Q&A JSON format mapping (Question -> Answer).
 
-## Evaluation Metrics (Langfuse)
-- `recall@n`: Measure if the correct answer is within the top-n retrieved chunks.
+## Evaluation Metrics (Langfuse & Ragas)
+- `context_precision`: Measure how well the retrieved chunks are ranked.
+- `context_recall`: Measure if all relevant info is in the retrieved chunks.
 - `faithfulness`: Measure if the generated answer is strictly based on the retrieved context.

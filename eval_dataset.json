@@ -1,0 +1,82 @@
+[
+    {
+        "question": "I forgot my login credentials, how can I access my account again?",
+        "answer": "You can reset your password by clicking on the 'Forgot Password' link on the login page."
+    },
+    {
+        "question": "Can you show me where to see the list of my previous purchases?",
+        "answer": "Your order history is located in the 'My Account' section under the 'Orders' tab."
+    },
+    {
+        "question": "What's the best way to get in touch with your help desk?",
+        "answer": "You can contact support via email at support@example.com or by calling 1-800-123-4567."
+    },
+    {
+        "question": "If I'm not happy with the product, how long do I have to send it back?",
+        "answer": "We accept returns within 30 days of purchase. Items must be in original condition."
+    },
+    {
+        "question": "I made a mistake in my delivery info, can I fix it before you ship?",
+        "answer": "Yes, you can update your shipping address in your profile settings before an order is shipped."
+    },
+    {
+        "question": "Do you send items to Europe or Asia?",
+        "answer": "Yes, we ship to most countries worldwide. Shipping costs may vary."
+    },
+    {
+        "question": "How can I see the current status of my delivery?",
+        "answer": "A tracking link will be sent to your email once your order has been shipped."
+    },
+    {
+        "question": "What credit cards or wallets do you take for payment?",
+        "answer": "We accept Visa, MasterCard, PayPal, and Apple Pay."
+    },
+    {
+        "question": "I want to stop my recurring payments, how do I do that?",
+        "answer": "Yes, you can cancel your subscription at any time from your account settings."
+    },
+    {
+        "question": "Where is your main office based?",
+        "answer": "Our headquarters are located in San Francisco, CA."
+    },
+    {
+        "question": "Password recovery process start point?",
+        "answer": "You can reset your password by clicking on the 'Forgot Password' link on the login page."
+    },
+    {
+        "question": "Is there a phone number for emergency help?",
+        "answer": "You can contact support via email at support@example.com or by calling 1-800-123-4567."
+    },
+    {
+        "question": "Return window duration?",
+        "answer": "We accept returns within 30 days of purchase. Items must be in original condition."
+    },
+    {
+        "question": "Global delivery options?",
+        "answer": "Yes, we ship to most countries worldwide. Shipping costs may vary."
+    },
+    {
+        "question": "Can I use Apple Pay in your store?",
+        "answer": "We accept Visa, MasterCard, PayPal, and Apple Pay."
+    },
+    {
+        "question": "HQ address?",
+        "answer": "Our headquarters are located in San Francisco, CA."
+    },
+    {
+        "question": "View my old orders?",
+        "answer": "Your order history is located in the 'My Account' section under the 'Orders' tab."
+    },
+    {
+        "question": "Unsubscribe instructions?",
+        "answer": "Yes, you can cancel your subscription at any time from your account settings."
+    },
+    {
+        "question": "Wait, I need to change the destination for my package!",
+        "answer": "Yes, you can update your shipping address in your profile settings before an order is shipped."
+    },
+    {
+        "question": "Tracking link not received, where to check?",
+        "answer": "A tracking link will be sent to your email once your order has been shipped."
+    }
+]
