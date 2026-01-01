@@ -2,12 +2,10 @@ import os
 import json
 import psycopg
 import argparse
-from openai import OpenAI
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
+import asyncio
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from app.utils import get_embedding, DATABASE_URL, OPENAI_API_KEY
 
@@ -17,7 +15,7 @@ def load_data(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
-def ingest(file_path):
+async def ingest(file_path):
     if not OPENAI_API_KEY:
         print("Error: OPENAI_API_KEY is not set.")
         return
@@ -46,7 +44,8 @@ def ingest(file_path):
                     content = f"Question: {question}\nAnswer: {answer}"
                     
                     print(f"Generating embedding for: {question[:50]}...")
-                    embedding = get_embedding(content)
+                    # Now get_embedding is async
+                    embedding = await get_embedding(content)
                     
                     cur.execute(
                         "INSERT INTO documents (content, embedding) VALUES (%s, %s)",
@@ -68,4 +67,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     
-    ingest(args.file)
+    asyncio.run(ingest(args.file))
