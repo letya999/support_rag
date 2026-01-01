@@ -9,14 +9,7 @@ try:
 except ImportError:
     pass
 
-# Configuration
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-def get_embedding(text, model="text-embedding-3-small"):
-    client = OpenAI(api_key=OPENAI_API_KEY)
-    text = text.replace("\n", " ")
-    return client.embeddings.create(input=[text], model=model).data[0].embedding
+from app.utils import get_embedding, DATABASE_URL, OPENAI_API_KEY
 
 def load_data(file_path):
     if not os.path.exists(file_path):
