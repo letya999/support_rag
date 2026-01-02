@@ -75,7 +75,10 @@ async def search(q: str = Query(..., description="The search query")):
 
 @router.get("/ask")
 @observe()
-async def ask(q: str = Query(..., description="Question to answer")):
+async def ask(
+    q: str = Query(..., description="Question to answer"),
+    hybrid: bool = Query(True, description="Enable hybrid search (Vector + Lexical)")
+):
     if not q:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
     
@@ -83,7 +86,10 @@ async def ask(q: str = Query(..., description="Question to answer")):
     
     try:
         result = await rag_graph.ainvoke(
-            {"question": q},
+            {
+                "question": q,
+                "hybrid_used": hybrid
+            },
             config={
                 "callbacks": [langfuse_handler],
                 "run_name": "rag_pipeline"

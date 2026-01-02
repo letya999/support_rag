@@ -13,7 +13,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.observability.langfuse_client import get_langfuse_client
-from app.nodes.generation.evaluator import evaluator
+from app.nodes.generation.evaluator import evaluator as gen_evaluator
+from app.nodes.retrieval.evaluator import evaluator as ret_evaluator
 
 langfuse = get_langfuse_client()
 
@@ -84,33 +85,110 @@ async def run_generation_bench(args):
 
     for i, item in enumerate(dataset.items, 1):
         question = item.input["question"]
-        
+        expected_chunks = item.expected_output.get("expected_chunks", [])
+        expected_answer = item.expected_output.get("expected_answer", "")
+
         print(f"[{i}/{len(dataset.items)}] {question[:50]}...", end=" ", flush=True)
         
         # Link this run to the dataset item
         with item.run(run_name=run_name) as trace:
             try:
-                # 3. Generation & Metrics
-                eval_res = await evaluator.evaluate_single(question, top_k=top_k)
-                metrics = eval_res["metrics"]
-                answer = eval_res["answer"]
-                docs = eval_res["docs"]
+                # 3. Invoke Pipeline (Retrieve + Generate)
+                # evaluate_single calls retrieve_context internally
+                eval_res = await gen_evaluator.evaluate_single(question, top_k=top_k)
+                
+                generated_answer = eval_res["answer"]
+                retrieved_docs = eval_res["docs"]
+                gen_metrics = eval_res["metrics"] # faithfulness, relevancy
+
+                # 4. Calculate Retrieval Metrics
+                # We need scores for some existing metrics, but evaluate_single returns docs list only?
+                # Check generation/evaluator.py: evaluate_single returns 'docs' as list of strings.
+                # To get scores, we might need to modify generation/evaluator to return scores or 
+                # just assume scores are 1.0/descending if not available, OR modify the RetrievalEvaluator to handle missing scores.
+                # However, RetrievalEvaluator expects scores.
+                # Let's verify existing generation evaluator.
+                # It calls `retrieve_context` which returns `RetrievalOutput` (docs, scores).
+                # But `evaluate_single` in generation/invoker returns a dict with `docs`.
+                # We might be missing scores here. 
+                # HOWEVER: `gen_evaluator.evaluate_single` returns `metrics` calculated on generation.
+                # If we want accurate retrieval metrics, we need the scores. 
+                # Let's rely on `retrieved_docs` and pass dummy scores or modify generation evaluator separately?
+                # For now, let's pass dummy scores since existing code might not expose them easily without editing `app/nodes/generation/evaluator.py`.
+                # Wait, I CAN look at `app/nodes/generation/evaluator.py` again.
+                # It returns `{"metrics": ..., "answer": ..., "docs": docs}`.
+                # `retrieve_context` returns `RetrievalOutput`.
+                # I should just re-implement the pipeline calls here to get full control or modify the return of evaluate_single.
+                # Modifying `evaluate_single` in `app/nodes/generation/evaluator.py` is safer.
+                # But for this task, I am told to CREATE bench_generation.py. I can just re-implement the calls here using `retrieve_context` and `generate_answer_simple`.
+                
+                # Check imports in this file:
+                # from app.nodes.generation.evaluator import evaluator as gen_evaluator
+                # That evaluator encapsulates the logic. 
+                # Let's use the underlying functions directly OR accept that we might not have scores for retrieval metrics.
+                # actually, `ret_evaluator` needs scores for `AverageScore` and `NDCG`. `HitRate`, `MRR`, `Recall` operate on content/ids usually?
+                # looking at `app/nodes/retrieval/metrics.py`: MRR needs rank. Rank is implicit in list order. Scores are needed for `AverageScore`.
+                # If I don't have scores, I can't calc 'AverageScore'.
+                # Let's peek at `app/nodes/generation/evaluator.py` content again from history.
+                # It calls `retrieve_context`, gets `retrieval_output`.
+                # It extracts `docs = retrieval_output.docs`.
+                # It throws away scores.
+                
+                # OPTION: modify `app/nodes/generation/evaluator.py` to return scores. This is cleaner.
+                # BUT I cannot modify it in this specific `replace_file_content` call.
+                # I will bypass `gen_evaluator.evaluate_single` and call steps manually here to get full data.
+                
+                from app.nodes.retrieval.search import retrieve_context
+                from app.nodes.generation.node import generate_answer_simple
+                
+                # Step 3a: Retrieve
+                ret_output = await retrieve_context(question, top_k=top_k)
+                retrieved_docs = ret_output.docs
+                retrieved_scores = ret_output.scores
+                
+                # Step 3b: Generate
+                generated_answer = await generate_answer_simple(question, retrieved_docs)
+                
+                # Step 3c: Generation Metrics
+                # We can use gen_evaluator.calculate_metrics
+                gen_metrics = gen_evaluator.calculate_metrics(
+                    question=question,
+                    context="\n\n".join(retrieved_docs),
+                    answer=generated_answer
+                )
+                
+                # Step 3d: Retrieval Metrics
+                ret_metrics = ret_evaluator.calculate_metrics(
+                    expected_answer=expected_chunks,
+                    retrieved_docs=retrieved_docs,
+                    retrieved_scores=retrieved_scores,
+                    top_k=top_k
+                )
+                
+                # Combine
+                all_single_metrics = {**gen_metrics, **ret_metrics}
                 
                 # 5. Log results to Trace
                 trace.update(
                     input={"question": question},
-                    output={"answer": answer, "retrieved_docs": docs, "metrics": metrics}
+                    output={
+                        "answer": generated_answer, 
+                        "retrieved_docs": retrieved_docs, 
+                        "metrics": all_single_metrics
+                    }
                 )
                 
                 # Create scores in Langfuse
-                for m_name, m_val in metrics.items():
+                for m_name, m_val in all_single_metrics.items():
                     trace.score(
-                        name=f"gen_{m_name}",
+                        name=m_name,
                         value=float(m_val)
                     )
                 
-                all_metrics.append(metrics)
-                print(f"Faithfulness: {metrics['faithfulness']:.2f} Relevancy: {metrics['relevancy']:.2f}")
+                all_metrics.append(all_single_metrics)
+                
+                # Print short summary
+                print(f"Hit: {ret_metrics.get('hit_rate', 0):.2f} Gen Faith: {gen_metrics.get('faithfulness', 0):.2f}")
 
             except Exception as e:
                 print(f"⚠️ Error processing item: {e}")
@@ -118,20 +196,18 @@ async def run_generation_bench(args):
                 traceback.print_exc()
                 continue
 
-    # 6. Aggregate results
+    # 6. Aggregate results (Retrieval + Generation)
     if all_metrics:
-        avg_faithfulness = sum(m["faithfulness"] for m in all_metrics) / len(all_metrics)
-        avg_relevancy = sum(m["relevancy"] for m in all_metrics) / len(all_metrics)
+        keys = all_metrics[0].keys()
+        agg = {k: sum(m[k] for m in all_metrics if k in m) / len(all_metrics) for k in keys}
         
         print(f"\n{'='*40}")
         print(f"🏁 BENCHMARK SUMMARY")
         print(f"{'='*40}")
         print(f"Dataset:            {dataset_name}")
-        print(f"Avg Faithfulness:   {avg_faithfulness:.4f}")
-        print(f"Avg Relevancy:      {avg_relevancy:.4f}")
+        for k, v in agg.items():
+            print(f"{k.replace('_', ' ').title().ljust(20)}: {v:.4f}")
         print(f"{'='*40}")
-        
-        # Aggregates are calculated automatically by Langfuse on the dataset run level.
 
     langfuse.flush()
     print(f"\n✅ Done! Check Langfuse dataset '{dataset_name}' → run '{run_name}'")

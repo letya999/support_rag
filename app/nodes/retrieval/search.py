@@ -5,7 +5,7 @@ from app.nodes.retrieval.storage import vector_search as search_documents
 from app.nodes.retrieval.models import RetrievalOutput
 from app.nodes.query_expansion.expander import QueryExpander
 from app.nodes.reranking.ranker import get_reranker
-from app.nodes.hybrid_search.node import hybrid_search_node
+from app.nodes.hybrid_search.node import search_hybrid
 
 async def retrieve_context(question: str, top_k: int = 3) -> RetrievalOutput:
     """
@@ -57,7 +57,7 @@ async def retrieve_context_expanded(
         
     # 3. Parallel Search
     if use_hybrid:
-        tasks = [hybrid_search_node(q, top_k_retrieval) for q in queries]
+        tasks = [search_hybrid(q, top_k_retrieval) for q in queries]
     else:
         tasks = [search_single_query(q, top_k_retrieval) for q in queries]
     all_results = await asyncio.gather(*tasks)
