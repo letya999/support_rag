@@ -1,28 +1,92 @@
-from typing import List, Dict, Any
+import asyncio
+from typing import List, Dict, Any, Optional
 from app.integrations.embeddings import get_embedding
 from app.storage.vector_store import search_documents
 from app.nodes.retrieval.models import RetrievalOutput
+from app.nodes.query_expansion.expander import QueryExpander
+from app.nodes.reranking.ranker import get_reranker
 
 async def retrieve_context(question: str, top_k: int = 3) -> RetrievalOutput:
     """
-    Logic for retrieval: embedding + vector search.
+    SIMPLE retrieval: embedding + vector search for a single query.
     """
-    # Generate embedding
     embedding = await get_embedding(question)
-    
-    # Search in vector store
     results = await search_documents(embedding, top_k=top_k)
     
-    # Extract content
     docs = [r.content for r in results]
+    scores = [r.score for r in results]
     
-    # Extract top result info
     top_result = results[0] if results else None
     confidence = top_result.score if top_result else 0.0
     best_doc_metadata = top_result.metadata if top_result else {}
     
     return RetrievalOutput(
         docs=docs,
+        scores=scores,
         confidence=confidence,
         best_doc_metadata=best_doc_metadata
     )
+
+async def retrieve_context_expanded(
+    question: str, 
+    top_k_retrieval: int = 10, 
+    top_k_rerank: Optional[int] = None,
+    use_expansion: bool = True
+) -> RetrievalOutput:
+    """
+    ADVANCED retrieval: optional expansion + parallel search + optional reranking.
+    """
+    # 1. Expansion
+    queries = [question]
+    if use_expansion:
+        expander = QueryExpander()
+        queries = await expander.expand(question)
+        
+    # 2. Parallel Search
+    tasks = [search_single_query(q, top_k_retrieval) for q in queries]
+    all_results = await asyncio.gather(*tasks)
+    
+    # 3. Flatten and Deduplicate
+    seen_contents = set()
+    unique_results = []
+    for results in all_results:
+        for r in results:
+            if r.content not in seen_contents:
+                seen_contents.add(r.content)
+                unique_results.append(r)
+    
+    # Sort by vector score
+    unique_results = sorted(unique_results, key=lambda x: x.score, reverse=True)
+    
+    # 4. Optional Reranking
+    if top_k_rerank is not None:
+        docs_to_rerank = [r.content for r in unique_results]
+        ranker = get_reranker()
+        ranked_results = ranker.rank(question, docs_to_rerank)
+        
+        # Take top K after rerank
+        final_results = ranked_results[:top_k_rerank]
+        docs = [doc for score, doc in final_results]
+        scores = [score for score, doc in final_results]
+        confidence = scores[0] if scores else 0.0
+        # Find metadata for the best reranked doc
+        best_doc_content = docs[0] if docs else None
+        best_doc_metadata = next((r.metadata for r in unique_results if r.content == best_doc_content), {})
+    else:
+        # Just use vector results
+        final_results = unique_results[:top_k_retrieval]
+        docs = [r.content for r in final_results]
+        scores = [r.score for r in final_results]
+        confidence = scores[0] if scores else 0.0
+        best_doc_metadata = final_results[0].metadata if final_results else {}
+
+    return RetrievalOutput(
+        docs=docs,
+        scores=scores,
+        confidence=confidence,
+        best_doc_metadata=best_doc_metadata
+    )
+
+async def search_single_query(query: str, top_k: int):
+    embedding = await get_embedding(query)
+    return await search_documents(embedding, top_k=top_k)

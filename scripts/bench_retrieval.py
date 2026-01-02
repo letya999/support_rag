@@ -112,7 +112,7 @@ async def run_retrieval_bench(args):
                     )
                 
                 all_metrics.append(metrics)
-                print(f"Hit: {metrics['hit_rate']} MRR: {metrics['mrr']:.2f}")
+                print(f"Hit: {metrics['hit_rate']} MRR: {metrics['mrr']:.2f} AvgScore: {metrics['average_score']:.3f} TopScore: {metrics['first_chunk_score']:.3f}")
 
             except Exception as e:
                 print(f"⚠️ Error processing item: {e}")
@@ -123,6 +123,8 @@ async def run_retrieval_bench(args):
         avg_hit = sum(m["hit_rate"] for m in all_metrics) / len(all_metrics)
         avg_mrr = sum(m["mrr"] for m in all_metrics) / len(all_metrics)
         avg_em = sum(m["exact_match"] for m in all_metrics) / len(all_metrics)
+        avg_score = sum(m["average_score"] for m in all_metrics) / len(all_metrics)
+        avg_first = sum(m["first_chunk_score"] for m in all_metrics) / len(all_metrics)
         
         print(f"\n{'='*40}")
         print(f"🏁 BENCHMARK SUMMARY")
@@ -131,6 +133,8 @@ async def run_retrieval_bench(args):
         print(f"Avg Hit Rate@{top_k}: {avg_hit:.4f}")
         print(f"Avg MRR@{top_k}:      {avg_mrr:.4f}")
         print(f"Avg Exact Match:   {avg_em:.4f}")
+        print(f"Avg Vector Score:  {avg_score:.4f}")
+        print(f"Avg Top Chunk Sc.: {avg_first:.4f}")
         print(f"{'='*40}")
         
         # Aggregates are calculated automatically by Langfuse on the dataset run level.

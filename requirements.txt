@@ -17,3 +17,4 @@ python-dotenv>=1.0.1
 ragas>=0.2.14
 datasets>=3.2.0
 nest-asyncio>=1.6.0
+sentence-transformers>=3.3.0

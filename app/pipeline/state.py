@@ -2,7 +2,9 @@ from typing import TypedDict, List, Optional, Literal, Dict, Any
 
 class State(TypedDict):
     question: str
+    queries: Optional[List[str]]
     docs: List[str]
+    rerank_scores: Optional[List[float]]
     answer: Optional[str]
     action: Optional[Literal["auto_reply", "handoff"]]
     confidence: Optional[float]

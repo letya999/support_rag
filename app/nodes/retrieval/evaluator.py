@@ -7,23 +7,28 @@ from app.observability.score_logger import log_score
 from app.observability.tracing import observe
 from app.dataset.loader import load_ground_truth_dataset, sync_dataset_to_langfuse
 from app.nodes.retrieval.search import retrieve_context
-from app.nodes.retrieval.metrics import HitRate, MRR, ExactMatch
+from app.nodes.retrieval.metrics import HitRate, MRR, ExactMatch, AverageScore, FirstChunkScore
 
 class RetrievalEvaluator:
     def __init__(self):
-        self.metrics = [HitRate(), MRR(), ExactMatch()]
+        self.metrics = [HitRate(), MRR(), ExactMatch(), AverageScore(), FirstChunkScore()]
 
-    def calculate_metrics(self, expected_answer: Union[str, List[str]], retrieved_docs: List[str], top_k: int = 3) -> Dict[str, float]:
+    def calculate_metrics(self, expected_answer: Union[str, List[str]], retrieved_docs: List[str], retrieved_scores: List[float], top_k: int = 3) -> Dict[str, float]:
         """
         Calculate metrics for key-value pairs of expected vs actual.
         """
-        retrieved_chunks = [{"content": doc} for doc in retrieved_docs]
+        retrieved_chunks = [
+            {"content": doc, "score": score} 
+            for doc, score in zip(retrieved_docs, retrieved_scores)
+        ]
         
         results = {}
         for metric in self.metrics:
             metric_name = metric.__class__.__name__.lower()
             if metric_name == "hitrate": metric_name = "hit_rate"
             if metric_name == "exactmatch": metric_name = "exact_match"
+            if metric_name == "averagescore": metric_name = "average_score"
+            if metric_name == "firstchunkscore": metric_name = "first_chunk_score"
             
             score = metric.calculate(expected_answer, retrieved_chunks, top_k=top_k)
             results[metric_name] = score
@@ -34,7 +39,7 @@ class RetrievalEvaluator:
         Run and evaluate a single retrieval.
         """
         output = await retrieve_context(question, top_k=top_k)
-        metrics = self.calculate_metrics(expected_answer, output.docs, top_k=top_k)
+        metrics = self.calculate_metrics(expected_answer, output.docs, output.scores, top_k=top_k)
         return {
             "output": output,
             "metrics": metrics
@@ -60,7 +65,13 @@ class RetrievalEvaluator:
             sync_dataset_to_langfuse(langfuse_client, items)
             
         results = []
-        scores_aggregate = {"hit_rate": [], "mrr": [], "exact_match": []}
+        scores_aggregate = {
+            "hit_rate": [], 
+            "mrr": [], 
+            "exact_match": [],
+            "average_score": [],
+            "first_chunk_score": []
+        }
         
         print(f"Starting evaluation: {run_name} on {len(items)} items")
         

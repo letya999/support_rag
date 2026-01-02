@@ -6,5 +6,6 @@ class RetrievalInput(BaseModel):
     
 class RetrievalOutput(BaseModel):
     docs: List[str]
+    scores: List[float]
     confidence: float
     best_doc_metadata: Dict[str, Any]

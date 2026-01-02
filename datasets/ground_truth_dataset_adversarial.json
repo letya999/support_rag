@@ -1,0 +1,302 @@
+[
+    {
+        "question": "ugh cant get into my account anymore whats the deal",
+        "expected_chunks": [
+            "You can reset your password by clicking on the 'Forgot Password' link on the login page."
+        ],
+        "expected_answer": "To reset your password, click the 'Forgot Password' link on the login page.",
+        "expected_intent": "password_reset",
+        "expected_category": "account",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "so i totally blanked on my login credentials lol help??",
+        "expected_chunks": [
+            "You can reset your password by clicking on the 'Forgot Password' link on the login page."
+        ],
+        "expected_answer": "You can recover your password by following the 'Forgot Password' link on our login screen.",
+        "expected_intent": "password_reset",
+        "expected_category": "account",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "locked out and nothing works, tried everything",
+        "expected_chunks": [
+            "You can reset your password by clicking on the 'Forgot Password' link on the login page."
+        ],
+        "expected_answer": "The process for resetting your account password involves clicking the 'Forgot Password' link located on the login page.",
+        "expected_intent": "password_reset",
+        "expected_category": "account",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "my brain is useless i cant remember the secret code thing to log in",
+        "expected_chunks": [
+            "You can reset your password by clicking on the 'Forgot Password' link on the login page."
+        ],
+        "expected_answer": "Yes, if you've forgotten your password, you can change it by using the 'Forgot Password' option on the login page.",
+        "expected_intent": "password_reset",
+        "expected_category": "account",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "bought stuff before where did it all go",
+        "expected_chunks": [
+            "Your order history is located in the 'My Account' section under the 'Orders' tab."
+        ],
+        "expected_answer": "You can find your order history in the 'Orders' tab within the 'My Account' section of your profile.",
+        "expected_intent": "view_history",
+        "expected_category": "orders",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "need to check what i ordered like 2 months ago cant find it anywhere",
+        "expected_chunks": [
+            "Your order history is located in the 'My Account' section under the 'Orders' tab."
+        ],
+        "expected_answer": "To view past orders, go to 'My Account' and navigate to the 'Orders' tab.",
+        "expected_intent": "view_history",
+        "expected_category": "orders",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "wheres the list of all my transactions saved at",
+        "expected_chunks": [
+            "Your order history is located in the 'My Account' section under the 'Orders' tab."
+        ],
+        "expected_answer": "All your order information is stored in the 'Orders' tab of your account settings.",
+        "expected_intent": "view_history",
+        "expected_category": "orders",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "trying to remember what i got last time can u show me",
+        "expected_chunks": [
+            "Your order history is located in the 'My Account' section under the 'Orders' tab."
+        ],
+        "expected_answer": "Yes, all your previous purchases are listed under the 'Orders' tab in 'My Account'.",
+        "expected_intent": "view_history",
+        "expected_category": "orders",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "this is ridiculous i need to talk to a real person asap",
+        "expected_chunks": [
+            "You can contact support via email at support@example.com or by calling 1-800-123-4567."
+        ],
+        "expected_answer": "You can reach our support team by emailing support@example.com or calling us at 1-800-123-4567.",
+        "expected_intent": "contact_support",
+        "expected_category": "support",
+        "expected_action": "handoff"
+    },
+    {
+        "question": "just give me the number or email or whatever to complain",
+        "expected_chunks": [
+            "You can contact support via email at support@example.com or by calling 1-800-123-4567."
+        ],
+        "expected_answer": "The best way to reach customer support is via email at support@example.com or through our toll-free number 1-800-123-4567.",
+        "expected_intent": "contact_support",
+        "expected_category": "support",
+        "expected_action": "handoff"
+    },
+    {
+        "question": "stuck with this issue for days who do i even reach out to",
+        "expected_chunks": [
+            "You can contact support via email at support@example.com or by calling 1-800-123-4567."
+        ],
+        "expected_answer": "If you need help with your account, please email support@example.com or call our support line at 1-800-123-4567.",
+        "expected_intent": "contact_support",
+        "expected_category": "support",
+        "expected_action": "handoff"
+    },
+    {
+        "question": "how do i actually get someone on the line here",
+        "expected_chunks": [
+            "You can contact support via email at support@example.com or by calling 1-800-123-4567."
+        ],
+        "expected_answer": "Our customer service contact info is: email support@example.com and phone 1-800-123-4567.",
+        "expected_intent": "contact_support",
+        "expected_category": "support",
+        "expected_action": "handoff"
+    },
+    {
+        "question": "so if i dont like it can i just send it back or what",
+        "expected_chunks": [
+            "We accept returns within 30 days of purchase. Items must be in original condition."
+        ],
+        "expected_answer": "Our return policy allows for returns within 30 days of purchase as long as the items are in their original condition.",
+        "expected_intent": "check_policy",
+        "expected_category": "returns",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "bought this like 3 weeks ago is it too late to bring back",
+        "expected_chunks": [
+            "We accept returns within 30 days of purchase. Items must be in original condition."
+        ],
+        "expected_answer": "You have 30 days from the date of purchase to return an item in its original condition.",
+        "expected_intent": "check_policy",
+        "expected_category": "returns",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "do i need to keep the box and everything if i wanna get my money back",
+        "expected_chunks": [
+            "We accept returns within 30 days of purchase. Items must be in original condition."
+        ],
+        "expected_answer": "Products can be returned within 30 days of purchase if they are in their original condition.",
+        "expected_intent": "check_policy",
+        "expected_category": "returns",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "ordered the wrong thing can i still undo this somehow",
+        "expected_chunks": [
+            "We accept returns within 30 days of purchase. Items must be in original condition."
+        ],
+        "expected_answer": "Yes, you can get a refund if you return the item within 30 days and it is still in original condition.",
+        "expected_intent": "check_policy",
+        "expected_category": "returns",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "wait i moved last week will my stuff still come to the right place",
+        "expected_chunks": [
+            "Yes, you can update your shipping address in your profile settings before an order is shipped."
+        ],
+        "expected_answer": "Yes, you can update your shipping address by modifying your profile settings, provided the order hasn't shipped yet.",
+        "expected_intent": "change_address",
+        "expected_category": "shipping",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "messed up my address when checking out can i fix it now",
+        "expected_chunks": [
+            "Yes, you can update your shipping address in your profile settings before an order is shipped."
+        ],
+        "expected_answer": "You can modify your shipping address in your profile settings as long as your order hasn't been shipped.",
+        "expected_intent": "change_address",
+        "expected_category": "shipping",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "need to send my package somewhere else instead is that doable",
+        "expected_chunks": [
+            "Yes, you can update your shipping address in your profile settings before an order is shipped."
+        ],
+        "expected_answer": "Delivery addresses can be updated in your profile settings prior to the order being shipped.",
+        "expected_intent": "change_address",
+        "expected_category": "shipping",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "put in my parents house by accident its going to the wrong spot",
+        "expected_chunks": [
+            "Yes, you can update your shipping address in your profile settings before an order is shipped."
+        ],
+        "expected_answer": "Yes, if your order hasn't shipped, you can change the shipping destination through your account's profile settings.",
+        "expected_intent": "change_address",
+        "expected_category": "shipping",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "im not in the US can you even send stuff here",
+        "expected_chunks": [
+            "Yes, we ship to most countries worldwide. Shipping costs may vary."
+        ],
+        "expected_answer": "Yes, we provide international shipping to most countries globally, though costs will vary.",
+        "expected_intent": "check_international",
+        "expected_category": "shipping",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "living abroad rn wondering if this works for overseas",
+        "expected_chunks": [
+            "Yes, we ship to most countries worldwide. Shipping costs may vary."
+        ],
+        "expected_answer": "Yes, we ship to most countries worldwide, with shipping rates varying by location.",
+        "expected_intent": "check_international",
+        "expected_category": "shipping",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "my friend in europe wants me to get him something does that work",
+        "expected_chunks": [
+            "Yes, we ship to most countries worldwide. Shipping costs may vary."
+        ],
+        "expected_answer": "Yes, we accept international orders and ship to most countries around the world.",
+        "expected_intent": "check_international",
+        "expected_category": "shipping",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "yall ship globally or nah",
+        "expected_chunks": [
+            "Yes, we ship to most countries worldwide. Shipping costs may vary."
+        ],
+        "expected_answer": "We deliver to most countries worldwide; costs may depend on the destination country.",
+        "expected_intent": "check_international",
+        "expected_category": "shipping",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "been waiting forever where tf is my order",
+        "expected_chunks": [
+            "A tracking link will be sent to your email once your order has been shipped."
+        ],
+        "expected_answer": "A tracking link will be emailed to you as soon as your order has been shipped.",
+        "expected_intent": "track_order",
+        "expected_category": "shipping",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "any way to see if its actually on the way or not",
+        "expected_chunks": [
+            "A tracking link will be sent to your email once your order has been shipped."
+        ],
+        "expected_answer": "You can follow your shipment using the tracking link we send to your email after the order ships.",
+        "expected_intent": "track_order",
+        "expected_category": "shipping",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "didnt get any updates about my delivery yet whats happening",
+        "expected_chunks": [
+            "A tracking link will be sent to your email once your order has been shipped."
+        ],
+        "expected_answer": "Your tracking information will be provided via email once your package is on its way.",
+        "expected_intent": "track_order",
+        "expected_category": "shipping",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "how do i know its not lost somewhere out there",
+        "expected_chunks": [
+            "A tracking link will be sent to your email once your order has been shipped."
+        ],
+        "expected_answer": "Yes, we'll send a tracking link to your email so you can monitor your order's progress after it's shipped.",
+        "expected_intent": "track_order",
+        "expected_category": "shipping",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "do u guys take venmo or crypto or just cards",
+        "expected_chunks": [
+            "We accept Visa, MasterCard, PayPal, and Apple Pay."
+        ],
+        "expected_answer": "We currently accept Visa, MasterCard, PayPal, and Apple Pay as payment methods.",
+        "expected_intent": "check_payment_methods",
+        "expected_category": "billing",
+        "expected_action": "auto_reply"
+    },
+    {
+        "question": "whats the deal with checkout options like what can i use",
+        "expected_chunks": [
+            "We accept Visa, MasterCard, PayPal, and Apple Pay."
+        ],
+        "expected_answer": "You can pay using Visa, MasterCard, PayPal, or Apple Pay.",
+        "expected_intent": "check_payment_methods",
+        "expected_category": "billing",
+        "expected_action": "auto_reply"
+    }
+]
