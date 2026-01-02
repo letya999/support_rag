@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from app.utils import get_embedding, DATABASE_URL, OPENAI_API_KEY
+from app.embeddings import get_embedding, OPENAI_API_KEY
+from app.search import DATABASE_URL
 
 def load_data(file_path):
     if not os.path.exists(file_path):

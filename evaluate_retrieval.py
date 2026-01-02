@@ -14,7 +14,8 @@ from ragas.metrics import LLMContextPrecisionWithReference, LLMContextRecall
 from openai import OpenAI
 from langfuse import Langfuse
 
-from app.utils import get_embedding, search_documents
+from app.embeddings import get_embedding
+from app.search import search_documents
 
 nest_asyncio.apply()
 
@@ -43,7 +44,7 @@ def sync_dataset_to_langfuse(test_data):
             )
         print(f"✅ Uploaded {len(test_data)} items to Langfuse dataset.")
 
-def run_evaluation():
+async def run_evaluation():
     print("🚀 Starting retrieval evaluation...")
     
     # 1. Загрузка данных
@@ -87,8 +88,8 @@ def run_evaluation():
         ) as trace:
             try:
                 # Выполняем retrieval
-                emb = get_embedding(question)
-                results = search_documents(emb, top_k=3)
+                emb = await get_embedding(question)
+                results = await search_documents(emb, top_k=3)
                 retrieved_contexts = [r["content"] for r in results]
                 
                 # Обновляем trace с результатами
@@ -174,4 +175,5 @@ def run_evaluation():
         traceback.print_exc()
 
 if __name__ == "__main__":
-    run_evaluation()
+    import asyncio
+    asyncio.run(run_evaluation())

@@ -2,7 +2,8 @@ from typing import TypedDict, List
 from langgraph.graph import StateGraph, START, END
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from app.utils import search_documents, get_embedding
+from app.embeddings import get_embedding
+from app.search import search_documents
 from langfuse import observe
 from langfuse.decorators import langfuse_context
 

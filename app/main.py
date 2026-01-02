@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Query, HTTPException
 import os
-from app.utils import get_embedding, search_documents
+from app.embeddings import get_embedding
+from app.search import search_documents
 from langfuse import observe, get_client
 from langfuse.decorators import langfuse_context
 from app.rag_graph import rag_graph
