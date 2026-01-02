@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 from app.integrations.llm import get_llm
 from app.nodes.generation.prompts import QA_PROMPT
 from app.nodes.generation.models import GenerationInput, GenerationOutput
@@ -13,6 +13,14 @@ async def generate_node(state: Dict[str, Any]):
     question = state.get("question")
     docs = state.get("docs", [])
     
+    answer = await generate_answer_simple(question, docs)
+    
+    return {"answer": answer}
+
+async def generate_answer_simple(question: str, docs: List[str]) -> str:
+    """
+    Simpler version for evaluation.
+    """
     docs_str = "\n\n".join(docs)
     
     llm = get_llm() # Using defaults
@@ -26,4 +34,5 @@ async def generate_node(state: Dict[str, Any]):
         config={"callbacks": [langfuse_handler]}
     )
     
-    return {"answer": response.content}
+    return response.content
+
