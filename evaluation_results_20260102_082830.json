@@ -1,0 +1,238 @@
+{
+  "run_name": "ground-truth-demo-eval-20260102-082830",
+  "mode": "DEMO (Mock Retrieval)",
+  "timestamp": "2026-01-02T08:28:30.116325",
+  "top_k": 3,
+  "total_queries": 30,
+  "aggregate_metrics": {
+    "hit_rate": {
+      "value": 1.0,
+      "description": "Recall@K - percentage of queries where correct answer found in top-K"
+    },
+    "mrr": {
+      "value": 0.9277777777777777,
+      "description": "Mean Reciprocal Rank - average reciprocal position of correct answer"
+    },
+    "exact_match": {
+      "value": 0.8666666666666667,
+      "description": "Percentage of queries where correct answer is ranked #1"
+    }
+  },
+  "metrics_explanation": {
+    "hit_rate": "1 point if expected_chunk_answer found in top-K chunks, 0 otherwise. Average across all queries.",
+    "mrr": "1/position of correct chunk. Position 1→1.0, Position 2→0.5, Position 3→0.33, Not found→0. Average across all queries.",
+    "exact_match": "1 point if top-1 chunk contains expected_chunk_answer, 0 otherwise. Average across all queries."
+  },
+  "detailed_results": [
+    {
+      "question": "Can I reset my password??",
+      "hit_rate": 1,
+      "mrr": 0.5,
+      "exact_match": 0,
+      "found_at_position": 2
+    },
+    {
+      "question": "What's the way to reset my password??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Is it possible to reset my password??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "How do I find find my order history??",
+      "hit_rate": 1,
+      "mrr": 0.5,
+      "exact_match": 0,
+      "found_at_position": 2
+    },
+    {
+      "question": "Where is find my order history??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Where do I locate find my order history??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Can I contact support??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "What's the way to contact support??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Is it possible to contact support??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Can you explain the return policy??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Tell me about the return policy??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Explain the return policy??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Is it possible to change my shipping address??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "May I change my shipping address??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Am I allowed to change my shipping address??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Can I offer international shipping??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Is it possible to offer international shipping??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Do you have offer international shipping??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Can I track my package??",
+      "hit_rate": 1,
+      "mrr": 0.3333333333333333,
+      "exact_match": 0,
+      "found_at_position": 3
+    },
+    {
+      "question": "What's the way to track my package??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Is it possible to track my package??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "What payment methods do you accept?",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "I need to know: What payment methods do you accept?",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Please explain: What payment methods do you accept",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Is it possible to cancel my subscription??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "May I cancel my subscription??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Am I allowed to cancel my subscription??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Can you tell me where the company located??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    },
+    {
+      "question": "Where can I find the company located??",
+      "hit_rate": 1,
+      "mrr": 0.5,
+      "exact_match": 0,
+      "found_at_position": 2
+    },
+    {
+      "question": "What's the location of the company located??",
+      "hit_rate": 1,
+      "mrr": 1.0,
+      "exact_match": 1,
+      "found_at_position": 1
+    }
+  ]
+}
