@@ -1,8 +1,11 @@
 from langgraph.graph import StateGraph, START, END
 from app.pipeline.state import State
+from app.nodes.classification.node import classify_node
+from app.nodes.metadata_filtering.node import metadata_filter_node
 from app.nodes.retrieval.node import retrieve_node
 from app.nodes.generation.node import generate_node
 from app.nodes.routing.node import route_node
+
 
 def router_logic(state: State):
     """
@@ -12,13 +15,21 @@ def router_logic(state: State):
         return "generate"
     return END
 
+
 # Build graph
 workflow = StateGraph(State)
+
+# Add all nodes
+workflow.add_node("classify", classify_node)
+workflow.add_node("metadata_filter", metadata_filter_node)
 workflow.add_node("retrieve", retrieve_node)
 workflow.add_node("route", route_node)
 workflow.add_node("generate", generate_node)
 
-workflow.add_edge(START, "retrieve")
+# Define edges
+workflow.add_edge(START, "classify")
+workflow.add_edge("classify", "metadata_filter")
+workflow.add_edge("metadata_filter", "retrieve")
 workflow.add_edge("retrieve", "route")
 workflow.add_conditional_edges(
     "route",
