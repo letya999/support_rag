@@ -5,26 +5,49 @@ from app.nodes.generation.node import generate_node
 from app.nodes.routing.node import route_node
 from app.nodes.query_expansion.node import query_expansion_node
 from app.nodes.reranking.node import rerank_node
+from app.nodes.hybrid_search.node import hybrid_search_node
 
 def router_logic(state: State):
     """
-    Conditional edge logic.
+    Conditional edge logic for final generation.
     """
     if state["action"] == "auto_reply":
         return "generate"
     return END
 
+def retrieval_router(state: State):
+    """
+    Route to hybrid or simple vector search.
+    """
+    if state.get("hybrid_used"):
+        return "hybrid_search"
+    return "retrieve"
+
 # Build graph
 workflow = StateGraph(State)
 workflow.add_node("expand_query", query_expansion_node)
 workflow.add_node("retrieve", retrieve_node)
+workflow.add_node("hybrid_search", hybrid_search_node)
 workflow.add_node("rerank", rerank_node)
 workflow.add_node("route", route_node)
 workflow.add_node("generate", generate_node)
 
 workflow.add_edge(START, "expand_query")
-workflow.add_edge("expand_query", "retrieve")
+
+# Conditional routing after expansion
+workflow.add_conditional_edges(
+    "expand_query",
+    retrieval_router,
+    {
+        "hybrid_search": "hybrid_search",
+        "retrieve": "retrieve" 
+    }
+)
+
+# Both retrieval paths go to rerank
 workflow.add_edge("retrieve", "rerank")
+workflow.add_edge("hybrid_search", "rerank")
+
 workflow.add_edge("rerank", "route")
 workflow.add_conditional_edges(
     "route",

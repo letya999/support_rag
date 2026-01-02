@@ -11,3 +11,4 @@ class State(TypedDict):
     matched_intent: Optional[str]
     matched_category: Optional[str]
     best_doc_metadata: Optional[Dict[str, Any]]
+    hybrid_used: Optional[bool]

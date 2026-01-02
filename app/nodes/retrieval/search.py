@@ -1,10 +1,11 @@
 import asyncio
 from typing import List, Dict, Any, Optional
 from app.integrations.embeddings import get_embedding
-from app.storage.vector_store import search_documents
+from app.nodes.retrieval.storage import vector_search as search_documents
 from app.nodes.retrieval.models import RetrievalOutput
 from app.nodes.query_expansion.expander import QueryExpander
 from app.nodes.reranking.ranker import get_reranker
+from app.nodes.hybrid_search.node import hybrid_search_node
 
 async def retrieve_context(question: str, top_k: int = 3) -> RetrievalOutput:
     """
@@ -32,6 +33,7 @@ async def retrieve_context_expanded(
     top_k_retrieval: int = 10, 
     top_k_rerank: Optional[int] = None,
     use_expansion: bool = True,
+    use_hybrid: bool = False,
     confidence_threshold: float = 0.5
 ) -> RetrievalOutput:
     """
@@ -54,7 +56,10 @@ async def retrieve_context_expanded(
         queries = await expander.expand(question)
         
     # 3. Parallel Search
-    tasks = [search_single_query(q, top_k_retrieval) for q in queries]
+    if use_hybrid:
+        tasks = [hybrid_search_node(q, top_k_retrieval) for q in queries]
+    else:
+        tasks = [search_single_query(q, top_k_retrieval) for q in queries]
     all_results = await asyncio.gather(*tasks)
     
     # 4. Flatten and Deduplicate

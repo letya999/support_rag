@@ -7,11 +7,12 @@ from app.observability.score_logger import log_score
 from app.observability.tracing import observe
 from app.dataset.loader import load_ground_truth_dataset, sync_dataset_to_langfuse
 from app.nodes.retrieval.search import retrieve_context
-from app.nodes.retrieval.metrics import HitRate, MRR, ExactMatch, AverageScore, FirstChunkScore
+from app.nodes.retrieval.metrics import HitRate, MRR, ExactMatch, AverageScore, FirstChunkScore, Recall, F1Score
+from app.nodes.reranking.metrics.ndcg import NDCG
 
 class RetrievalEvaluator:
     def __init__(self):
-        self.metrics = [HitRate(), MRR(), ExactMatch(), AverageScore(), FirstChunkScore()]
+        self.metrics = [HitRate(), MRR(), ExactMatch(), AverageScore(), FirstChunkScore(), Recall(), F1Score(), NDCG()]
 
     def calculate_metrics(self, expected_answer: Union[str, List[str]], retrieved_docs: List[str], retrieved_scores: List[float], top_k: int = 3) -> Dict[str, float]:
         """

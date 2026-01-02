@@ -27,6 +27,7 @@ async def run_modular_bench(args):
     
     print(f"🚀 Modular Benchmark: {dataset_name}")
     print(f"   Expansion: {'ON' if args.use_expansion else 'OFF'}")
+    print(f"   Hybrid:    {'ON' if args.use_hybrid else 'OFF'}")
     print(f"   Reranker:  {'ON' if args.use_reranker else 'OFF'} (k={top_k_rerank})")
 
     if not langfuse:
@@ -58,6 +59,7 @@ async def run_modular_bench(args):
                         top_k_retrieval=top_k_retrieval,
                         top_k_rerank=top_k_rerank,
                         use_expansion=args.use_expansion,
+                        use_hybrid=args.use_hybrid,
                         confidence_threshold=args.confidence_threshold
                     )
                     search_type = "Advanced"
@@ -72,6 +74,7 @@ async def run_modular_bench(args):
                     output={"docs": output.docs, "metrics": metrics},
                     metadata={
                         "expansion": args.use_expansion,
+                        "hybrid": args.use_hybrid,
                         "reranker": args.use_reranker,
                         "top_k_retrieval": top_k_retrieval,
                         "top_k_rerank": top_k_rerank,
@@ -83,7 +86,7 @@ async def run_modular_bench(args):
                     trace.score(name=m_name, value=float(m_val))
                 
                 all_metrics.append(metrics)
-                print(f"[{search_type}] Hit: {metrics['hit_rate']:.2f} | MRR: {metrics['mrr']:.2f} | Score: {metrics['average_score']:.3f}")
+                print(f"[{search_type}] Hit: {metrics['hit_rate']:.2f} | MRR: {metrics['mrr']:.2f} | Recall: {metrics['recall']:.2f} | F1: {metrics['f1score']:.2f}")
 
             except Exception as e:
                 print(f"⚠️ Error: {e}")
@@ -98,6 +101,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("dataset", help="Dataset name")
     parser.add_argument("--use_expansion", action="store_true", help="Enable Query Expansion")
+    parser.add_argument("--use_hybrid", action="store_true", help="Enable Hybrid Search (Vector + BM25)")
     parser.add_argument("--use_reranker", action="store_true", help="Enable Reranking")
     parser.add_argument("--top_k_retrieval", type=int, default=10)
     parser.add_argument("--top_k_rerank", type=int, default=5)

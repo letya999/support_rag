@@ -29,5 +29,9 @@ def run_migration(file_path):
         print(f"Error applying migration: {e}")
 
 if __name__ == "__main__":
-    migration_file = os.path.join(os.path.dirname(__file__), "migrate-001-add-metadata.sql")
+    import sys
+    if len(sys.argv) > 1:
+        migration_file = os.path.join(os.path.dirname(__file__), sys.argv[1])
+    else:
+        migration_file = os.path.join(os.path.dirname(__file__), "migrate-001-add-metadata.sql")
     run_migration(migration_file)
