@@ -20,7 +20,7 @@ async def search_documents(query_embedding: List[float], top_k: int = 3) -> List
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT content, 1 - (embedding <=> %s::vector) AS score
+                SELECT content, 1 - (embedding <=> %s::vector) AS score, metadata
                 FROM documents
                 ORDER BY score DESC
                 LIMIT %s;
@@ -31,6 +31,7 @@ async def search_documents(query_embedding: List[float], top_k: int = 3) -> List
             for row in rows:
                 results.append({
                     "content": row[0],
-                    "score": float(row[1])
+                    "score": float(row[1]),
+                    "metadata": row[2]
                 })
     return results

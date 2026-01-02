@@ -73,8 +73,12 @@ async def ask(q: str = Query(..., description="Question to answer")):
         
         return {
             "question": q,
-            "answer": result["answer"],
-            "context": result["docs"]
+            "answer": result.get("answer"),
+            "action": result.get("action"),
+            "confidence": result.get("confidence"),
+            "matched_intent": result.get("matched_intent"),
+            "matched_category": result.get("matched_category"),
+            "context": result.get("docs")
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
