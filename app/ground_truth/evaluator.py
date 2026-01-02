@@ -7,7 +7,13 @@ from langfuse import Langfuse
 
 from app.search import search_documents
 from app.embeddings import get_embedding
-from app.ground_truth.metrics import calculate_all_metrics
+from app.ground_truth.metrics import (
+    calculate_hit_rate,
+    calculate_mrr,
+    calculate_exact_match,
+    calculate_all_metrics,
+    find_answer_position,
+)
 from app.ground_truth.dataset_sync import load_ground_truth_dataset, sync_dataset_to_langfuse, DATASET_NAME
 
 
@@ -183,40 +189,69 @@ def _log_to_langfuse(
     found_at_position: Optional[int],
     run_name: str
 ) -> None:
-    """Log evaluation result to Langfuse."""
+    """
+    Log evaluation result and metrics to Langfuse.
+
+    Logs:
+    - Trace with input (question) and output (retrieved chunks, metrics)
+    - Individual scores for each metric:
+      - hit_rate: 0 or 1 (found in top-K)
+      - mrr: reciprocal rank (1/position)
+      - exact_match: 0 or 1 (top-1 is correct)
+    """
     try:
-        # Create trace
+        # Create trace with evaluation details
         trace = langfuse_client.trace(
             id=trace_id,
             name="ground_truth_eval",
             input={"question": question},
             output={
-                "retrieved_chunks": [c["content"][:200] for c in retrieved_chunks],
+                "retrieved_chunks": [
+                    {
+                        "content": c["content"][:200],
+                        "score": c.get("score", 0)
+                    }
+                    for c in retrieved_chunks
+                ],
                 "expected_answer": expected_answer,
                 "found_at_position": found_at_position,
             },
             metadata={
                 "run_name": run_name,
                 "eval_type": "ground_truth_retrieval",
+                "top_k": len(retrieved_chunks),
             }
         )
 
-        # Log scores
+        # Log Hit Rate score
+        # Measures if correct answer found in top-K results
         langfuse_client.create_score(
             trace_id=trace_id,
             name="hit_rate",
             value=float(metrics["hit_rate"]),
+            comment=f"Found in top-{len(retrieved_chunks)}" if metrics["hit_rate"] else "Not found in results",
         )
+
+        # Log MRR score
+        # Measures reciprocal position (1.0 for position 1, 0.5 for position 2, etc.)
+        mrr_comment = f"Position: {int(1/metrics['mrr'])}" if metrics["mrr"] > 0 else "Not found"
         langfuse_client.create_score(
             trace_id=trace_id,
             name="mrr",
             value=metrics["mrr"],
+            comment=mrr_comment,
         )
+
+        # Log Exact Match score
+        # Measures if top-1 result is correct
         langfuse_client.create_score(
             trace_id=trace_id,
             name="exact_match",
             value=float(metrics["exact_match"]),
+            comment="Top-1 is correct" if metrics["exact_match"] else "Top-1 is incorrect",
         )
+
+        langfuse_client.flush()
 
     except Exception as e:
         pass  # Langfuse logging is optional
@@ -230,23 +265,34 @@ def _log_aggregate_scores(
     exact_match: float,
     top_k: int
 ) -> None:
-    """Log aggregate scores to Langfuse."""
+    """
+    Log aggregate (run-level) evaluation scores to Langfuse.
+
+    These are overall metrics across all test queries, useful for
+    tracking performance over time and comparing different runs.
+    """
     try:
+        # Hit Rate aggregate: % of queries where correct answer found in top-K
         langfuse_client.create_score(
             name="hit_rate_aggregate",
             value=hit_rate,
-            comment=f"Hit Rate@{top_k} for {run_name}",
+            comment=f"Hit Rate@{top_k}: {hit_rate*100:.1f}% of queries found correct answer in top-{top_k} (run: {run_name})",
         )
+
+        # MRR aggregate: average reciprocal position
         langfuse_client.create_score(
             name="mrr_aggregate",
             value=mrr,
-            comment=f"MRR for {run_name}",
+            comment=f"MRR: average reciprocal rank = {mrr:.4f} (run: {run_name})",
         )
+
+        # Exact Match aggregate: % of queries where top-1 is correct
         langfuse_client.create_score(
             name="exact_match_aggregate",
             value=exact_match,
-            comment=f"Exact Match for {run_name}",
+            comment=f"Exact Match: {exact_match*100:.1f}% of queries have correct answer at top-1 (run: {run_name})",
         )
+
         langfuse_client.flush()
         print("✅ Aggregate scores logged to Langfuse")
     except Exception as e:

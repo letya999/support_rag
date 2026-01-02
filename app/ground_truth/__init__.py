@@ -21,9 +21,14 @@ from app.ground_truth.dataset_sync import (
 )
 from app.ground_truth.metrics import (
     calculate_hit_rate,
+    aggregate_hit_rates,
     calculate_mrr,
+    aggregate_mrr,
     calculate_exact_match,
+    aggregate_exact_matches,
     calculate_all_metrics,
+    check_answer_in_chunk,
+    find_answer_position,
 )
 
 __all__ = [
@@ -32,8 +37,15 @@ __all__ = [
     "sync_dataset_to_langfuse",
     "get_dataset_from_langfuse",
     "DATASET_NAME",
+    # Metrics - individual
     "calculate_hit_rate",
+    "aggregate_hit_rates",
     "calculate_mrr",
+    "aggregate_mrr",
     "calculate_exact_match",
+    "aggregate_exact_matches",
+    # Metrics - utilities
     "calculate_all_metrics",
+    "check_answer_in_chunk",
+    "find_answer_position",
 ]
