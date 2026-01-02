@@ -1,84 +1,14 @@
-from fastapi import FastAPI, Query, HTTPException
-import os
-from app.embeddings import get_embedding
-from app.search import search_documents
-from langfuse import observe, get_client
-from langfuse.langchain import CallbackHandler
-from app.rag_graph import rag_graph
+from fastapi import FastAPI
+from app.config.settings import settings
+from app.api.routes import router
+from app.api.exceptions import validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 
-# Rename to avoid shadowing the 'langfuse' package
-langfuse_client = get_client()
+app = FastAPI(title=settings.APP_NAME)
 
-app = FastAPI(title="Support RAG API")
-
-@app.get("/health")
-async def health():
-    return {
-        "status": "ok",
-        "database": "connected" if os.getenv("DATABASE_URL") else "missing",
-        "langfuse": "configured" if os.getenv("LANGFUSE_PUBLIC_KEY") else "missing"
-    }
+app.include_router(router)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 @app.get("/")
 async def root():
     return {"message": "Support RAG Pipeline API is running"}
-
-@app.get("/search")
-@observe()
-async def search(q: str = Query(..., description="The search query")):
-    if not q:
-        raise HTTPException(status_code=400, detail="Query cannot be empty")
-    
-    # Set trace input
-    langfuse_client.update_current_trace(
-        name="document-search",
-        input=q,
-        tags=["production" if os.getenv("NODE_ENV") == "production" else "development"]
-    )
-    
-    try:
-        embedding = await get_embedding(q)
-        results = await search_documents(embedding, top_k=3)
-        
-        # Set trace output
-        langfuse_client.update_current_trace(output=results)
-        
-        return {
-            "query": q,
-            "results": results
-        }
-    except Exception as e:
-        langfuse_client.update_current_trace(output=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/ask")
-@observe()
-async def ask(q: str = Query(..., description="Question to answer")):
-    if not q:
-        raise HTTPException(status_code=400, detail="Query cannot be empty")
-    
-    # v3: CallbackHandler automatically links to the current @observe() trace
-    langfuse_handler = CallbackHandler()
-
-    
-    try:
-        # Invoke the graph
-        result = await rag_graph.ainvoke(
-            {"question": q}, 
-            config={
-                "callbacks": [langfuse_handler],
-                "run_name": "rag_pipeline"
-            }
-        )
-        
-        return {
-            "question": q,
-            "answer": result.get("answer"),
-            "action": result.get("action"),
-            "confidence": result.get("confidence"),
-            "matched_intent": result.get("matched_intent"),
-            "matched_category": result.get("matched_category"),
-            "context": result.get("docs")
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))

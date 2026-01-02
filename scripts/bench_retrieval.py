@@ -12,12 +12,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 load_dotenv()
 
-from langfuse import Langfuse
-from app.embeddings import get_embedding
-from app.search import search_documents
-from app.ground_truth.metrics import calculate_all_metrics, find_answer_position
+from app.observability.langfuse_client import get_langfuse_client
+from app.integrations.embeddings import get_embedding
+from app.storage.vector_store import search_documents
+from app.nodes.retrieval.evaluator import evaluator
 
-langfuse = Langfuse()
+langfuse = get_langfuse_client()
 
 def load_ground_truth(file_path: str):
     if not os.path.exists(file_path):
@@ -27,6 +27,8 @@ def load_ground_truth(file_path: str):
 
 def sync_to_langfuse(data: List[Dict], dataset_name: str):
     """Syncs dataset to Langfuse if not already present."""
+    if not langfuse:
+        return
     try:
         langfuse.get_dataset(dataset_name)
         print(f"✅ Dataset '{dataset_name}' already exists in Langfuse.")
@@ -37,7 +39,11 @@ def sync_to_langfuse(data: List[Dict], dataset_name: str):
             langfuse.create_dataset_item(
                 dataset_name=dataset_name,
                 input={"question": item["question"]},
-                expected_output={"answer": item["expected_chunk_answer"]}
+                expected_output={
+                    "expected_chunks": item.get("expected_chunks", []),
+                    "expected_answer": item.get("expected_answer"),
+                    "intent": item.get("expected_intent")
+                }
             )
         print(f"✅ Uploaded {len(data)} items.")
 
@@ -64,6 +70,10 @@ async def run_retrieval_bench(args):
         return
 
     # 2. Get Dataset Items
+    if not langfuse:
+        print("❌ Langfuse client not initialized.")
+        return
+        
     dataset = langfuse.get_dataset(dataset_name)
     run_name = f"retrieval-{dataset_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     
@@ -73,39 +83,32 @@ async def run_retrieval_bench(args):
 
     for i, item in enumerate(dataset.items, 1):
         question = item.input["question"]
-        expected_answer = item.expected_output["answer"]
+        expected_chunks = item.expected_output.get("expected_chunks", [])
         
         print(f"[{i}/{len(dataset.items)}] {question[:50]}...", end=" ", flush=True)
         
         # Link this run to the dataset item
         with item.run(run_name=run_name) as trace:
             try:
-                # 3. Retrieval
-                emb = await get_embedding(question)
-                results = await search_documents(emb, top_k=top_k)
-                retrieved_contents = [r["content"] for r in results]
-                
-                # 4. Calculate Metrics
-                metrics = calculate_all_metrics(expected_answer, [{"content": c} for c in retrieved_contents], top_k=top_k)
-                pos = find_answer_position(expected_answer, [{"content": c} for c in retrieved_contents])
+                # 3. Retrieval & Metrics
+                eval_res = await evaluator.evaluate_single(question, expected_chunks, top_k=top_k)
+                metrics = eval_res["metrics"]
+                retrieved_contents = eval_res["output"].docs
                 
                 # 5. Log results to Trace
                 trace.update(
                     input={"question": question},
-                    output={"retrieved_docs": retrieved_contents, "metrics": metrics, "pos": pos}
+                    output={"retrieved_docs": retrieved_contents, "metrics": metrics}
                 )
                 
                 # Create scores in Langfuse
                 for m_name, m_val in metrics.items():
                     langfuse.create_score(
-                        trace_id=trace.trace_id,
+                        trace_id=trace.id,
                         name=f"retrieval_{m_name}",
                         value=float(m_val)
                     )
                 
-                if pos:
-                    langfuse.create_score(trace_id=trace.trace_id, name="retrieval_position", value=float(pos))
-
                 all_metrics.append(metrics)
                 print(f"Hit: {metrics['hit_rate']} MRR: {metrics['mrr']:.2f}")
 
@@ -141,4 +144,8 @@ if __name__ == "__main__":
     parser.add_argument("--top_k", type=int, default=3, help="Number of documents to retrieve (default: 3)")
     
     args = parser.parse_args()
+    
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        
     asyncio.run(run_retrieval_bench(args))
