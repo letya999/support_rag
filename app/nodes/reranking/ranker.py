@@ -2,14 +2,27 @@ from sentence_transformers import CrossEncoder
 from typing import List, Tuple
 import numpy as np
 
+import asyncio
+
 class Reranker:
-    def __init__(self, model_name: str = "cross-encoder/qnli-distilroberta-base"):
+    def __init__(self, model_name: str = "mixedbread-ai/mxbai-rerank-base-v1"):
+        # This model is much faster (110M params) and very high quality.
+        # It's better suited for CPU environments than large M3/Gemma models.
         self.model = CrossEncoder(model_name)
+
+    async def rank_async(self, query: str, documents: List[str]) -> List[Tuple[float, str]]:
+        """
+        Rerank documents asynchronously using a thread pool to avoid blocking the event loop.
+        """
+        if not documents:
+            return []
+        
+        # Run the heavy computation in a thread pool
+        return await asyncio.to_thread(self.rank, query, documents)
 
     def rank(self, query: str, documents: List[str]) -> List[Tuple[float, str]]:
         """
-        Rerank documents based on the query.
-        Returns a list of (score, document) tuples sorted by score descending.
+        Rerank documents based on the query (Synchronous).
         """
         if not documents:
             return []

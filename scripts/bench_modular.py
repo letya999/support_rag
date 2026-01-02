@@ -57,7 +57,8 @@ async def run_modular_bench(args):
                         question, 
                         top_k_retrieval=top_k_retrieval,
                         top_k_rerank=top_k_rerank,
-                        use_expansion=args.use_expansion
+                        use_expansion=args.use_expansion,
+                        confidence_threshold=args.confidence_threshold
                     )
                     search_type = "Advanced"
                 
@@ -100,6 +101,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_reranker", action="store_true", help="Enable Reranking")
     parser.add_argument("--top_k_retrieval", type=int, default=10)
     parser.add_argument("--top_k_rerank", type=int, default=5)
+    parser.add_argument("--confidence_threshold", type=float, default=0.5)
     
     args = parser.parse_args()
     if sys.platform == "win32":

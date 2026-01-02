@@ -31,22 +31,33 @@ async def retrieve_context_expanded(
     question: str, 
     top_k_retrieval: int = 10, 
     top_k_rerank: Optional[int] = None,
-    use_expansion: bool = True
+    use_expansion: bool = True,
+    confidence_threshold: float = 0.5
 ) -> RetrievalOutput:
     """
     ADVANCED retrieval: optional expansion + parallel search + optional reranking.
+    Includes a short-circuit logic: if initial search is confident, skip expensive steps.
     """
-    # 1. Expansion
+    # 1. Probe Search (Simple)
+    # Check if the original question already yields high-confidence results
+    initial_k = top_k_rerank if top_k_rerank else top_k_retrieval
+    initial_output = await retrieve_context(question, top_k=initial_k)
+    
+    if initial_output.confidence >= confidence_threshold:
+        # High confidence in initial results - skip expansion and reranking to save latency/cost
+        return initial_output
+
+    # 2. Expansion
     queries = [question]
     if use_expansion:
         expander = QueryExpander()
         queries = await expander.expand(question)
         
-    # 2. Parallel Search
+    # 3. Parallel Search
     tasks = [search_single_query(q, top_k_retrieval) for q in queries]
     all_results = await asyncio.gather(*tasks)
     
-    # 3. Flatten and Deduplicate
+    # 4. Flatten and Deduplicate
     seen_contents = set()
     unique_results = []
     for results in all_results:
@@ -58,11 +69,12 @@ async def retrieve_context_expanded(
     # Sort by vector score
     unique_results = sorted(unique_results, key=lambda x: x.score, reverse=True)
     
-    # 4. Optional Reranking
+    # 5. Optional Reranking
     if top_k_rerank is not None:
         docs_to_rerank = [r.content for r in unique_results]
         ranker = get_reranker()
-        ranked_results = ranker.rank(question, docs_to_rerank)
+        # Use async ranking to avoid blocking the event loop
+        ranked_results = await ranker.rank_async(question, docs_to_rerank)
         
         # Take top K after rerank
         final_results = ranked_results[:top_k_rerank]
