@@ -41,6 +41,12 @@ async def ingest(file_path):
                     question = item.get('question', '')
                     answer = item.get('answer', '')
                     
+                    # Get metadata if it exists, otherwise construct it (or empty dict)
+                    metadata = item.get('metadata', {})
+                    
+                    # Serialize metadata to JSON string for the INSERT
+                    metadata_json = json.dumps(metadata)
+
                     # Combine Q&A into one chunk as per requirements
                     content = f"Question: {question}\nAnswer: {answer}"
                     
@@ -49,8 +55,12 @@ async def ingest(file_path):
                     embedding = await get_embedding(content)
                     
                     cur.execute(
-                        "INSERT INTO documents (content, embedding) VALUES (%s, %s)",
-                        (content, embedding)
+                        """
+                        INSERT INTO documents 
+                        (content, embedding, metadata) 
+                        VALUES (%s, %s, %s)
+                        """,
+                        (content, embedding, metadata_json)
                     )
                 
                 conn.commit()

@@ -1,0 +1,122 @@
+[
+    {
+        "question": "How do I reset my password?",
+        "answer": "You can reset your password by clicking on the 'Forgot Password' link on the login page.",
+        "metadata": {
+            "category": "Account Access",
+            "intent": "reset_password",
+            "requires_handoff": false,
+            "confidence_threshold": 0.9,
+            "clarifying_questions": [
+                "Do you have access to the email address associated with your account?"
+            ]
+        }
+    },
+    {
+        "question": "Where can I find my order history?",
+        "answer": "Your order history is located in the 'My Account' section under the 'Orders' tab.",
+        "metadata": {
+            "category": "Order Management",
+            "intent": "view_history",
+            "requires_handoff": false,
+            "confidence_threshold": 0.95,
+            "clarifying_questions": []
+        }
+    },
+    {
+        "question": "How do I contact support?",
+        "answer": "You can contact support via email at support@example.com or by calling 1-800-123-4567.",
+        "metadata": {
+            "category": "Support",
+            "intent": "contact_support",
+            "requires_handoff": true,
+            "confidence_threshold": 1.0,
+            "clarifying_questions": []
+        }
+    },
+    {
+        "question": "What is the return policy?",
+        "answer": "We accept returns within 30 days of purchase. Items must be in original condition.",
+        "metadata": {
+            "category": "Returns & Refunds",
+            "intent": "check_policy",
+            "requires_handoff": false,
+            "confidence_threshold": 0.85,
+            "clarifying_questions": [
+                "Is the item damaged or defective?",
+                "Do you have the original receipt?"
+            ]
+        }
+    },
+    {
+        "question": "Can I change my shipping address?",
+        "answer": "Yes, you can update your shipping address in your profile settings before an order is shipped.",
+        "metadata": {
+            "category": "Shipping",
+            "intent": "change_address",
+            "requires_handoff": false,
+            "confidence_threshold": 0.9,
+            "clarifying_questions": [
+                "Has your order already been shipped?"
+            ]
+        }
+    },
+    {
+        "question": "Do you offer international shipping?",
+        "answer": "Yes, we ship to most countries worldwide. Shipping costs may vary.",
+        "metadata": {
+            "category": "Shipping",
+            "intent": "check_shipping_availability",
+            "requires_handoff": false,
+            "confidence_threshold": 0.95,
+            "clarifying_questions": []
+        }
+    },
+    {
+        "question": "How do I track my package?",
+        "answer": "A tracking link will be sent to your email once your order has been shipped.",
+        "metadata": {
+            "category": "Shipping",
+            "intent": "track_order",
+            "requires_handoff": false,
+            "confidence_threshold": 0.9,
+            "clarifying_questions": []
+        }
+    },
+    {
+        "question": "What payment methods do you accept?",
+        "answer": "We accept Visa, MasterCard, PayPal, and Apple Pay.",
+        "metadata": {
+            "category": "Billing",
+            "intent": "check_payment_methods",
+            "requires_handoff": false,
+            "confidence_threshold": 1.0,
+            "clarifying_questions": []
+        }
+    },
+    {
+        "question": "Can I cancel my subscription?",
+        "answer": "Yes, you can cancel your subscription at any time from your account settings.",
+        "metadata": {
+            "category": "Account Management",
+            "intent": "cancel_subscription",
+            "requires_handoff": true,
+            "confidence_threshold": 0.8,
+            "clarifying_questions": [
+                "Are you experiencing technical issues with the service?",
+                "Would you like to pause your subscription instead?"
+            ]
+        }
+    },
+    {
+        "question": "Where is the company located?",
+        "answer": "Our headquarters are located in San Francisco, CA.",
+        "metadata": {
+            "category": "General Info",
+            "intent": "company_info",
+            "requires_handoff": false,
+            "confidence_threshold": 1.0,
+            "clarifying_questions": []
+        }
+    }
+]
