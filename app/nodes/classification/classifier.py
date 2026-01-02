@@ -16,9 +16,10 @@ class ClassificationService:
             # Initialize zero-shot classifier
             # Using cpu for simplicity as requested "No dependencies" implies standard env, but transformers is heavy.
             # User accepted transformers dependency.
+            # Using smaller DistilBART for faster CPU performance (~2-3x faster than BART-Large)
             cls._classifier = pipeline(
                 "zero-shot-classification", 
-                model="facebook/bart-large-mnli",
+                model="valhalla/distilbart-mnli-12-1",
                 device=-1 # CPU
             )
         return cls._instance
@@ -38,6 +39,9 @@ class ClassificationService:
 
         loop = asyncio.get_running_loop()
         
+        import time
+        start_time = time.time()
+        
         # Parallel classification
         intent_task = loop.run_in_executor(
             None, 
@@ -49,6 +53,9 @@ class ClassificationService:
         )
 
         intent_res, category_res = await asyncio.gather(intent_task, category_task)
+
+        duration = time.time() - start_time
+        print(f"[Classifier] Took {duration:.2f}s for query: '{text[:20]}...'")
 
         output = ClassificationOutput(
             intent=intent_res['labels'][0],
