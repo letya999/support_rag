@@ -12,8 +12,10 @@ async def route_node(state: Dict[str, Any]):
     confidence = state.get("confidence", 0.0)
     
     requires_handoff = metadata.get("requires_handoff", False)
-    # Allow threshold override from metadata or use default
-    threshold = metadata.get("confidence_threshold", settings.DEFAULT_CONFIDENCE_THRESHOLD)
+    # Allow threshold override from state (highest priority), metadata, or use default
+    threshold = state.get("confidence_threshold")
+    if threshold is None:
+        threshold = metadata.get("confidence_threshold", settings.DEFAULT_CONFIDENCE_THRESHOLD)
     
     action = decide_action(confidence, requires_handoff, threshold)
     

@@ -27,5 +27,6 @@ async def rerank_node(state: Dict[str, Any]):
     return {
         "docs": reranked_docs,
         "rerank_scores": reranked_scores,
-        "best_rerank_score": reranked_scores[0] if reranked_scores else 0.0
+        "best_rerank_score": reranked_scores[0] if reranked_scores else 0.0,
+        "confidence": reranked_scores[0] if reranked_scores else 0.0
     }

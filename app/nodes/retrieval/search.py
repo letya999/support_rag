@@ -7,12 +7,12 @@ from app.nodes.query_expansion.expander import QueryExpander
 from app.nodes.reranking.ranker import get_reranker
 from app.nodes.hybrid_search.node import search_hybrid
 
-async def retrieve_context(question: str, top_k: int = 3) -> RetrievalOutput:
+async def retrieve_context(question: str, top_k: int = 3, category_filter: Optional[str] = None) -> RetrievalOutput:
     """
     SIMPLE retrieval: embedding + vector search for a single query.
     """
     embedding = await get_embedding(question)
-    results = await search_documents(embedding, top_k=top_k)
+    results = await search_documents(embedding, top_k=top_k, category_filter=category_filter)
     
     docs = [r.content for r in results]
     scores = [r.score for r in results]
@@ -34,7 +34,8 @@ async def retrieve_context_expanded(
     top_k_rerank: Optional[int] = None,
     use_expansion: bool = True,
     use_hybrid: bool = False,
-    confidence_threshold: float = 0.5
+    confidence_threshold: float = 0.5,
+    category_filter: Optional[str] = None
 ) -> RetrievalOutput:
     """
     ADVANCED retrieval: optional expansion + parallel search + optional reranking.
@@ -43,7 +44,7 @@ async def retrieve_context_expanded(
     # 1. Probe Search (Simple)
     # Check if the original question already yields high-confidence results
     initial_k = top_k_rerank if top_k_rerank else top_k_retrieval
-    initial_output = await retrieve_context(question, top_k=initial_k)
+    initial_output = await retrieve_context(question, top_k=initial_k, category_filter=category_filter)
     
     if initial_output.confidence >= confidence_threshold:
         # High confidence in initial results - skip expansion and reranking to save latency/cost
@@ -59,7 +60,7 @@ async def retrieve_context_expanded(
     if use_hybrid:
         tasks = [search_hybrid(q, top_k_retrieval) for q in queries]
     else:
-        tasks = [search_single_query(q, top_k_retrieval) for q in queries]
+        tasks = [search_single_query(q, top_k_retrieval, category_filter) for q in queries]
     all_results = await asyncio.gather(*tasks)
     
     # 4. Flatten and Deduplicate
@@ -104,6 +105,6 @@ async def retrieve_context_expanded(
         best_doc_metadata=best_doc_metadata
     )
 
-async def search_single_query(query: str, top_k: int):
+async def search_single_query(query: str, top_k: int, category_filter: Optional[str] = None):
     embedding = await get_embedding(query)
-    return await search_documents(embedding, top_k=top_k)
+    return await search_documents(embedding, top_k=top_k, category_filter=category_filter)

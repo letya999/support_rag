@@ -85,25 +85,38 @@ async def ask(
     langfuse_handler = get_langfuse_callback_handler()
     
     try:
-        result = await rag_graph.ainvoke(
-            {
-                "question": q,
-                "hybrid_used": hybrid
-            },
-            config={
-                "callbacks": [langfuse_handler],
-                "run_name": "rag_pipeline"
-            }
-        )
+        try:
+            result = await rag_graph.ainvoke(
+                {
+                    "question": q,
+                    "hybrid_used": hybrid,
+                    "confidence_threshold": float("-inf") # Ignore confidence threshold as requested
+                },
+                config={
+                    "callbacks": [langfuse_handler],
+                    "run_name": "rag_pipeline"
+                }
+            )
+        except Exception as e:
+            # Check if it's likely a network/tracing timeout and retry without callbacks 
+            if "timeout" in str(e).lower() or "connection" in str(e).lower():
+                print(f"Warning: Tracing failed ({e}), retrying without callbacks.")
+                result = await rag_graph.ainvoke(
+                    {
+                        "question": q,
+                        "hybrid_used": hybrid,
+                        "confidence_threshold": float("-inf") 
+                    },
+                    config={
+                        "callbacks": [], 
+                        "run_name": "rag_pipeline_retry"
+                    }
+                )
+            else:
+                raise e
         
         return {
-            "question": q,
-            "answer": result.get("answer"),
-            "action": result.get("action"),
-            "confidence": result.get("confidence"),
-            "matched_intent": result.get("matched_intent"),
-            "matched_category": result.get("matched_category"),
-            "context": result.get("docs")
+            "answer": result.get("answer")
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

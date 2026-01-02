@@ -8,7 +8,8 @@ async def retrieve_node(state: Dict[str, Any]):
     LangGraph node for simple retrieval.
     """
     question = state.get("question", "")
-    output = await retrieve_context(question)
+    category_filter = state.get("matched_category") if state.get("filter_used") else None
+    output = await retrieve_context(question, category_filter=category_filter)
     
     return {
         "docs": output.docs,
