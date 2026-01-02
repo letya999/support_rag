@@ -5,7 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from app.embeddings import get_embedding
 from app.search import search_documents
 from langfuse import observe
-from langfuse.decorators import langfuse_context
+from langfuse.langchain import CallbackHandler
 
 class State(TypedDict):
     question: str
@@ -48,8 +48,8 @@ async def generate(state: State):
     # Simple chain
     chain = prompt | llm
     
-    # Get Langfuse handler for the current span to ensure nesting
-    langfuse_handler = langfuse_context.get_current_langchain_handler()
+    # v3: CallbackHandler automatically links to the current span
+    langfuse_handler = CallbackHandler()
     
     # Invoke
     response = await chain.ainvoke(

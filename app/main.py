@@ -3,7 +3,7 @@ import os
 from app.embeddings import get_embedding
 from app.search import search_documents
 from langfuse import observe, get_client
-from langfuse.decorators import langfuse_context
+from langfuse.langchain import CallbackHandler
 from app.rag_graph import rag_graph
 
 # Rename to avoid shadowing the 'langfuse' package
@@ -57,9 +57,8 @@ async def ask(q: str = Query(..., description="Question to answer")):
     if not q:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
     
-    # Initialize Langfuse Callback Handler linked to the current trace
-    # Using get_current_langchain_handler() automatically links to the @observe() trace
-    langfuse_handler = langfuse_context.get_current_langchain_handler()
+    # v3: CallbackHandler automatically links to the current @observe() trace
+    langfuse_handler = CallbackHandler()
 
     
     try:
