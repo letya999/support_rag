@@ -32,6 +32,21 @@ class State(TypedDict):
     fallback_triggered: Optional[bool]
     filtering_reason: Optional[str]
 
+    # Multi-hop Reasoning (Phase 3)
+    complexity_level: Optional[str]  # "simple", "medium", "complex"
+    complexity_score: Optional[float]
+    num_hops_required: Optional[int]
+    primary_doc: Optional[str]
+    related_docs: Optional[List[str]]
+    hop_chain: Optional[List[str]]
+    merged_context: Optional[str]
+    multihop_used: Optional[bool]
+    hops_performed: Optional[int]
+
+    # Caching (Phase 2)
+    cache_hit: Optional[bool]
+    cache_key: Optional[str]
+    cache_stats: Optional[Dict[str, Any]]
     # Multi-hop
     complexity_level: Optional[Literal["simple", "medium", "complex"]]
     complexity_score: Optional[float]
