@@ -7,12 +7,26 @@ from app.storage.models import SearchResult
 async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
     """
     Search for documents using PostgreSQL full-text search (Multi-language).
-    Checks both English and Russian indices.
+    Translates query if necessary to match document languages.
     """
+    from app.nodes.lexical_search.translator import translator
+    
+    # Prepare queries for each language index
+    # If it's RU, we need an EN version for fts_en
+    # If it's EN, we need a RU version for fts_ru
+    query_lang = translator.detect_language(query)
+    
+    query_en = query
+    query_ru = query
+    
+    if query_lang == "ru":
+        query_en = translator.translate_ru_to_en(query)
+    elif query_lang == "en":
+        query_ru = translator.translate_en_to_ru(query)
+
     results = []
     async with get_db_connection() as conn:
         async with conn.cursor() as cur:
-            # We search in both fts_en and fts_ru and take the best rank
             try:
                 await cur.execute(
                     """
@@ -30,7 +44,7 @@ async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
                     ORDER BY score DESC
                     LIMIT %s;
                     """,
-                    (query, query, query, query, top_k)
+                    (query_en, query_ru, query_en, query_ru, top_k)
                 )
                 rows = await cur.fetchall()
             except Exception as e:
@@ -52,7 +66,7 @@ async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
                     ORDER BY score DESC
                     LIMIT %s;
                     """,
-                    (query, query, query, query, top_k)
+                    (query_en, query_ru, query_en, query_ru, top_k)
                 )
                 rows = await cur.fetchall()
 

@@ -18,7 +18,7 @@ class EmbeddingModel:
             cls._instance = cls()
         return cls._instance
 
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+    def __init__(self, model_name: str = "intfloat/multilingual-e5-small"):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Loading embedding model {model_name} on {self.device}...")
         self.model = SentenceTransformer(model_name, device=self.device)
@@ -43,14 +43,15 @@ embedding_model = EmbeddingModel.get_instance()
 @observe(as_type="span")
 async def get_embedding(text: str) -> List[float]:
     """
-    Get embedding for a single string.
+    Get embedding for a single string (Query).
+    Adds 'query: ' prefix as required by E5 models.
     """
     loop = asyncio.get_running_loop()
     # Run in executor to avoid blocking event loop
     embeddings = await loop.run_in_executor(
         executor, 
         embedding_model.encode_sync, 
-        [text], 
+        [f"query: {text}"], 
         1
     )
     return embeddings[0]
@@ -58,16 +59,20 @@ async def get_embedding(text: str) -> List[float]:
 @observe(as_type="span")
 async def get_embeddings_batch(texts: List[str], batch_size: int = 32) -> List[List[float]]:
     """
-    Get embeddings for a list of strings.
+    Get embeddings for a list of strings (Passages).
+    Adds 'passage: ' prefix as required by E5 models.
     """
     if not texts:
         return []
+    
+    # Add prefix
+    prefixed_texts = [f"passage: {t}" for t in texts]
         
     loop = asyncio.get_running_loop()
     embeddings = await loop.run_in_executor(
         executor,
         embedding_model.encode_sync,
-        texts,
+        prefixed_texts,
         batch_size
     )
     return embeddings

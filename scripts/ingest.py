@@ -60,14 +60,40 @@ async def ingest_documents(file_path: str):
         # Use async connection
         async with await psycopg.AsyncConnection.connect(settings.DATABASE_URL, autocommit=True) as conn:
             async with conn.cursor() as cur:
+                # Ensure table exists
+                await cur.execute("""
+                    CREATE TABLE IF NOT EXISTS documents (
+                        id SERIAL PRIMARY KEY,
+                        content TEXT NOT NULL,
+                        embedding vector(384),
+                        metadata JSONB
+                    );
+                """)
+
+                # Add FTS columns and indices if they don't exist
+                # English FTS
+                try:
+                    await cur.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS fts_en tsvector GENERATED ALWAYS AS (to_tsvector('english', content)) STORED;")
+                    await cur.execute("CREATE INDEX IF NOT EXISTS idx_documents_fts_en ON documents USING GIN (fts_en);")
+                except Exception as e:
+                    print(f"Warning: Could not setup English FTS: {e}")
+
+                # Russian FTS
+                try:
+                    await cur.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS fts_ru tsvector GENERATED ALWAYS AS (to_tsvector('russian', content)) STORED;")
+                    await cur.execute("CREATE INDEX IF NOT EXISTS idx_documents_fts_ru ON documents USING GIN (fts_ru);")
+                except Exception as e:
+                    print(f"Warning: Could not setup Russian FTS: {e}")
+
                 # Clear existing documents for idempotency
                 # RESTART IDENTITY to reset serial ID to 1
                 await cur.execute("TRUNCATE TABLE documents RESTART IDENTITY;")
+                
                 # Ensure correct vector size for Open Source model
                 try:
                     await cur.execute("ALTER TABLE documents ALTER COLUMN embedding TYPE vector(384);")
                 except Exception as e:
-                    print(f"Warning: Could not alter embedding type (maybe already set?): {e}")
+                    print(f"Warning: Could not ensure vector size: {e}")
                 
                 batch_size = 32
                 total_items = len(data)
@@ -158,4 +184,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        
     asyncio.run(ingest_documents(args.file))

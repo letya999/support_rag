@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Pre-download models for faster startup and reliability
+RUN python scripts/download_models.py
+
 # Expose port
 EXPOSE 8000
 

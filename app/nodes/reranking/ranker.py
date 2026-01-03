@@ -5,9 +5,9 @@ import numpy as np
 import asyncio
 
 class Reranker:
-    def __init__(self, model_name: str = "mixedbread-ai/mxbai-rerank-base-v1"):
-        # This model is much faster (110M params) and very high quality.
-        # It's better suited for CPU environments than large M3/Gemma models.
+    def __init__(self, model_name: str = "BAAI/bge-reranker-v2-m3"):
+        # This model is state-of-the-art for multilingual reranking.
+        # It handles RU/EN cross-lingual pairs very well.
         self.model = CrossEncoder(model_name)
 
     async def rank_async(self, query: str, documents: List[str]) -> List[Tuple[float, str]]:

@@ -11,7 +11,7 @@
         },
         {
             "name": "rerank",
-            "enabled": true
+            "enabled": false
         },
         {
             "name": "classify",

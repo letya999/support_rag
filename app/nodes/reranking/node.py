@@ -14,7 +14,7 @@ async def rerank_node(state: Dict[str, Any]):
         return {"docs": [], "rerank_scores": []}
     
     ranker = get_reranker()
-    ranked_results = ranker.rank(question, docs)
+    ranked_results = await ranker.rank_async(question, docs)
     
     # Unpack scores and docs
     reranked_scores = [score for score, doc in ranked_results]
