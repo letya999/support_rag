@@ -19,6 +19,13 @@ class State(TypedDict):
     intent_confidence: Optional[float]
     category: Optional[str]
     category_confidence: Optional[float]
+
+    # FastText Classification (Testing)
+    fasttext_intent: Optional[str]
+    fasttext_intent_confidence: Optional[float]
+    fasttext_category: Optional[str]
+    fasttext_category_confidence: Optional[float]
+    fasttext_time: Optional[float]
     
     # Filtering
     filter_used: Optional[bool]

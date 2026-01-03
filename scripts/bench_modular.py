@@ -14,6 +14,9 @@ from app.observability.langfuse_client import get_langfuse_client
 from app.nodes.retrieval.search import retrieve_context, retrieve_context_expanded
 from app.nodes.retrieval.evaluator import evaluator
 from app.nodes.classification.classifier import ClassificationService
+from app.nodes.easy_classification.fasttext_classifier import FastTextClassificationService
+from app.nodes.classification.evaluator import evaluator as cls_evaluator
+from app.nodes.easy_classification.evaluator import evaluator as ft_evaluator
 
 langfuse = get_langfuse_client()
 
@@ -29,12 +32,12 @@ async def run_modular_bench(args):
     print(f"🚀 Modular Benchmark: {dataset_name}")
     print(f"   Expansion: {'ON' if args.use_expansion else 'OFF'}")
     print(f"   Hybrid:    {'ON' if args.use_hybrid else 'OFF'}")
-    print(f"   Classifier:{'ON' if args.use_classifier else 'OFF'}")
+    print(f"   Classifier (Zero-Shot): {'ON' if args.use_classifier else 'OFF'}")
+    print(f"   Classifier (FastText):  {'ON' if args.use_fasttext else 'OFF'}")
     print(f"   Reranker:  {'ON' if args.use_reranker else 'OFF'} (k={top_k_rerank})")
 
     classifier = ClassificationService() if args.use_classifier else None
-    input_tokens = 0 # Placeholder if we wanted to track cost
-
+    ft_classifier = FastTextClassificationService() if args.use_fasttext else None
 
     if not langfuse:
         print("❌ Langfuse client not initialized.")
@@ -44,10 +47,12 @@ async def run_modular_bench(args):
     run_name = f"mod-bench-{datetime.now().strftime('%m%d-%H%M')}"
     
     all_metrics = []
+    cls_results = {"zs": {"true": [], "pred": [], "conf": []}, "ft": {"true": [], "pred": [], "conf": []}}
     
     for i, item in enumerate(dataset.items, 1):
         question = item.input["question"]
         expected_chunks = item.expected_output.get("expected_chunks", [])
+        gt_category = item.metadata.get("category") if item.metadata else None
         
         print(f"[{i}/{len(dataset.items)}] {question[:40]}...", end=" ", flush=True)
         
@@ -55,27 +60,33 @@ async def run_modular_bench(args):
             try:
                 # Classification
                 category_filter = None
-                pred_category = None
-                is_correct_category = None
                 
+                # Zero-Shot Classifier
                 if classifier:
                     cls_res = await classifier.classify(question)
-                    pred_category = cls_res.category
-                    category_filter = pred_category if cls_res.category_confidence >= args.confidence_threshold else None
-                    
-                    # Check ground truth if available in item.metadata
-                    # Assuming dataset item stores "category" in metadata
-                    gt_category = item.metadata.get("category") if item.metadata else None
+                    cls_results["zs"]["pred"].append(cls_res.category)
+                    cls_results["zs"]["conf"].append(cls_res.category_confidence)
                     if gt_category:
-                        is_correct_category = (pred_category == gt_category)
+                        cls_results["zs"]["true"].append(gt_category)
+                    category_filter = cls_res.category if cls_res.category_confidence >= args.confidence_threshold else None
 
-                # В зависимости от флагов вызываем разные методы
-                if not args.use_expansion and not args.use_reranker and not args.use_hybrid and not classifier:
-                    # Simple retrieval
+                # FastText Classifier
+                if ft_classifier:
+                    ft_res = await ft_classifier.classify(question)
+                    if ft_res:
+                        cls_results["ft"]["pred"].append(ft_res.category)
+                        cls_results["ft"]["conf"].append(ft_res.category_confidence)
+                        if gt_category:
+                            cls_results["ft"]["true"].append(gt_category)
+                        # We prioritize FT for filtering if ZS is disabled or if we want to test it
+                        if not category_filter:
+                            category_filter = ft_res.category if ft_res.category_confidence >= args.confidence_threshold else None
+
+                # Retrieval logic (using existing functions)
+                if not args.use_expansion and not args.use_reranker and not args.use_hybrid and not classifier and not args.use_fasttext:
                     output = await retrieve_context(question, top_k=top_k_retrieval, category_filter=category_filter)
                     search_type = "Simple"
                 else:
-                    # Advanced retrieval
                     output = await retrieve_context_expanded(
                         question, 
                         top_k_retrieval=top_k_retrieval,
@@ -91,10 +102,6 @@ async def run_modular_bench(args):
                 curr_k = top_k_rerank if top_k_rerank else top_k_retrieval
                 metrics = evaluator.calculate_metrics(expected_chunks, output.docs, output.scores, top_k=curr_k)
                 
-                if is_correct_category is not None:
-                    metrics["class_acc"] = 1.0 if is_correct_category else 0.0
-
-                
                 # Log to trace
                 trace.update(
                     input={"question": question},
@@ -103,12 +110,8 @@ async def run_modular_bench(args):
                         "expansion": args.use_expansion,
                         "hybrid": args.use_hybrid,
                         "reranker": args.use_reranker,
-                        "top_k_retrieval": top_k_retrieval,
-                        "top_k_rerank": top_k_rerank,
                         "search_type": search_type,
-                        "pred_category": pred_category,
                         "category_filter": category_filter,
-                        "class_acc": metrics.get("class_acc")
                     }
                 )
                 
@@ -116,25 +119,42 @@ async def run_modular_bench(args):
                     trace.score(name=m_name, value=float(m_val))
                 
                 all_metrics.append(metrics)
-                cls_msg = f" | Cls: {metrics['class_acc']:.0f}" if "class_acc" in metrics else ""
-                print(f"[{search_type}] Hit: {metrics['hit_rate']:.2f} | MRR: {metrics['mrr']:.2f}{cls_msg}")
+                print(f"[{search_type}] Hit: {metrics['hit_rate']:.2f} | MRR: {metrics['mrr']:.2f}")
 
             except Exception as e:
                 print(f"⚠️ Error: {e}")
                 continue
 
+    # Final Classification Summary
     if all_metrics:
+        print("\n🏁 BENCHMARK SUMMARY")
         avg_hit = sum(m["hit_rate"] for m in all_metrics) / len(all_metrics)
         avg_mrr = sum(m["mrr"] for m in all_metrics) / len(all_metrics)
-        avg_cls = sum(m.get("class_acc", 0) for m in all_metrics) / len(all_metrics) if args.use_classifier else 0
-        print(f"\n✅ Done! Avg Hit: {avg_hit:.4f}, Avg MRR: {avg_mrr:.4f}, Avg Cls Acc: {avg_cls:.4f}")
+        print(f"  - Avg Hit: {avg_hit:.4f}")
+        print(f"  - Avg MRR: {avg_mrr:.4f}")
+
+        # Classification Metrics Report
+        for tag, eval_obj in [("zs", cls_evaluator), ("ft", ft_evaluator)]:
+            if cls_results[tag]["true"] and cls_results[tag]["pred"]:
+                metrics = eval_obj.calculate_metrics(
+                    cls_results[tag]["true"], 
+                    cls_results[tag]["pred"],
+                    cls_results[tag]["conf"]
+                )
+                
+                label = "Zero-Shot" if tag == "zs" else "FastText"
+                print(f"\n📊 {label} Performance:")
+                for k, v in metrics.items():
+                    print(f"  - {k.replace('_', ' ').title()}: {v:.4f}")
+                    langfuse.score(name=f"{tag}_{k}", value=v)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("dataset", help="Dataset name")
     parser.add_argument("--use_expansion", action="store_true", help="Enable Query Expansion")
-    parser.add_argument("--use_hybrid", action="store_true", help="Enable Hybrid Search (Vector + BM25)")
-    parser.add_argument("--use_classifier", action="store_true", help="Enable Intent Classification & Filtering")
+    parser.add_argument("--use_hybrid", action="store_true", help="Enable Hybrid Search")
+    parser.add_argument("--use_classifier", action="store_true", help="Enable Zero-Shot Classification")
+    parser.add_argument("--use_fasttext", action="store_true", help="Enable FastText Classification")
     parser.add_argument("--use_reranker", action="store_true", help="Enable Reranking")
     parser.add_argument("--top_k_retrieval", type=int, default=10)
     parser.add_argument("--top_k_rerank", type=int, default=5)

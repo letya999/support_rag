@@ -140,24 +140,36 @@ async def run_generation_bench(args):
                 
                 from app.nodes.retrieval.search import retrieve_context
                 from app.nodes.generation.node import generate_answer_simple
+                from app.nodes.classification.classifier import ClassificationService
+                from app.nodes.easy_classification.fasttext_classifier import FastTextClassificationService
+                from app.nodes.classification.evaluator import evaluator as cls_evaluator
+                from app.nodes.easy_classification.evaluator import evaluator as ft_evaluator
                 
-                # Step 3a: Retrieve
+                # Step 3a: Classification (Optional tracking during Gen bench)
+                cls_service = ClassificationService()
+                ft_service = FastTextClassificationService()
+                
+                cls_res = await cls_service.classify(question)
+                ft_res = await ft_service.classify(question)
+                
+                gt_category = item.metadata.get("category") if item.metadata else None
+                
+                # Step 3b: Retrieve
                 ret_output = await retrieve_context(question, top_k=top_k)
                 retrieved_docs = ret_output.docs
                 retrieved_scores = ret_output.scores
                 
-                # Step 3b: Generate
+                # Step 3c: Generate
                 generated_answer = await generate_answer_simple(question, retrieved_docs)
                 
-                # Step 3c: Generation Metrics
-                # We can use gen_evaluator.calculate_metrics
+                # Step 3d: Generation Metrics
                 gen_metrics = gen_evaluator.calculate_metrics(
                     question=question,
                     context="\n\n".join(retrieved_docs),
                     answer=generated_answer
                 )
                 
-                # Step 3d: Retrieval Metrics
+                # Step 3e: Retrieval Metrics
                 ret_metrics = ret_evaluator.calculate_metrics(
                     expected_answer=expected_chunks,
                     retrieved_docs=retrieved_docs,
@@ -168,13 +180,30 @@ async def run_generation_bench(args):
                 # Combine
                 all_single_metrics = {**gen_metrics, **ret_metrics}
                 
+                # Log classification accuracy to trace if GT is available
+                if gt_category:
+                    # Use evaluators for consistency, even for single items
+                    zs_m = cls_evaluator.calculate_metrics([gt_category], [cls_res.category])
+                    all_single_metrics["zs_acc"] = zs_m["accuracy"]
+                    
+                    if ft_res:
+                        ft_m = ft_evaluator.calculate_metrics([gt_category], [ft_res.category])
+                        all_single_metrics["ft_acc"] = ft_m["accuracy"]
+
                 # 5. Log results to Trace
                 trace.update(
                     input={"question": question},
                     output={
                         "answer": generated_answer, 
                         "retrieved_docs": retrieved_docs, 
-                        "metrics": all_single_metrics
+                        "metrics": all_single_metrics,
+                        "classification": {
+                            "zero_shot": cls_res.category,
+                            "fasttext": ft_res.category if ft_res else "N/A"
+                        }
+                    },
+                    metadata={
+                        "gt_category": gt_category
                     }
                 )
                 
@@ -188,7 +217,8 @@ async def run_generation_bench(args):
                 all_metrics.append(all_single_metrics)
                 
                 # Print short summary
-                print(f"Hit: {ret_metrics.get('hit_rate', 0):.2f} Gen Faith: {gen_metrics.get('faithfulness', 0):.2f}")
+                cls_info = f" | Cls: {all_single_metrics.get('zs_acc', 0):.0f}/{all_single_metrics.get('ft_acc', 0):.0f}" if gt_category else ""
+                print(f"Hit: {ret_metrics.get('hit_rate', 0):.2f} Gen Faith: {gen_metrics.get('faithfulness', 0):.2f}{cls_info}")
 
             except Exception as e:
                 print(f"⚠️ Error processing item: {e}")

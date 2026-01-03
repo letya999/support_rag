@@ -9,6 +9,7 @@ from app.nodes.query_expansion.node import query_expansion_node
 from app.nodes.reranking.node import rerank_node
 from app.nodes.hybrid_search.node import hybrid_search_node
 from app.nodes.classification.node import classify_node
+from app.nodes.easy_classification.node import fasttext_classify_node
 from app.nodes.metadata_filtering.node import metadata_filter_node
 
 def router_logic(state: State):
@@ -21,6 +22,7 @@ def router_logic(state: State):
 
 # Mapping of node names to their implementations
 NODE_FUNCTIONS = {
+    "fasttext_classify": fasttext_classify_node,
     "classify": classify_node,
     "metadata_filter": metadata_filter_node,
     "expand_query": query_expansion_node,

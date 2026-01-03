@@ -1,8 +1,12 @@
 {
     "nodes": [
         {
-            "name": "classify",
+            "name": "fasttext_classify",
             "enabled": true
+        },
+        {
+            "name": "classify",
+            "enabled": false
         },
         {
             "name": "metadata_filter",
