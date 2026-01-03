@@ -31,3 +31,14 @@ class State(TypedDict):
     filter_used: Optional[bool]
     fallback_triggered: Optional[bool]
     filtering_reason: Optional[str]
+
+    # Multi-hop
+    complexity_level: Optional[Literal["simple", "medium", "complex"]]
+    complexity_score: Optional[float]
+    num_hops_required: Optional[int]
+    primary_doc: Optional[str]
+    related_docs: List[str]
+    hop_chain: Optional[List[dict]]
+    merged_context: Optional[str]
+    multihop_used: Optional[bool]
+    hops_performed: Optional[int]

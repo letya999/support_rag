@@ -11,6 +11,7 @@ from app.nodes.hybrid_search.node import hybrid_search_node
 from app.nodes.classification.node import classify_node
 from app.nodes.easy_classification.node import fasttext_classify_node
 from app.nodes.metadata_filtering.node import metadata_filter_node
+from app.nodes.multihop.node import multihop_node
 
 def router_logic(state: State):
     """
@@ -29,6 +30,7 @@ NODE_FUNCTIONS = {
     "retrieve": retrieve_node,
     "hybrid_search": hybrid_search_node,
     "rerank": rerank_node,
+    "multihop": multihop_node,
     "route": route_node,
     "generate": generate_node,
 }

@@ -40,40 +40,53 @@
 
 ### 1.2 Детектор сложности (`app/nodes/multihop/complexity_detector.py`)
 
-**Логика (без LLM вызовов, только на правилах):**
+**Логика (Bilingual RU/EN, без LLM вызовов):**
+
+Система анализирует текст на наличие структурных маркеров сложности на обоих языках.
 
 ```python
-Метрики сложности:
-1. Количество запросных слов (how, what, when, why, which, explain)
-   - 0 → простой (command: "show orders")
-   - 1-2 → средний (question: "how to reset password?")
-   - 3+ → сложный (reasoning: "why can't I reset password if...")
+# Наборы маркеров для анализа
+MARKERS = {
+    "question_words": {
+        "en": ["how", "why", "what", "when", "which", "where", "explain", "describe"],
+        "ru": ["как", "почему", "зачем", "что", "когда", "какой", "где", "объясни", "опиши"]
+    },
+    "logical_connectors": {
+        "en": ["if", "then", "else", "because", "unless", "provided", "assuming", "after", "before"],
+        "ru": ["если", "то", "иначе", "потому", "так как", "хотя", "при условии", "после", "до"]
+    },
+    "conjunctions": {
+        "en": ["and", "or", "also", "with", "besides"],
+        "ru": ["и", "или", "также", "с", "кроме"]
+    }
+}
 
-2. Наличие условных конструкций (if, after, before, assuming)
-   - Есть → +1 к сложности
+Алгоритм оценки:
+1. Определение языка (Cyrillic vs Latin)
+2. Подсчет маркеров для выбранного языка:
+   - Каждое уникальное слово из question_words → +1 балл
+   - Каждое вхождение logical_connectors → +1.5 балла
+   - Каждая конъюнкция (and/or/и/или) → +0.5 балла
+3. Анализ структуры:
+   - Наличие запятых (признак сложных предложений) → +0.5 балла за каждую
+   - Количество слов > 15 → +1 балл
+   - Количество слов > 25 → +2 балла
 
-3. Количество именованных сущностей (entities)
-   - 1 → простой
-   - 2-3 → средний
-   - 4+ → сложный
-
-4. Наличие слов "и", "или", указывающих на множественные аспекты
-   - Есть конъюнкция → средний/сложный
-
-Итоговая оценка:
-  sum < 2 → simple (retrieval_hops: 1)
-  2 <= sum < 4 → medium (retrieval_hops: 2)
-  sum >= 4 → complex (retrieval_hops: 3)
+Итоговый маппинг:
+  Score < 1.5 → simple (num_hops: 1)
+  1.5 <= Score < 3.5 → medium (num_hops: 2)
+  Score >= 3.5 → complex (num_hops: 3)
 ```
 
 **Выход:**
 ```python
 class ComplexityOutput(BaseModel):
     complexity_level: Literal["simple", "medium", "complex"]
-    complexity_score: float  # 0-1
-    reasoning_keywords: List[str]  # extracted keywords indicating reasoning
-    num_hops: int  # рекомендуемое количество хопов
-    confidence: float
+    complexity_score: float  # Итоговый балл
+    language: Literal["ru", "en"]
+    detected_markers: List[str]  # Найденные слова-маркеры
+    num_hops: int  # Рекомендуемое количество хопов (1, 2 или 3)
+    confidence: float # Уверенность в детекции (напр. на основе длины запроса)
 ```
 
 ---
@@ -308,7 +321,7 @@ Multi-hop работает с существующей структурой Q&A 
 
 ### 2.2 Query Normalizer (`app/cache/query_normalizer.py`)
 
-**Логика нормализации:**
+**Логика нормализации (Bilingual RU/EN):**
 
 ```python
 def normalize_query(query: str) -> str:
@@ -316,19 +329,20 @@ def normalize_query(query: str) -> str:
     Приводит разные формулировки одного вопроса к одной форме.
 
     Примеры:
-    - "How to reset password?" → "how reset password"
-    - "how reset my password?" → "how reset password"
+    - "How to reset password?" → "reset password"
+    - "Как сбросить пароль?" → "сбросить пароль"
+    - "how reset my password?" → "reset password"
     - "Reset password, please" → "reset password"
     """
 
     steps:
-    1. Приводить в нижний случай
-    2. Удалить пунктуацию (?, !, .)
-    3. Удалить стоп-слова (how, what, can, do, please)
-    4. Удалить дублирующиеся пробелы
-    5. Сортировать ключевые слова (для "reset password" и "password reset" → одно и то же)
+    1. Приведение к нижнему регистру
+    2. Удаление пунктуации (?, !, ., ,)
+    3. Удаление стоп-слов (Bilingual: how, what, can, do, please, как, что, можно, ли, пожалуйста)
+    4. Удаление дублирующиеся пробелов
+    5. Сортировка ключевых слов (для "reset password" и "password reset" → одно и то же)
 
-    Результат: "reset password"
+    Результат: "reset password" или "сбросить пароль"
 ```
 
 ---
