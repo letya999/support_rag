@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Query, HTTPException, Depends
+from urllib.parse import unquote
 from app.config.settings import settings
 from app.storage.connection import get_sync_db_connection
 from app.observability.tracing import observe
@@ -20,6 +21,7 @@ async def health():
 @router.get("/search")
 @observe()
 async def search(q: str = Query(..., description="The search query")):
+    q = unquote(q)
     if not q:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
         
@@ -79,6 +81,7 @@ async def ask(
     q: str = Query(..., description="Question to answer"),
     hybrid: bool = Query(True, description="Enable hybrid search (Vector + Lexical)")
 ):
+    q = unquote(q)
     if not q:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
     

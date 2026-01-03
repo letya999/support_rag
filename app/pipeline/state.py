@@ -12,7 +12,6 @@ class State(TypedDict):
     matched_category: Optional[str]
     best_doc_metadata: Optional[Dict[str, Any]]
     hybrid_used: Optional[bool]
-    hybrid_used: Optional[bool]
     confidence_threshold: Optional[float]
     
     # Classification
