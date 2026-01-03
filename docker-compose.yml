@@ -17,6 +17,20 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: support_rag_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: support_rag_qdrant
@@ -36,12 +50,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       qdrant:
         condition: service_healthy
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-support_rag}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - QDRANT_URL=${QDRANT_URL:-http://qdrant:6333}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
@@ -52,4 +69,5 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
   qdrant_storage:

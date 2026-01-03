@@ -1,4 +1,10 @@
 {
+    "cache": {
+        "enabled": true,
+        "ttl_seconds": 86400,
+        "max_entries": 1000,
+        "redis_url": "redis://localhost:6379/0"
+    },
     "nodes": [
         {
             "name": "fasttext_classify",

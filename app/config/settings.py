@@ -6,19 +6,22 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "Support RAG Engine"
     DEBUG: bool = False
-    
+
     # OpenAI
     OPENAI_API_KEY: str
-    
+
     # Database
     DATABASE_URL: str
     QDRANT_URL: str = "http://localhost:6333"
-    
+
+    # Cache (Phase 2)
+    REDIS_URL: str = "redis://localhost:6379/0"
+
     # Langfuse
     LANGFUSE_PUBLIC_KEY: Optional[str] = None
     LANGFUSE_SECRET_KEY: Optional[str] = None
     LANGFUSE_HOST: Optional[str] = "https://cloud.langfuse.com"
-    
+
     # Parameters
     DEFAULT_CONFIDENCE_THRESHOLD: float = 0.7
     

@@ -31,3 +31,8 @@ class State(TypedDict):
     filter_used: Optional[bool]
     fallback_triggered: Optional[bool]
     filtering_reason: Optional[str]
+
+    # Caching (Phase 2)
+    cache_hit: Optional[bool]
+    cache_key: Optional[str]
+    cache_stats: Optional[Dict[str, Any]]
