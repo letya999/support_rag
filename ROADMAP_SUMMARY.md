@@ -46,24 +46,33 @@ User Question
 │              │                               │
 │              NO                              ↓
 │              ↓                           Response
-│    ┌─────────────────────┐
-│    │  RAG Pipeline       │
-│    ├─────────────────────┤
-│    │ 1. Classify         │
-│    │ 2. Metadata Filter  │
-│    │ 3. Retrieve         │
-│    │ 4. Check Complexity │
-│    │ 5. Multi-Hop? ──┐   │
-│    │    ↓            │   │
-│    │ 6. Generate    │ YES: Resolve hops
-│    │ 7. Store Cache │    & Merge context
-│    │ 8. Route       │   │
-│    └─────────────────────┘
+│    ┌─────────────────────────────────┐
+│    │  RAG Pipeline                   │
+│    ├─────────────────────────────────┤
+│    │ 1. Classify (intent, category)  │
+│    │ 2. Metadata Filter              │
+│    │ 3. Retrieve Q&A                 │
+│    │ 4. Check Complexity             │
+│    │ 5. Multi-Hop? ─────┐            │
+│    │    ↓                │            │
+│    │ 6. Generate        │ YES:       │
+│    │ 7. Store Cache     │ - Find related Q&A by:
+│    │ 8. Route           │   * category  │
+│    │                    │   * intent    │
+│    │                    │   * clarifying_questions
+│    │                    │ - Merge answers → Enhanced context
+│    └─────────────────────────────────┘
 │              ↓
 └──────────→ Format & Send ──→ Telegram/API
                 ↓
            Rating / Feedback
 ```
+
+**Multi-Hop uses existing fields:**
+- `metadata.category` → Find Q&A in same category
+- `metadata.intent` → Find Q&A with same/related intent
+- `metadata.clarifying_questions` → Navigate to related topics
+- **NO new fields added** to Q&A JSON structure
 
 ---
 
