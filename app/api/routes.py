@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Query, HTTPException, Depends
 from urllib.parse import unquote
+from typing import List, Optional, Dict, Any
+from pydantic import BaseModel
 from app.config.settings import settings
 from app.storage.connection import get_sync_db_connection
 from app.observability.tracing import observe
@@ -9,6 +11,24 @@ from app.pipeline.graph import rag_graph
 from app.nodes.retrieval.search import retrieve_context
 
 router = APIRouter()
+
+
+# Telegram Bot Models
+class RAGRequestBody(BaseModel):
+    """Request model for RAG pipeline from Telegram bot"""
+    question: str
+    conversation_history: List[dict]
+    user_id: str
+    session_id: str
+
+
+class RAGResponseBody(BaseModel):
+    """Response model for RAG pipeline to Telegram bot"""
+    answer: str
+    sources: List[Dict[str, Any]] = []
+    confidence: float = 0.0
+    query_id: str = ""
+    metadata: Optional[Dict[str, Any]] = None
 
 @router.get("/health")
 async def health():
@@ -121,5 +141,95 @@ async def ask(
         return {
             "answer": result.get("answer")
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/rag/query")
+@observe()
+async def rag_query(request: RAGRequestBody):
+    """
+    RAG query endpoint for Telegram bot.
+
+    Accepts a question with conversation history context and returns an answer
+    with sources and confidence score.
+
+    Args:
+        request: RAGRequestBody with question, conversation_history, user_id, session_id
+
+    Returns:
+        RAGResponseBody with answer, sources, confidence, and query_id
+    """
+    question = request.question
+    conversation_history = request.conversation_history
+    user_id = request.user_id
+    session_id = request.session_id
+
+    if not question:
+        raise HTTPException(status_code=400, detail="Question cannot be empty")
+
+    langfuse_handler = get_langfuse_callback_handler()
+
+    try:
+        try:
+            # Prepare state for RAG graph with conversation context
+            input_state = {
+                "question": question,
+                "conversation_context": conversation_history,
+                "user_id": user_id,
+                "session_id": session_id,
+                "hybrid_used": True,
+                "confidence_threshold": float("-inf")  # Don't filter by confidence
+            }
+
+            # Run RAG graph
+            result = await rag_graph.ainvoke(
+                input_state,
+                config={
+                    "callbacks": [langfuse_handler],
+                    "run_name": "telegram_rag_query"
+                }
+            )
+        except Exception as e:
+            # Retry without callbacks if there's a connection issue
+            if "timeout" in str(e).lower() or "connection" in str(e).lower():
+                print(f"Warning: Tracing failed ({e}), retrying without callbacks.")
+                input_state = {
+                    "question": question,
+                    "conversation_context": conversation_history,
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "hybrid_used": True,
+                    "confidence_threshold": float("-inf")
+                }
+                result = await rag_graph.ainvoke(
+                    input_state,
+                    config={
+                        "callbacks": [],
+                        "run_name": "telegram_rag_query_retry"
+                    }
+                )
+            else:
+                raise e
+
+        # Format response for Telegram bot
+        answer = result.get("answer", "Не смог найти ответ.")
+        sources = result.get("best_doc_metadata", [])
+        confidence = result.get("confidence", 0.0)
+        query_id = result.get("query_id", session_id)
+
+        # Ensure sources is a list
+        if isinstance(sources, dict):
+            sources = [sources] if sources else []
+        elif not isinstance(sources, list):
+            sources = []
+
+        return RAGResponseBody(
+            answer=answer,
+            sources=sources,
+            confidence=float(confidence) if confidence else 0.0,
+            query_id=str(query_id),
+            metadata=result.get("metadata")
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
