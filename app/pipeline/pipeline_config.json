@@ -35,6 +35,10 @@
             "enabled": true
         },
         {
+            "name": "multihop",
+            "enabled": true
+        },
+        {
             "name": "route",
             "enabled": true
         },

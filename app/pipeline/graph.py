@@ -13,6 +13,14 @@ from app.nodes.easy_classification.node import fasttext_classify_node
 from app.nodes.metadata_filtering.node import metadata_filter_node
 from app.cache.nodes import check_cache_node, store_in_cache_node
 
+# Optional: Import multihop node if available (Phase 3)
+try:
+    from app.nodes.multihop.node import multihop_node
+    MULTIHOP_AVAILABLE = True
+except ImportError:
+    MULTIHOP_AVAILABLE = False
+    multihop_node = None
+
 def cache_hit_logic(state: State):
     """
     Conditional edge logic for cache hits.
@@ -45,6 +53,10 @@ NODE_FUNCTIONS = {
     "generate": generate_node,
     "store_in_cache": store_in_cache_node,
 }
+
+# Add multihop node if available (Phase 3)
+if MULTIHOP_AVAILABLE:
+    NODE_FUNCTIONS["multihop"] = multihop_node
 
 # Load configuration
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "pipeline_config.json")
