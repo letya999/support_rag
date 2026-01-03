@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str
+    QDRANT_URL: str = "http://localhost:6333"
     
     # Langfuse
     LANGFUSE_PUBLIC_KEY: Optional[str] = None

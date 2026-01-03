@@ -148,19 +148,36 @@ async def run_modular_bench(args):
                     print(f"  - {k.replace('_', ' ').title()}: {v:.4f}")
                     langfuse.score(name=f"{tag}_{k}", value=v)
 
+import json
+
 if __name__ == "__main__":
+    # Load config from JSON if exists
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bench_modular_config.json")
+    config = {}
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+    
+    # Extract nodes enablement
+    nodes_enabled = {node["name"]: node.get("enabled", False) for node in config.get("nodes", [])}
+    
     parser = argparse.ArgumentParser()
-    parser.add_argument("dataset", help="Dataset name")
-    parser.add_argument("--use_expansion", action="store_true", help="Enable Query Expansion")
-    parser.add_argument("--use_hybrid", action="store_true", help="Enable Hybrid Search")
-    parser.add_argument("--use_classifier", action="store_true", help="Enable Zero-Shot Classification")
-    parser.add_argument("--use_fasttext", action="store_true", help="Enable FastText Classification")
-    parser.add_argument("--use_reranker", action="store_true", help="Enable Reranking")
-    parser.add_argument("--top_k_retrieval", type=int, default=10)
-    parser.add_argument("--top_k_rerank", type=int, default=5)
-    parser.add_argument("--confidence_threshold", type=float, default=0.5)
+    parser.add_argument("dataset", nargs="?", default=config.get("dataset"), help="Dataset name")
+    parser.add_argument("--use_expansion", action="store_true", default=nodes_enabled.get("expand_query", False))
+    parser.add_argument("--use_hybrid", action="store_true", default=nodes_enabled.get("hybrid_search", False))
+    parser.add_argument("--use_classifier", action="store_true", default=nodes_enabled.get("classify", False))
+    parser.add_argument("--use_fasttext", action="store_true", default=nodes_enabled.get("fasttext_classify", False))
+    parser.add_argument("--use_reranker", action="store_true", default=nodes_enabled.get("rerank", False))
+    parser.add_argument("--top_k_retrieval", type=int, default=config.get("top_k_retrieval", 10))
+    parser.add_argument("--top_k_rerank", type=int, default=config.get("top_k_rerank", 5))
+    parser.add_argument("--confidence_threshold", type=float, default=config.get("confidence_threshold", 0.5))
     
     args = parser.parse_args()
+
+    if not args.dataset:
+        print("❌ Error: Dataset name is required (either in bench_modular_config.json or as argument)")
+        sys.exit(1)
+
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(run_modular_bench(args))

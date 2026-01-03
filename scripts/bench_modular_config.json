@@ -1,0 +1,28 @@
+{
+    "dataset": "ground_truth_dataset",
+    "nodes": [
+        {
+            "name": "expand_query",
+            "enabled": false
+        },
+        {
+            "name": "hybrid_search",
+            "enabled": true
+        },
+        {
+            "name": "rerank",
+            "enabled": true
+        },
+        {
+            "name": "classify",
+            "enabled": false
+        },
+        {
+            "name": "fasttext_classify",
+            "enabled": true
+        }
+    ],
+    "top_k_retrieval": 10,
+    "top_k_rerank": 5,
+    "confidence_threshold": 0.5
+}
