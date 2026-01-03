@@ -30,7 +30,7 @@ import pickle
 import asyncio
 from typing import Optional, Dict, Any
 from datetime import timedelta
-import aioredis
+from redis import asyncio as aioredis  # Keep alias for compatibility or just usage
 from redis.asyncio import Redis
 
 from app.cache.models import CacheEntry

@@ -28,4 +28,4 @@ langdetect
 sentencepiece
 sacremoses
 redis>=5.0.0
-aioredis>=2.0.0
+
