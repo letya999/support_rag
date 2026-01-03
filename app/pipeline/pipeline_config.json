@@ -1,0 +1,36 @@
+{
+    "nodes": [
+        {
+            "name": "classify",
+            "enabled": true
+        },
+        {
+            "name": "metadata_filter",
+            "enabled": true
+        },
+        {
+            "name": "expand_query",
+            "enabled": false
+        },
+        {
+            "name": "hybrid_search",
+            "enabled": true
+        },
+        {
+            "name": "retrieve",
+            "enabled": false
+        },
+        {
+            "name": "rerank",
+            "enabled": true
+        },
+        {
+            "name": "route",
+            "enabled": true
+        },
+        {
+            "name": "generate",
+            "enabled": true
+        }
+    ]
+}
