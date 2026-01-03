@@ -30,6 +30,7 @@ def cache_hit_logic(state: State):
         return "store_in_cache"
     return "classify"
 
+from app.nodes.multihop.node import multihop_node
 
 def router_logic(state: State):
     """
@@ -49,6 +50,7 @@ NODE_FUNCTIONS = {
     "retrieve": retrieve_node,
     "hybrid_search": hybrid_search_node,
     "rerank": rerank_node,
+    "multihop": multihop_node,
     "route": route_node,
     "generate": generate_node,
     "store_in_cache": store_in_cache_node,

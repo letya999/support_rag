@@ -7,8 +7,14 @@ def get_qdrant_client() -> QdrantClient:
     """
     return QdrantClient(url=settings.QDRANT_URL)
 
+_async_client = None
+
 def get_async_qdrant_client() -> AsyncQdrantClient:
     """
-    Get an asynchronous Qdrant client.
+    Get an asynchronous Qdrant client metadata.
+    Uses a singleton pattern to avoid creating multiple clients/connections.
     """
-    return AsyncQdrantClient(url=settings.QDRANT_URL)
+    global _async_client
+    if _async_client is None:
+        _async_client = AsyncQdrantClient(url=settings.QDRANT_URL)
+    return _async_client

@@ -1,4 +1,5 @@
 from typing import List
+import re
 from langfuse import observe
 from app.storage.connection import get_db_connection
 from app.storage.models import SearchResult
@@ -24,27 +25,47 @@ async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
     elif query_lang == "en":
         query_ru = translator.translate_en_to_ru(query)
 
+    
+    # Helper to construct OR-based tsquery string
+    def clean_query_for_tsquery(text: str) -> str:
+        # Remove special characters that interfere with tsquery syntax
+        # Keep alphanumeric and spaces
+        cleaned = re.sub(r'[^\w\s]', '', text)
+        words = cleaned.split()
+        if not words:
+            return ""
+        # Join with | for OR logic
+        return " | ".join(words)
+
+    en_tsquery_str = clean_query_for_tsquery(query_en)
+    ru_tsquery_str = clean_query_for_tsquery(query_ru)
+    
+    # Fallback if empty
+    if not en_tsquery_str: en_tsquery_str = "EMPTY_QUERY"
+    if not ru_tsquery_str: ru_tsquery_str = "EMPTY_QUERY"
+
     results = []
     async with get_db_connection() as conn:
         async with conn.cursor() as cur:
             try:
+                # Use to_tsquery with our constructed OR string
                 await cur.execute(
                     """
                     SELECT 
                         content, 
                         GREATEST(
-                            ts_rank_cd(fts_en, plainto_tsquery('english', %s)),
-                            ts_rank_cd(fts_ru, plainto_tsquery('russian', %s))
+                            ts_rank_cd(fts_en, to_tsquery('english', %s)),
+                            ts_rank_cd(fts_ru, to_tsquery('russian', %s))
                         ) AS score, 
                         metadata
                     FROM documents
                     WHERE 
-                        fts_en @@ plainto_tsquery('english', %s) OR
-                        fts_ru @@ plainto_tsquery('russian', %s)
+                        fts_en @@ to_tsquery('english', %s) OR
+                        fts_ru @@ to_tsquery('russian', %s)
                     ORDER BY score DESC
                     LIMIT %s;
                     """,
-                    (query_en, query_ru, query_en, query_ru, top_k)
+                    (en_tsquery_str, ru_tsquery_str, en_tsquery_str, ru_tsquery_str, top_k)
                 )
                 rows = await cur.fetchall()
             except Exception as e:
@@ -55,18 +76,18 @@ async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
                     SELECT 
                         content, 
                         GREATEST(
-                            ts_rank_cd(to_tsvector('english', content), plainto_tsquery('english', %s)),
-                            ts_rank_cd(to_tsvector('russian', content), plainto_tsquery('russian', %s))
+                            ts_rank_cd(to_tsvector('english', content), to_tsquery('english', %s)),
+                            ts_rank_cd(to_tsvector('russian', content), to_tsquery('russian', %s))
                         ) AS score, 
                         metadata
                     FROM documents
                     WHERE 
-                        to_tsvector('english', content) @@ plainto_tsquery('english', %s) OR
-                        to_tsvector('russian', content) @@ plainto_tsquery('russian', %s)
+                        to_tsvector('english', content) @@ to_tsquery('english', %s) OR
+                        to_tsvector('russian', content) @@ to_tsquery('russian', %s)
                     ORDER BY score DESC
                     LIMIT %s;
                     """,
-                    (query_en, query_ru, query_en, query_ru, top_k)
+                    (en_tsquery_str, ru_tsquery_str, en_tsquery_str, ru_tsquery_str, top_k)
                 )
                 rows = await cur.fetchall()
 
