@@ -1,22 +1,11 @@
 from typing import List
-from langfuse.openai import OpenAI
 from langfuse import observe
-from app.config.settings import settings
+from app.integrations.embeddings_opensource import get_embedding as get_os_embedding
 
 @observe(as_type="span")
-async def get_embedding(text: str, model: str = "text-embedding-3-small") -> List[float]:
+async def get_embedding(text: str, model: str = "all-MiniLM-L6-v2") -> List[float]:
     """
-    Get embedding for text using OpenAI.
+    Get embedding for text using Open Source model.
+    Model param is kept for compatibility but currently ignored/defaulted to MiniLM.
     """
-    if not settings.OPENAI_API_KEY:
-        raise ValueError("OPENAI_API_KEY is not set.")
-        
-    client = OpenAI(api_key=settings.OPENAI_API_KEY)
-    text = text.replace("\n", " ")
-    
-    # Note: langfuse.openai.OpenAI is sync wrapper usually, but let's check if we can make it async or use it as is.
-    # The original code had it wrapped in async def but called sync client methods.
-    # To keep fully async we might want AsyncOpenAI but Langfuse support for AsyncOpenAI needs check.
-    # For now, following original implementation's pattern but acknowledging it might be blocking.
-    response = client.embeddings.create(input=[text], model=model)
-    return response.data[0].embedding
+    return await get_os_embedding(text)

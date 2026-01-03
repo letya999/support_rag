@@ -87,7 +87,7 @@ async def migrate():
             print(f"Creating collection {collection_name}...")
             await qdrant.create_collection(
                 collection_name=collection_name,
-                vectors_config=models.VectorParams(size=1536, distance=models.Distance.COSINE)
+                vectors_config=models.VectorParams(size=384, distance=models.Distance.COSINE)
             )
         
         # Upsert
