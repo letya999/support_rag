@@ -76,7 +76,7 @@ class RAGPipelineClient:
             logger.debug(f"Querying RAG for user {user_id}: {question[:50]}...")
 
             async with self.session.post(
-                f"{self.api_url}/api/rag/query",
+                f"{self.api_url}/rag/query",
                 json=request.model_dump(),
                 timeout=aiohttp.ClientTimeout(total=30)
             ) as response:

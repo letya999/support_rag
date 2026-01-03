@@ -64,7 +64,9 @@ async def main():
 
     try:
         await bot.start()
-    except KeyboardInterrupt:
+        # Keep running until interrupted
+        await asyncio.Event().wait()
+    except (KeyboardInterrupt, asyncio.CancelledError):
         logger.info("Shutdown signal received")
     finally:
         logger.info("Cleaning up...")

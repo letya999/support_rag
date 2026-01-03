@@ -8,7 +8,8 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from telegram import Update, ChatAction
+from telegram import Update
+from telegram.constants import ChatAction
 from telegram.ext import (
     Application,
     CommandHandler,
