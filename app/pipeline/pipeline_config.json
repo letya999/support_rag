@@ -11,6 +11,10 @@
             "enabled": true
         },
         {
+            "name": "load_session",
+            "enabled": true
+        },
+        {
             "name": "classify",
             "enabled": false
         },

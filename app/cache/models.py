@@ -89,3 +89,42 @@ class CacheStats(BaseModel):
                 ]
             }
         }
+
+
+class UserSession(BaseModel):
+    """
+    Represents an active user session in Redis.
+    """
+    user_id: str
+    session_id: str
+    start_time: float
+    last_activity_time: float
+    
+    # Context
+    current_problem: Optional[str] = None
+    dialog_state: str = "INITIAL"
+    attempt_count: int = 0
+    
+    # State tracking
+    last_answer_confidence: Optional[float] = None
+    last_emotion_detected: Optional[str] = None
+    extracted_entities: Dict[str, Any] = Field(default_factory=dict)
+    
+    # History (transient)
+    message_count: int = 0
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "user_id": "user_123",
+                "session_id": "sess_abc",
+                "start_time": 1704280000.0,
+                "last_activity_time": 1704280100.0,
+                "current_problem": "login issue",
+                "dialog_state": "AWAITING_CLARIFICATION",
+                "attempt_count": 1,
+                "last_answer_confidence": 0.4,
+                "extracted_entities": {"device": "iphone"},
+                "message_count": 3
+            }
+        }

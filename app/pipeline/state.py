@@ -2,6 +2,11 @@ from typing import TypedDict, List, Optional, Literal, Dict, Any
 
 class State(TypedDict):
     question: str
+    user_id: Optional[str]
+    session_id: Optional[str]
+    user_profile: Optional[Dict[str, Any]]
+    session_history: Optional[List[Dict[str, Any]]]
+    
     queries: Optional[List[str]]
     docs: List[str]
     rerank_scores: Optional[List[float]]

@@ -6,6 +6,10 @@
             "enabled": false
         },
         {
+            "name": "load_session",
+            "enabled": true
+        },
+        {
             "name": "hybrid_search",
             "enabled": true
         },

@@ -20,6 +20,7 @@ from app.nodes.easy_classification.fasttext_classifier import FastTextClassifica
 from app.nodes.classification.evaluator import evaluator as cls_evaluator
 from app.nodes.easy_classification.evaluator import evaluator as ft_evaluator
 from app.cache.nodes import check_cache_node, store_in_cache_node # Cache imports
+from app.nodes.session_starter.node import load_session_node # Session starter import
 
 langfuse = get_langfuse_client()
 
@@ -40,6 +41,8 @@ def update_config_from_args(config: Dict[str, Any], args: argparse.Namespace):
     set_enabled("classify", args.use_classifier)
     set_enabled("fasttext_classify", args.use_fasttext)
     set_enabled("rerank", args.use_reranker)
+    set_enabled("load_session", args.use_session_loader)
+
     
     return config
 
@@ -90,8 +93,20 @@ async def run_modular_bench(args, config):
                 # Cache Check
                 cached_docs = None
                 state = {"question": question, "docs": [], "answer": "", "confidence": 0.0}
+
+                # Session Load
+                if config.get("nodes", []):
+                    # Check if session loader enabled
+                    session_loader_enabled = any(n["name"] == "load_session" and n.get("enabled", False) for n in config["nodes"])
+                    if session_loader_enabled:
+                         # Use mock user_id for benchmark
+                         state["user_id"] = "bench_user"
+                         state["session_id"] = f"bench_session_{i}"
+                         updates = await load_session_node(state)
+                         state.update(updates)
                 
                 if cache_enabled:
+
                     state = await check_cache_node(state)
                     if state.get("cache_hit"):
                          cached_docs = state.get("docs", [])
@@ -235,6 +250,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_classifier", action="store_true", default=get_enabled_default("classify"))
     parser.add_argument("--use_fasttext", action="store_true", default=get_enabled_default("fasttext_classify"))
     parser.add_argument("--use_reranker", action="store_true", default=get_enabled_default("rerank"))
+    parser.add_argument("--use_session_loader", action="store_true", default=get_enabled_default("load_session"))
     parser.add_argument("--top_k_retrieval", type=int, default=config.get("top_k_retrieval", 10))
     parser.add_argument("--top_k_rerank", type=int, default=config.get("top_k_rerank", 5))
     parser.add_argument("--confidence_threshold", type=float, default=config.get("confidence_threshold", 0.5))

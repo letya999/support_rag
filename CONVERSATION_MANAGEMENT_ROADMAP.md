@@ -197,9 +197,9 @@ Output: `escalation_decision` ("escalate" | "auto_reply") + `escalation_reason` 
 ## График реализации
 
 ### Этап 1: Foundation (2-3 ч)
-- [ ] Config system + Postgres schema + миграции
-- [ ] Расширить Redis UserSession
-- [ ] Загрузка долгосрочной памяти при старте сессии
+- [x] Config system + Postgres schema + миграции
+- [x] Расширить Redis UserSession
+- [x] Загрузка долгосрочной памяти при старте сессии
 
 ### Этап 2: RAG Enhancement (2-3 ч)
 - [ ] Lightweight aggregator node
