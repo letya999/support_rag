@@ -145,31 +145,69 @@ async def run_generation_bench(args):
                 from app.nodes.classification.evaluator import evaluator as cls_evaluator
                 from app.nodes.easy_classification.evaluator import evaluator as ft_evaluator
                 
-                # Step 3a: Classification (Optional tracking during Gen bench)
+                # Step 3a: Aggregation (New Step)
+                # We need to simulate a state object for aggregation
+                from app.nodes.aggregation.node import aggregate_node
+                from app.nodes.aggregation.metrics.evaluator import evaluator as agg_evaluator
+                
+                # Mock history? For single-turn benchmarks, history is usually empty,
+                # so aggregation might not do much unless we fake history.
+                # But let's run it anyway to see if 'keyword extraction' triggers on context-dependent queries.
+                
+                # Create a mock state
+                mock_state = {
+                    "question": question,
+                    "session_history": [], # Empty history for now in benchmarks unless dataset provides it
+                    "conversation_config": {}
+                }
+                
+                # Run aggregation
+                agg_res = await aggregate_node(mock_state)
+                # Note: aggregate_node might be sync or async, but we defined it as async def wrapper.
+                
+                aggregated_query = agg_res.get("aggregated_query", question)
+                extracted_entities = agg_res.get("extracted_entities", {})
+                
+                # Calculate Aggregation Metrics
+                agg_metrics = agg_evaluator.calculate_metrics(
+                    original_question=question,
+                    aggregated_query=aggregated_query,
+                    extracted_entities=extracted_entities
+                )
+                
+                # Step 3b: Classification (Using aggregated query? Or original? Pipeline uses aggregated)
                 cls_service = ClassificationService()
                 ft_service = FastTextClassificationService()
                 
-                cls_res = await cls_service.classify(question)
-                ft_res = await ft_service.classify(question)
+                # Use aggregated query for classification if that's what pipeline does
+                query_to_use = aggregated_query
+                
+                cls_res = await cls_service.classify(query_to_use)
+                ft_res = await ft_service.classify(query_to_use)
                 
                 gt_category = item.metadata.get("category") if item.metadata else None
                 
-                # Step 3b: Retrieve
-                ret_output = await retrieve_context(question, top_k=top_k)
+                # Step 3c: Retrieve (Using aggregated query)
+                ret_output = await retrieve_context(query_to_use, top_k=top_k)
                 retrieved_docs = ret_output.docs
                 retrieved_scores = ret_output.scores
                 
-                # Step 3c: Generate
-                generated_answer = await generate_answer_simple(question, retrieved_docs)
+                # Step 3d: Generate (Using aggregated query)
+                generated_answer = await generate_answer_simple(query_to_use, retrieved_docs)
                 
-                # Step 3d: Generation Metrics
+                # Step 3e: Generation Metrics
                 gen_metrics = gen_evaluator.calculate_metrics(
-                    question=question,
+                    question=query_to_use, # Eval against what was actually asked? Or original?
+                    # Typically we evaluate relevance against the user's ORIGINAL intent (question).
+                    # But if query changed significantly, faithfulness might vary.
+                    # Let's use ORIGINAL question for faithfulness check relative to answer?
+                    # Or usage of context.
+                    # Ragas usually wants the 'question' that prompted the answer.
                     context="\n\n".join(retrieved_docs),
                     answer=generated_answer
                 )
                 
-                # Step 3e: Retrieval Metrics
+                # Step 3f: Retrieval Metrics
                 ret_metrics = ret_evaluator.calculate_metrics(
                     expected_answer=expected_chunks,
                     retrieved_docs=retrieved_docs,
@@ -178,7 +216,7 @@ async def run_generation_bench(args):
                 )
                 
                 # Combine
-                all_single_metrics = {**gen_metrics, **ret_metrics}
+                all_single_metrics = {**gen_metrics, **ret_metrics, **agg_metrics}
                 
                 # Log classification accuracy to trace if GT is available
                 if gt_category:
@@ -195,8 +233,12 @@ async def run_generation_bench(args):
                     input={"question": question},
                     output={
                         "answer": generated_answer, 
-                        "retrieved_docs": retrieved_docs, 
+                        "retrieved_docs": retrieved_docs,
                         "metrics": all_single_metrics,
+                        "aggregation": {
+                            "aggregated_query": aggregated_query,
+                            "entities": extracted_entities
+                        },
                         "classification": {
                             "zero_shot": cls_res.category,
                             "fasttext": ft_res.category if ft_res else "N/A"
