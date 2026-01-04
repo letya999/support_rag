@@ -6,6 +6,11 @@ class State(TypedDict):
     session_id: Optional[str]
     user_profile: Optional[Dict[str, Any]]
     session_history: Optional[List[Dict[str, Any]]]
+    conversation_config: Optional[Dict[str, Any]]
+    
+    # Aggregation (Phase 2)
+    aggregated_query: Optional[str]
+    extracted_entities: Optional[Dict[str, Any]]
     
     queries: Optional[List[str]]
     docs: List[str]

@@ -38,7 +38,7 @@ async def hybrid_search_node(state: Dict[str, Any]):
     LangGraph node for hybrid search.
     Handles single or multiple queries from state.
     """
-    question = state.get("question", "")
+    question = state.get("aggregated_query") or state.get("question", "")
     queries = state.get("queries", [question])
     
     # If expansion happened, queries might be list.

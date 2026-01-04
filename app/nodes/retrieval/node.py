@@ -7,7 +7,7 @@ async def retrieve_node(state: Dict[str, Any]):
     """
     LangGraph node for simple retrieval.
     """
-    question = state.get("question", "")
+    question = state.get("aggregated_query") or state.get("question", "")
     category_filter = state.get("matched_category") if state.get("filter_used") else None
     output = await retrieve_context(question, category_filter=category_filter)
     
@@ -23,7 +23,8 @@ async def retrieve_expanded_node(state: Dict[str, Any]):
     """
     LangGraph node for expanded retrieval (multiple queries).
     """
-    queries = state.get("queries", [state.get("question", "")])
+    question = state.get("aggregated_query") or state.get("question", "")
+    queries = state.get("queries", [question])
     
     import asyncio
     from app.nodes.retrieval.search import search_single_query

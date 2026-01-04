@@ -8,7 +8,7 @@ async def query_expansion_node(state: Dict[str, Any]):
     LangGraph node for Query Expansion.
     Generates alternative queries to improve retrieval.
     """
-    question = state.get("question", "")
+    question = state.get("aggregated_query") or state.get("question", "")
     
     expander = QueryExpander()
     expanded_queries = await expander.expand(question)

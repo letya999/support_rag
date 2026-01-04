@@ -3,7 +3,7 @@ from app.pipeline.state import State
 from app.nodes.easy_classification.fasttext_classifier import FastTextClassificationService
 
 async def fasttext_classify_node(state: State) -> State:
-    question = state["question"]
+    question = state.get("aggregated_query") or state.get("question", "")
     service = FastTextClassificationService()
     
     start_time = time.time()

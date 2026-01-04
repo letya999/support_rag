@@ -7,11 +7,15 @@
     },
     "nodes": [
         {
-            "name": "fasttext_classify",
+            "name": "load_session",
             "enabled": true
         },
         {
-            "name": "load_session",
+            "name": "aggregate",
+            "enabled": true
+        },
+        {
+            "name": "fasttext_classify",
             "enabled": true
         },
         {

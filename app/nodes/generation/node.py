@@ -10,7 +10,7 @@ async def generate_node(state: Dict[str, Any]):
     """
     Generation node.
     """
-    question = state.get("question")
+    question = state.get("aggregated_query") or state.get("question")
     docs = state.get("docs", [])
     
     answer = await generate_answer_simple(question, docs)

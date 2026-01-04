@@ -202,9 +202,9 @@ Output: `escalation_decision` ("escalate" | "auto_reply") + `escalation_reason` 
 - [x] Загрузка долгосрочной памяти при старте сессии
 
 ### Этап 2: RAG Enhancement (2-3 ч)
-- [ ] Lightweight aggregator node
-- [ ] LLM aggregator node (вариант)
-- [ ] Интеграция с существующим pipeline
+- [x] Lightweight aggregator node
+- [x] LLM aggregator node (вариант)
+- [x] Интеграция с существующим pipeline
 
 ### Этап 3: State Machine (2 ч)
 - [ ] Dialog analyzer node

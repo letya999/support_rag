@@ -13,6 +13,9 @@ from app.nodes.easy_classification.node import fasttext_classify_node
 from app.nodes.metadata_filtering.node import metadata_filter_node
 from app.cache.nodes import check_cache_node, store_in_cache_node
 from app.nodes.session_starter.node import load_session_node
+from app.nodes.aggregation.lightweight import lightweight_aggregation_node
+from app.nodes.aggregation.llm import llm_aggregation_node
+from app.config.conversation_config import conversation_config
 
 # Optional: Import multihop node if available (Phase 3)
 try:
@@ -29,7 +32,7 @@ def cache_hit_logic(state: State):
     """
     if state.get("cache_hit", False):
         return "store_in_cache"
-    return "classify"
+    return "classify"  # This return value serves as the "cache miss" Edge Key
 
 from app.nodes.multihop.node import multihop_node
 
@@ -40,6 +43,9 @@ def router_logic(state: State):
     if state.get("action") == "auto_reply":
         return "generate"
     return END
+
+# Select aggregation implementation
+aggregate_impl = llm_aggregation_node if conversation_config.use_llm_aggregation else lightweight_aggregation_node
 
 # Mapping of node names to their implementations
 NODE_FUNCTIONS = {
@@ -56,6 +62,7 @@ NODE_FUNCTIONS = {
     "generate": generate_node,
     "store_in_cache": store_in_cache_node,
     "load_session": load_session_node,
+    "aggregate": aggregate_impl,
 }
 
 # Add multihop node if available (Phase 3)
