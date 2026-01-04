@@ -16,7 +16,7 @@ from app.nodes.session_starter.node import load_session_node
 from app.nodes.aggregation.lightweight import lightweight_aggregation_node
 from app.nodes.aggregation.llm import llm_aggregation_node
 from app.nodes.dialog_analysis.node import dialog_analysis_node
-from app.nodes.session_update.node import session_update_node
+from app.nodes.state_machine.node import state_machine_node
 from app.nodes.prompt_routing.node import route_prompt_node
 from app.config.conversation_config import conversation_config
 
@@ -66,7 +66,7 @@ NODE_FUNCTIONS = {
     "load_session": load_session_node,
     "aggregate": aggregate_impl,
     "analyze_dialog": dialog_analysis_node,
-    "update_state": session_update_node,
+    "update_state": state_machine_node,
 }
 
 # Add multihop node if available (Phase 3)

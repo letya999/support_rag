@@ -4,6 +4,10 @@ from app.pipeline.state import State
 from app.observability.tracing import observe
 from app.config.conversation_config import conversation_config
 from app.nodes.dialog_analysis.llm import llm_dialog_analysis_node
+from app.nodes.state_machine.states_config import (
+    SIGNAL_GRATITUDE, SIGNAL_ESCALATION_REQ, SIGNAL_QUESTION, 
+    SIGNAL_REPEATED, SIGNAL_FRUSTRATION
+)
 
 def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
     """
@@ -15,11 +19,11 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
     
     # Defaults
     analysis = {
-        "is_gratitude": False,
-        "escalation_requested": False,
-        "is_question": False,
-        "frustration_detected": False, 
-        "repeated_question": False
+        SIGNAL_GRATITUDE: False,
+        SIGNAL_ESCALATION_REQ: False,
+        SIGNAL_QUESTION: False,
+        SIGNAL_FRUSTRATION: False, 
+        SIGNAL_REPEATED: False
     }
 
     # 1. Gratitude check
@@ -29,7 +33,7 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
         "спасибо", "благодарю", "спс", "класс", "молодец"
     ]
     if any(k in current_question for k in gratitude_keywords):
-        analysis["is_gratitude"] = True
+        analysis[SIGNAL_GRATITUDE] = True
 
     # 2. Escalation check
     escalation_keywords = [
@@ -37,7 +41,7 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
         "человек", "оператор", "агент", "сотрудник", "менеджер", "позови", "переключи"
     ]
     if any(k in current_question for k in escalation_keywords):
-        analysis["escalation_requested"] = True
+        analysis[SIGNAL_ESCALATION_REQ] = True
 
     # 3. Question check
     question_starters = [
@@ -45,7 +49,7 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
         "что", "как", "почему", "когда", "можно", "можешь", "расскажи", "подскажи"
     ]
     if "?" in current_question or any(current_question.strip().startswith(w) for w in question_starters):
-        analysis["is_question"] = True
+        analysis[SIGNAL_QUESTION] = True
 
     # 4. Frustration detection (simple keyword based)
     frustration_keywords = [
@@ -53,7 +57,7 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
         "тупой", "глупый", "бесполезный", "плохой", "ужас", "бред", "идиот"
     ]
     if any(k in current_question for k in frustration_keywords):
-        analysis["frustration_detected"] = True
+        analysis[SIGNAL_FRUSTRATION] = True
 
     # 5. Repeated question check
     # Check if the current user message is very similar to the last user message
@@ -69,9 +73,17 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
         # Basic normalization (remove punctuation, spaces)
         def clean(s): return re.sub(r'[^\w\s]', '', s).strip()
         if clean(current_question) == clean(last_user_msg):
-            analysis["repeated_question"] = True
+            analysis[SIGNAL_REPEATED] = True
     
-    return {"dialog_analysis": analysis}
+    return {
+        "dialog_analysis": analysis,
+        # Default values for Phase 5/6 fields in regex mode
+        "sentiment": {"label": "frustrated" if analysis[SIGNAL_FRUSTRATION] else "neutral", "score": 0.5},
+        "safety_violation": False,
+        "safety_reason": None,
+        "escalation_decision": "escalate" if analysis[SIGNAL_ESCALATION_REQ] else "auto_reply",
+        "escalation_reason": "regex_keyword_match" if analysis[SIGNAL_ESCALATION_REQ] else None
+    }
 
 @observe(as_type="span")
 async def dialog_analysis_node(state: State) -> Dict[str, Any]:

@@ -217,11 +217,11 @@ Output: `escalation_decision` ("escalate" | "auto_reply") + `escalation_reason` 
 - [x] State-aware промпты
 
 ### Этап 5: Safety & Emotion (1.5 ч)
-- [ ] Emotion detector node
+- [x] Emotion detector node (Integrated into Dialog Analysis)
 - [ ] Response validator node (опциональный)
 
 ### Этап 6: Escalation (2 ч)
-- [ ] Escalation decision node
+- [x] Escalation decision node (Integrated into Dialog Analysis)
 - [ ] Escalation handoff node
 - [ ] Route to specialist node
 

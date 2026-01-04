@@ -76,3 +76,10 @@ class State(TypedDict):
     # Phase 4: Prompt Routing
     system_prompt: Optional[str]
     generation_strategy: Optional[str]
+    
+    # Phase 5 & 6: Safety, Emotion, Escalation (Analysis extensions)
+    sentiment: Optional[Dict[str, Any]] # {label, score}
+    safety_violation: Optional[bool]
+    safety_reason: Optional[str]
+    escalation_decision: Optional[str] # "escalate", "auto_reply"
+    escalation_reason: Optional[str]
