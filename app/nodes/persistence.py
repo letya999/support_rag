@@ -1,3 +1,4 @@
+import json
 from typing import Optional, Dict, Any
 from psycopg.rows import dict_row
 from app.storage.connection import get_db_connection
@@ -86,7 +87,7 @@ class PersistenceManager:
                             SET long_term_memory = %s, name = %s, last_seen = NOW() 
                             WHERE user_id = %s
                             """,
-                            (current_mem, name, user_id)
+                            (json.dumps(current_mem), name, user_id)
                         )
                     else:
                         await cur.execute(
@@ -95,7 +96,7 @@ class PersistenceManager:
                             SET long_term_memory = %s, last_seen = NOW() 
                             WHERE user_id = %s
                             """,
-                            (current_mem, user_id)
+                            (json.dumps(current_mem), user_id)
                         )
                 else:
                     # Insert
@@ -104,5 +105,51 @@ class PersistenceManager:
                         INSERT INTO user_profiles (user_id, name, long_term_memory)
                         VALUES (%s, %s, %s)
                         """,
-                        (user_id, name, memory_update)
+                        (user_id, name, json.dumps(memory_update))
                     )
+
+    @staticmethod
+    async def archive_session(
+        session_id: str, 
+        user_id: str, 
+        outcome: str, 
+        summary: str, 
+        metrics: Dict[str, Any] = None,
+        duration_seconds: float = None
+    ):
+        """
+        Save session result to archive.
+        """
+        async with get_db_connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    """
+                    INSERT INTO sessions_archive (session_id, user_id, outcome, summary, metrics, duration_seconds, end_time)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                    ON CONFLICT (session_id) DO UPDATE SET
+                        outcome = EXCLUDED.outcome,
+                        summary = EXCLUDED.summary,
+                        metrics = EXCLUDED.metrics,
+                        duration_seconds = EXCLUDED.duration_seconds,
+                        end_time = NOW()
+                    """,
+                    (session_id, user_id, outcome, summary, json.dumps(metrics or {}), duration_seconds)
+                )
+
+    @staticmethod
+    async def save_session_summary(session_id: str, summary_text: str, tags: list = None):
+        """
+        Save/update searchable summary.
+        """
+        async with get_db_connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    """
+                    INSERT INTO session_summaries (session_id, summary_text, search_tags)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (session_id) DO UPDATE SET
+                        summary_text = EXCLUDED.summary_text,
+                        search_tags = EXCLUDED.search_tags
+                    """,
+                    (session_id, summary_text, tags or [])
+                )

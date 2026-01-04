@@ -10,6 +10,7 @@ class State(TypedDict):
     session_id: Annotated[Optional[str], overwrite]
     user_profile: Annotated[Optional[Dict[str, Any]], overwrite]
     session_history: Annotated[Optional[List[Dict[str, Any]]], overwrite]
+    conversation_history: Annotated[Optional[List[Dict[str, Any]]], overwrite]
     conversation_config: Annotated[Optional[Dict[str, Any]], overwrite]
     
     # Aggregation (Phase 2)
@@ -38,12 +39,12 @@ class State(TypedDict):
     category: Annotated[Optional[str], overwrite]
     category_confidence: Annotated[Optional[float], overwrite]
 
-    # FastText Classification (Testing)
-    fasttext_intent: Annotated[Optional[str], overwrite]
-    fasttext_intent_confidence: Annotated[Optional[float], overwrite]
-    fasttext_category: Annotated[Optional[str], overwrite]
-    fasttext_category_confidence: Annotated[Optional[float], overwrite]
-    fasttext_time: Annotated[Optional[float], overwrite]
+    # Semantic Classification (formerly FastText)
+    semantic_intent: Annotated[Optional[str], overwrite]
+    semantic_intent_confidence: Annotated[Optional[float], overwrite]
+    semantic_category: Annotated[Optional[str], overwrite]
+    semantic_category_confidence: Annotated[Optional[float], overwrite]
+    semantic_time: Annotated[Optional[float], overwrite]
     
     # Filtering
     filter_used: Annotated[Optional[bool], overwrite]

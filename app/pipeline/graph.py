@@ -19,6 +19,7 @@ from app.nodes.state_machine.node import state_machine_node
 from app.nodes.prompt_routing.node import route_prompt_node
 from app.nodes.lexical_search.node import lexical_node
 from app.nodes.fusion.node import fusion_node
+from app.nodes.archive_session.node import archive_session_node
 from app.config.conversation_config import conversation_config
 
 # Optional: Import multihop node if available (Phase 3)
@@ -67,6 +68,7 @@ NODE_FUNCTIONS = {
     "prompt_routing": route_prompt_node,
     "lexical_search": lexical_node,
     "fusion": fusion_node,
+    "archive_session": archive_session_node,
 }
 
 # Add multihop node if available (Phase 3)
@@ -120,8 +122,8 @@ elif cache_enabled:
 # 2. Sequential Logic Construction based on Config Order
 # We follow `active_node_names` for sequence, but if `check_cache` exists, we inject the conditional edge.
 
-# Filter nodes that are part of the pipeline (excluding session_starter, check_cache, store_in_cache which we handled)
-pipeline_nodes = [n for n in active_node_names if n not in ["session_starter", "check_cache", "store_in_cache"]]
+# Filter nodes that are part of the pipeline (excluding session_starter, check_cache, store_in_cache, archive_session which we handled)
+pipeline_nodes = [n for n in active_node_names if n not in ["session_starter", "check_cache", "store_in_cache", "archive_session"]]
 
 if pipeline_nodes:
     first_pipeline_node = pipeline_nodes[0]
@@ -150,26 +152,38 @@ if pipeline_nodes:
                 # If prompt routing is enabled, route to it first
                 target = "prompt_routing" if "prompt_routing" in active_node_names else "generate"
                 
+                target_exit = "archive_session" if "archive_session" in active_node_names else ("store_in_cache" if cache_enabled else END)
+                
                 workflow.add_conditional_edges(
                     "route",
                     router_logic,
                     {
                         "generate": target,
-                        END: "store_in_cache" if cache_enabled else END
+                        END: target_exit
                     }
                 )
             else:
-                 workflow.add_edge("route", "store_in_cache" if cache_enabled else END)
+                  target_exit = "archive_session" if "archive_session" in active_node_names else ("store_in_cache" if cache_enabled else END)
+                  workflow.add_edge("route", target_exit)
         else:
             workflow.add_edge(current_node, next_node)
             
     # Handle End of Pipeline
     last_node = pipeline_nodes[-1]
     if last_node != "route": # Route handles its own exit
-         if cache_enabled:
-             workflow.add_edge(last_node, "store_in_cache")
-         else:
-             workflow.add_edge(last_node, END)
+          if "archive_session" in active_node_names:
+              workflow.add_edge(last_node, "archive_session")
+          elif cache_enabled:
+              workflow.add_edge(last_node, "store_in_cache")
+          else:
+              workflow.add_edge(last_node, END)
+              
+    # Ensure archive_session has an exit path
+    if "archive_session" in active_node_names:
+          if cache_enabled:
+              workflow.add_edge("archive_session", "store_in_cache")
+          else:
+              workflow.add_edge("archive_session", END)
 else:
     # No pipeline nodes
     if cache_enabled:

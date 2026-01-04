@@ -49,7 +49,7 @@ def lightweight_aggregation_node(state: State) -> Dict[str, Any]:
     Aggregates conversation history and extracts entities without LLM.
     """
     question = state.get("question", "")
-    history = state.get("session_history", []) or []
+    history = state.get("conversation_history", []) or []
     
     # 1. Filter User Messages
     max_msgs = conversation_config.aggregation_max_messages

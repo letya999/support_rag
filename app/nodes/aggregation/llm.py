@@ -33,7 +33,7 @@ async def llm_aggregation_node(state: State) -> Dict[str, Any]:
     LangGraph node for LLM-based Conversation Aggregation.
     """
     question = state.get("question", "")
-    history_objs = state.get("session_history", []) or []
+    history_objs = state.get("conversation_history", []) or []
     
     max_msgs = conversation_config.aggregation_max_messages
     relevant_history = history_objs[-max_msgs:]

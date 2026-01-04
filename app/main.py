@@ -21,8 +21,38 @@ async def lifespan(app: FastAPI):
         print(f"✅ Cache initialized: {health['backend'].upper()}")
     except Exception as e:
         print(f"⚠️  Cache initialization warning: {e}")
+    
+    # Warmup Models (Background)
+    print("🔥 Warming up models (Reranker, Classifier)...")
+    import asyncio
+    from app.nodes.reranking.ranker import get_reranker
+    from app.nodes.easy_classification.semantic_classifier import SemanticClassificationService
+    from app.integrations.embeddings import get_embedding
+    
+    async def warmup():
+        loop = asyncio.get_running_loop()
+        try:
+            # 1. Reranker
+            ranker = get_reranker()
+            await loop.run_in_executor(None, ranker.rank, "warmup", ["warmup"])
+            print("✅ Reranker Warmed Up")
+            
+            # 2. Classifier
+            svc = SemanticClassificationService()
+            await svc._ensure_model()
+            print("✅ Classifier Warmed Up")
+
+            # 3. Embeddings
+            await get_embedding("warmup")
+            print("✅ Embeddings Warmed Up")
+        except Exception as e:
+            print(f"⚠️ Warmup failed: {e}")
+
+    # Fire and forget (or await if critical)
+    asyncio.create_task(warmup())
 
     yield
+
 
     # Cleanup
     print("🛑 Shutting down Support RAG Pipeline...")

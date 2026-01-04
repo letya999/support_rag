@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from langfuse import observe
 from qdrant_client.http import models
 from app.storage.connection import get_db_connection
@@ -6,7 +6,11 @@ from app.storage.qdrant_client import get_async_qdrant_client
 from app.storage.models import SearchResult
 
 @observe(as_type="span")
-async def vector_search(query_embedding: List[float], top_k: int = 3, category_filter: Optional[str] = None) -> List[SearchResult]:
+async def vector_search(
+    query_embedding: List[float], 
+    top_k: int = 3, 
+    category_filter: Optional[Union[str, List[str]]] = None
+) -> List[SearchResult]:
     """
     Search for documents using Qdrant vector search, then fetch content from Postgres.
     """
@@ -15,11 +19,16 @@ async def vector_search(query_embedding: List[float], top_k: int = 3, category_f
     # Construct filter
     query_filter = None
     if category_filter:
+        if isinstance(category_filter, list):
+            match_condition = models.MatchAny(any=category_filter)
+        else:
+            match_condition = models.MatchValue(value=category_filter)
+
         query_filter = models.Filter(
             must=[
                 models.FieldCondition(
                     key="category",
-                    match=models.MatchValue(value=category_filter)
+                    match=match_condition
                 )
             ]
         )

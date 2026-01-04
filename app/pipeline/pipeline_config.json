@@ -12,11 +12,11 @@
         },
         {
             "name": "dialog_analysis",
-            "enabled": false
+            "enabled": true
         },
         {
             "name": "state_machine",
-            "enabled": false
+            "enabled": true
         },
         {
             "name": "aggregate",
@@ -55,11 +55,11 @@
             "enabled": false
         },
         {
-            "name": "rerank",
+            "name": "multihop",
             "enabled": true
         },
         {
-            "name": "multihop",
+            "name": "rerank",
             "enabled": true
         },
         {
@@ -68,10 +68,14 @@
         },
         {
             "name": "prompt_routing",
-            "enabled": false
+            "enabled": true
         },
         {
             "name": "generate",
+            "enabled": true
+        },
+        {
+            "name": "archive_session",
             "enabled": true
         }
     ]

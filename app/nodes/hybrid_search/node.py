@@ -1,5 +1,5 @@
 import asyncio
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from app.nodes.base_node import BaseNode
 from app.observability.tracing import observe
 from app.nodes.retrieval.storage import vector_search as search_documents
@@ -17,9 +17,12 @@ class HybridSearchNode(BaseNode):
         question = state.get("aggregated_query") or state.get("question", "")
         queries = state.get("queries", [question])
         
+        # Get category filter from metadata_filter node
+        category_filter = state.get("matched_category") if state.get("filter_used") else None
+        
         top_k = 10
         
-        tasks = [search_hybrid(q, top_k=top_k) for q in queries]
+        tasks = [search_hybrid(q, top_k=top_k, category_filter=category_filter) for q in queries]
         all_results_lists = await asyncio.gather(*tasks)
         
         # Deduplicate and Flatten
@@ -46,7 +49,7 @@ class HybridSearchNode(BaseNode):
         }
 
 @observe(as_type="span")
-async def search_hybrid(query: str, top_k: int = 10) -> List[SearchResult]:
+async def search_hybrid(query: str, top_k: int = 10, category_filter: Optional[str] = None) -> List[SearchResult]:
     """
     Perform hybrid search by combining vector and lexical search.
     Logic function independent of LangGraph state.
@@ -56,7 +59,8 @@ async def search_hybrid(query: str, top_k: int = 10) -> List[SearchResult]:
     embedding = await embedding_task
     
     # 2. Run both searches in parallel
-    vector_task = search_documents(embedding, top_k=top_k * 2)
+    # Pass category_filter only to vector search
+    vector_task = search_documents(embedding, top_k=top_k * 2, category_filter=category_filter)
     lexical_task = lexical_search_node(query, top_k=top_k * 2)
     
     vector_results, lexical_results = await asyncio.gather(vector_task, lexical_task)

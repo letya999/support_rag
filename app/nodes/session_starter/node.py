@@ -19,6 +19,34 @@ class SessionStarterNode(BaseNode):
 
         updates = {}
         
+        # 0. Clean Input History (Remove system error artifacts)
+        import json
+        import os
+        
+        raw_history = state.get("conversation_history", [])
+        if raw_history:
+            # Load blacklist
+            blacklist = []
+            try:
+                config_path = os.path.join(os.path.dirname(__file__), "..", "..", "config", "history_blacklist.json")
+                with open(config_path, "r", encoding="utf-8") as f:
+                    blacklist = json.load(f)
+            except Exception as e:
+                print(f"⚠️ Error loading blacklist: {e}")
+                blacklist = ["не смог обработать ваш вопрос"] # Fallback
+
+            def is_clean(msg_content):
+                if not msg_content: return True
+                return not any(b_phrase in msg_content for b_phrase in blacklist)
+
+            clean_history = [
+                msg for msg in raw_history 
+                if is_clean(msg.get("content", ""))
+            ]
+            
+            if len(clean_history) != len(raw_history):
+                updates["conversation_history"] = clean_history
+        
         # 1. Load Long-Term Memory (Postgres)
         try:
             profile = await PersistenceManager.load_long_term_memory(user_id)
