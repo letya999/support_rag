@@ -19,7 +19,6 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
     """
     history = state.get("session_history", []) or []
     current_question = state.get("question", "")
-    
     # Prepare messages for context (last 5 messages)
     recent_history = history[-5:] if history else []
     
@@ -28,59 +27,24 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
         role = msg.get("role", "unknown")
         content = msg.get("content", "")
         history_text += f"{role.upper()}: {content}\n"
-    
-    prompt = f"""You are an advanced Dialogue Analyzer for an AI Customer Support Agent.
-Your task is to analyze the user's LATEST message in the context of the conversation history.
 
-You must determine:
-1. **User Signals**: gratitude, questions, repetition.
-2. **Emotion & Sentiment**: Is the user angry, frustrated, or happy?
-3. **Safety**: Is the user trying to abuse, jailbreak, or ask harmful things?
-4. **Escalation**: Should this conversation be handed over to a human specialist IMMEDIATELY?
+    import os
 
-Conversation History:
-{history_text}
-USER (Latest): {current_question}
+    def _load_prompt(filename: str) -> str:
+        path = os.path.join(os.path.dirname(__file__), filename)
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read().strip()
 
-Perform a **Chain of Thought** reasoning step before giving the final JSON.
-Reason about:
-- The user's emotional state (look for capitalization, punctuation, specific words).
-- Whether the query is safe.
-- Whether the user explicitly wants a human OR if the situation implies they need one (high frustration).
-- Decide on the final action.
+    prompt_template = _load_prompt("prompt_analysis.txt")
+    prompt = prompt_template.format(
+        history_text=history_text,
+        current_question=current_question,
+        SIGNAL_GRATITUDE=SIGNAL_GRATITUDE,
+        SIGNAL_ESCALATION_REQ=SIGNAL_ESCALATION_REQ,
+        SIGNAL_QUESTION=SIGNAL_QUESTION,
+        SIGNAL_REPEATED=SIGNAL_REPEATED
+    )
 
-Output a valid JSON object with this schema:
-{{
-  "chain_of_thought": "Your step-by-step reasoning process...",
-  "signals": {{
-      "{SIGNAL_GRATITUDE}": boolean,
-      "{SIGNAL_ESCALATION_REQ}": boolean,   // Explicit request only
-      "{SIGNAL_QUESTION}": boolean,
-      "{SIGNAL_REPEATED}": boolean
-  }},
-  "sentiment": {{
-      "label": "positive" | "neutral" | "negative" | "frustrated" | "angry",
-      "score": float (0.0 to 1.0, where 1.0 is max intensity of the label)
-  }},
-  "safety": {{
-      "violation": boolean,
-      "reason": string | null
-  }},
-  "escalation": {{
-      "decision": "escalate" | "auto_reply",
-      "reason": string | null
-  }}
-}}
-
-Constraints:
-- "{SIGNAL_ESCALATION_REQ}" is TRUE only if user EXPLICITLY asks for human/agent/operator.
-- "escalation.decision" should be "escalate" if:
-    a) "{SIGNAL_ESCALATION_REQ}" is true
-    b) "sentiment.label" is "angry" with high score (>0.7)
-    c) "safety.violation" is true
-    d) The user seems stuck in a loop ({SIGNAL_REPEATED} is true AND attempts > 2)
-- Otherwise "escalation.decision" is "auto_reply".
-"""
 
     try:
         # Using standard LLM integration

@@ -1,0 +1,20 @@
+node:
+  name: state_machine
+  enabled: true
+
+parameters:
+  use_rules_engine: true
+  max_attempts_before_handoff: 3
+  reset_on_gratitude: true
+  default_state: INITIAL
+
+state_actions:
+  INITIAL: auto_reply
+  CLARIFY: auto_reply
+  LOW_CONFIDENCE: auto_reply
+  EMPATHY_MODE: auto_reply
+  REPEATED_ISSUE: auto_reply
+  STUCK_LOOP: suggest_handoff
+  ESCALATE: handoff
+  RESOLVED: auto_reply
+  BLOCKED: block

@@ -4,10 +4,20 @@ from langchain_core.output_parsers import CommaSeparatedListOutputParser
 from app.integrations.llm import get_llm
 from app.observability.tracing import observe
 
+import os
+
+def _load_prompt(filename: str) -> str:
+    path = os.path.join(os.path.dirname(__file__), filename)
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read().strip()
+
+EXPANSION_SYSTEM_PROMPT = _load_prompt("prompt_expansion.txt")
+
 EXPANSION_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", "You are a search query expansion assistant. Your task is to generate 3 alternative versions of the user's question to improve search retrieval. Provide only the expanded queries, separated by commas."),
+    ("system", EXPANSION_SYSTEM_PROMPT),
     ("user", "{question}")
 ])
+
 
 class QueryExpander:
     def __init__(self):

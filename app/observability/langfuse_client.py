@@ -1,6 +1,6 @@
 from typing import Optional
 from langfuse import Langfuse
-from app.config.settings import settings
+from app.settings import settings
 
 _client: Optional[Langfuse] = None
 

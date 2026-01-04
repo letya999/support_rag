@@ -1,5 +1,6 @@
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
+from app.storage.connection import get_db_connection
 
 class RelationGraphBuilder:
     def __init__(self):
@@ -12,7 +13,6 @@ class RelationGraphBuilder:
         """
         Loads all documents from Postgres and builds the graph.
         """
-        from app.storage.connection import get_db_connection
         async with get_db_connection() as conn:
             async with conn.cursor() as cur:
                 await cur.execute("SELECT id, content, metadata FROM documents")

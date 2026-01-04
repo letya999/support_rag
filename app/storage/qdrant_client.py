@@ -1,5 +1,5 @@
 from qdrant_client import QdrantClient, AsyncQdrantClient
-from app.config.settings import settings
+from app.settings import settings
 
 def get_qdrant_client() -> QdrantClient:
     """

@@ -1,0 +1,33 @@
+node:
+  name: dialog_analysis
+  enabled: true
+
+parameters:
+  mode: rule_based
+  negative_sentiment_threshold: -0.3
+  detect_repeated_questions: true
+  escalation_keywords:
+    - оператор
+    - человек
+    - менеджер
+    - соедините
+    - operator
+    - human
+    - agent
+    - transfer
+  gratitude_keywords:
+    - спасибо
+    - благодарю
+    - thank
+    - thanks
+  frustration_keywords:
+    - тупой
+    - плохой
+    - ужас
+    - stupid
+    - useless
+    - bad
+    - hate
+
+config:
+  inference_timeout_ms: 3000

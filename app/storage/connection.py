@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 import psycopg
-from app.config.settings import settings
+from app.settings import settings
 
 @asynccontextmanager
 async def get_db_connection():

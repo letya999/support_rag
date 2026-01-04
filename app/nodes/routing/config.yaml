@@ -1,0 +1,15 @@
+node:
+  name: route
+  enabled: true
+
+parameters:
+  min_confidence_auto_reply: 0.3
+  respect_escalation_decision: true
+  respect_requires_handoff: true
+
+decision_priority:
+  1: safety_violation
+  2: escalation_requested
+  3: requires_handoff
+  4: low_confidence
+  5: auto_reply

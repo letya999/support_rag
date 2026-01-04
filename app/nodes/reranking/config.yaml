@@ -1,0 +1,13 @@
+node:
+  name: rerank
+  enabled: true
+
+parameters:
+  confidence_threshold: 0.3
+  top_k: 5
+  model_name: "BAAI/bge-reranker-v2-m3"
+  batch_size: 32
+  use_gpu: true
+
+timeouts:
+  inference_ms: 5000

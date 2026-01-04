@@ -7,6 +7,7 @@ from app.nodes.lexical_search.node import lexical_search_node
 from app.nodes.fusion.node import reciprocal_rank_fusion
 from app.storage.models import SearchResult
 from app.integrations.embeddings import get_embedding
+from app.services.config_loader.loader import get_node_params
 
 class HybridSearchNode(BaseNode):
     @observe(as_type="span")
@@ -20,7 +21,8 @@ class HybridSearchNode(BaseNode):
         # Get category filter from metadata_filter node
         category_filter = state.get("matched_category") if state.get("filter_used") else None
         
-        top_k = 10
+        params = get_node_params("hybrid_search")
+        top_k = params.get("final_top_k", 10)
         
         tasks = [search_hybrid(q, top_k=top_k, category_filter=category_filter) for q in queries]
         all_results_lists = await asyncio.gather(*tasks)

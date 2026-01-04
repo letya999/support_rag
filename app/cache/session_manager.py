@@ -3,7 +3,7 @@ import time
 from typing import Optional
 from redis.asyncio import Redis
 from app.cache.models import UserSession
-from app.config.conversation_config import conversation_config
+from app.pipeline.config_proxy import conversation_config
 
 class SessionManager:
     """

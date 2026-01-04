@@ -28,4 +28,5 @@ langdetect
 sentencepiece
 sacremoses
 redis>=5.0.0
+PyYAML>=6.0.1
 

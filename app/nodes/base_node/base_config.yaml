@@ -1,0 +1,11 @@
+# Base configuration template for all nodes
+node:
+  name: base_node
+  enabled: true
+
+parameters:
+  # Common parameters for all nodes
+  timeout_ms: 5000
+  retry_count: 3
+
+config:

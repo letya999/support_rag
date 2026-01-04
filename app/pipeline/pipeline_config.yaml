@@ -1,0 +1,174 @@
+pipeline:
+  - name: session_starter
+    enabled: true
+  - name: check_cache
+    enabled: true
+  - name: dialog_analysis
+    enabled: true
+  - name: state_machine
+    enabled: true
+  - name: aggregate
+    enabled: true
+  - name: fasttext_classify
+    enabled: true
+  - name: classify
+    enabled: false
+  - name: metadata_filter
+    enabled: true
+  - name: expand_query
+    enabled: false
+  - name: hybrid_search
+    enabled: true
+  - name: retrieve
+    enabled: false
+  - name: lexical_search
+    enabled: false
+  - name: fusion
+    enabled: false
+  - name: rerank
+    enabled: true
+  - name: multihop
+    enabled: true
+  - name: route
+    enabled: true
+  - name: prompt_routing
+    enabled: true
+  - name: generate
+    enabled: true
+  - name: archive_session
+    enabled: true
+  - name: store_in_cache
+    enabled: true
+
+details:
+  cache:
+    parameters:
+      backend: redis
+      redis_url: "${REDIS_URL:-redis://redis:6379/0}"
+      ttl_seconds: 86400
+      max_entries: 1000
+
+  global:
+    parameters:
+      default_language: ru
+      confidence_threshold: 0.3
+      debug_mode: false
+      persist_to_postgres: true
+      session_ttl_hours: 24
+      session_timeout_minutes: 30
+      session_idle_threshold_minutes: 5
+      # Common node parameters
+      timeout_ms: 5000
+      retry_count: 3
+
+  rerank:
+    parameters:
+      confidence_threshold: 0.3
+      top_k: 5
+      model_name: "BAAI/bge-reranker-v2-m3"
+      batch_size: 32
+    config:
+      use_gpu: true
+      inference_timeout_ms: 5000
+
+  multihop:
+    parameters:
+      output_docs_count: 3
+      max_hops: 2
+      complexity_threshold: 1.5
+    config:
+      skip_if_high_confidence: true
+      high_confidence_threshold: 0.8
+
+  aggregate:
+    parameters:
+      mode: lightweight
+      history_messages_count: 3
+      include_assistant_responses: true
+    config:
+      min_message_length: 2
+      max_context_length: 200
+
+  prompt_routing:
+    parameters:
+      history_source: conversation_history
+      max_history_messages: 5
+      filter_system_messages: true
+    config:
+      include_user_profile: true
+      include_entities: true
+      max_message_length: 300
+
+  routing:
+    parameters:
+      min_confidence_auto_reply: 0.3
+      respect_escalation_decision: true
+      respect_requires_handoff: true
+      always_escalate_categories: ["billing_dispute", "account_closure", "complaint"]
+      always_escalate_intents: ["urgent", "vip"]
+      clarification_enabled: true
+      clarification_confidence_range: [0.3, 0.6]
+
+  fasttext_classify:
+    parameters:
+      intent_confidence_threshold: 0.3
+      category_confidence_threshold: 0.3
+      skip_if_low_confidence: true
+    config:
+      fallback_intent: unknown
+      fallback_category: General
+
+  hybrid_search:
+    parameters:
+      vector_top_k: 10
+      lexical_top_k: 10
+      final_top_k: 10
+      fusion_method: rrf
+      rrf_k: 60
+
+  dialog_analysis:
+    parameters:
+      mode: rule_based
+      negative_sentiment_threshold: -0.3
+      detect_repeated_questions: true
+
+  state_machine:
+    parameters:
+      max_attempts_before_handoff: 3
+      reset_on_gratitude: true
+      default_state: INITIAL
+    config:
+      use_rules_engine: true
+
+  generation:
+    parameters:
+      model: gpt-4o-mini
+      temperature: 0.3
+      max_tokens: 1000
+      include_sources: true
+
+  session_starter:
+    parameters:
+      max_history_messages: 10
+      max_session_history: 3
+      filter_system_messages: true
+    config:
+      load_conversation_history: true
+      load_session_history: true
+      load_user_profile: true
+
+  archive_session:
+    parameters:
+      filter_system_messages: true
+      generate_summary: true
+    config:
+      save_to_postgres: true
+      update_redis_session: true
+      summary_method: rule_based
+      summary_max_length: 200
+
+  metadata_filter:
+    parameters:
+      use_category_filter: true
+      fallback_category: General
+      skip_on_unknown: true

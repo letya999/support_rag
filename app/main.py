@@ -1,10 +1,15 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from app.config.settings import settings
+import asyncio
+from app.settings import settings
 from app.api.routes import router
 from app.api.exceptions import validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from app.cache.cache_layer import get_cache_manager
+from app.services.config_loader.loader import get_cache_config
+from app.nodes.reranking.ranker import get_reranker
+from app.nodes.easy_classification.semantic_classifier import SemanticClassificationService
+from app.integrations.embeddings import get_embedding
 
 
 # Startup/shutdown events
@@ -15,8 +20,14 @@ async def lifespan(app: FastAPI):
 
     # Initialize cache manager
     try:
-        redis_url = settings.REDIS_URL if hasattr(settings, 'REDIS_URL') else "redis://localhost:6379/0"
-        cache = await get_cache_manager(redis_url=redis_url)
+        cache_params = get_cache_config()
+        redis_url = cache_params.get("redis_url", settings.REDIS_URL)
+        
+        cache = await get_cache_manager(
+            redis_url=redis_url,
+            max_entries=cache_params.get("max_entries", 1000),
+            ttl_seconds=cache_params.get("ttl_seconds", 86400)
+        )
         health = await cache.health_check()
         print(f"✅ Cache initialized: {health['backend'].upper()}")
     except Exception as e:
@@ -24,10 +35,6 @@ async def lifespan(app: FastAPI):
     
     # Warmup Models (Background)
     print("🔥 Warming up models (Reranker, Classifier)...")
-    import asyncio
-    from app.nodes.reranking.ranker import get_reranker
-    from app.nodes.easy_classification.semantic_classifier import SemanticClassificationService
-    from app.integrations.embeddings import get_embedding
     
     async def warmup():
         loop = asyncio.get_running_loop()

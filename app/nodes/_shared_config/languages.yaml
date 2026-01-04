@@ -1,0 +1,17 @@
+detection:
+  enabled: true
+  library: langdetect
+  min_text_length: 10
+  confidence_threshold: 0.8
+
+response:
+  strategy: match_query
+  default_language: ru
+
+supported:
+  - code: ru
+    name: Русский
+    greeting: "Здравствуйте!"
+  - code: en
+    name: English
+    greeting: "Hello!"

@@ -1,0 +1,21 @@
+node:
+  name: multihop
+  enabled: true
+
+parameters:
+  output_docs_count: 3
+  max_hops: 2
+  complexity_threshold: 1.5
+  skip_if_high_confidence: true
+  high_confidence_threshold: 0.8
+
+complexity_detection:
+  complex_keywords:
+    - "как"
+    - "почему"
+    - "сравни"
+    - "разница"
+    - "how"
+    - "why"
+    - "compare"
+  min_query_length: 10

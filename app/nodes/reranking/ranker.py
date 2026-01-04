@@ -3,6 +3,7 @@ from typing import List, Tuple
 import numpy as np
 
 import asyncio
+from app.services.config_loader.loader import get_node_params
 
 class Reranker:
     def __init__(self, model_name: str = "BAAI/bge-reranker-v2-m3"):
@@ -38,11 +39,15 @@ class Reranker:
         
         return sorted_results
 
+
+
 # Singleton instance
 reranker_instance = None
 
 def get_reranker():
     global reranker_instance
     if reranker_instance is None:
-        reranker_instance = Reranker()
+        params = get_node_params("rerank")
+        model_name = params.get("model_name", "BAAI/bge-reranker-v2-m3")
+        reranker_instance = Reranker(model_name=model_name)
     return reranker_instance

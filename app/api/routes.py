@@ -2,7 +2,7 @@ from fastapi import APIRouter, Query, HTTPException, Depends
 from urllib.parse import unquote
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
-from app.config.settings import settings
+from app.settings import settings
 from app.storage.connection import get_sync_db_connection
 from app.observability.tracing import observe
 from app.observability.langfuse_client import get_langfuse_client
@@ -235,3 +235,71 @@ async def rag_query(request: RAGRequestBody):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# Configuration Endpoints
+# =============================================================================
+
+@router.get("/config/system-phrases")
+async def get_system_phrases():
+    """
+    Get system phrases for Telegram bot.
+    
+    Returns filter patterns and display phrases.
+    Telegram bot should call this on startup and cache the result.
+    """
+    try:
+        from app.services.config_loader.loader import load_shared_config
+        config = load_shared_config("system_phrases")
+        return {
+            "version": config.get("version", "1.0"),
+            "filter_patterns": config.get("filter_patterns", []),
+            "display_phrases": config.get("display_phrases", {})
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load config: {e}")
+
+
+@router.get("/config/languages")
+async def get_languages():
+    """
+    Get language configuration.
+    
+    Returns supported languages and detection settings.
+    """
+    try:
+        from app.services.config_loader.loader import load_shared_config
+        config = load_shared_config("languages")
+        return {
+            "version": config.get("version", "1.0"),
+            "detection": config.get("detection", {}),
+            "response": config.get("response", {}),
+            "supported": config.get("supported", [])
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load config: {e}")
+
+
+@router.post("/config/reload")
+async def reload_config():
+    """
+    Hot-reload all cached configurations.
+    
+    Call this after updating YAML config files to apply changes
+    without restarting the server.
+    """
+    try:
+        from app.services.config_loader.loader import clear_config_cache
+        from app.nodes._shared_config.history_filter import clear_filter_cache
+        
+        # Clear config caches
+        clear_config_cache()
+        clear_filter_cache()
+        
+        return {
+            "status": "ok",
+            "message": "All configuration caches cleared"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to reload config: {e}")

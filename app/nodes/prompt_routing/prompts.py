@@ -1,33 +1,19 @@
 from typing import Dict
+import os
+
+def _load_prompt(filename: str) -> str:
+    path = os.path.join(os.path.dirname(__file__), filename)
+    if not os.path.exists(path):
+        return ""
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read().strip()
 
 SYSTEM_INSTRUCTIONS: Dict[str, str] = {
-    "INITIAL": (
-        "Ты - эмпатичный ассистент поддержки. Ответь пользователю четко и кратко "
-        "на основе предоставленного контекста."
-    ),
-    "ANSWER_PROVIDED": (
-        "Ты - ассистент поддержки. Было замечено, что мы уже отвечали на похожий вопрос, "
-        "но пользователь продолжает спрашивать. Дай НОВУЮ информацию, переформулируй ответ "
-        "или задай уточняющий вопрос. Не повторяй предыдущий ответ слово в слово."
-    ),
-    "AWAITING_CLARIFICATION": (
-        "Ты - ассистент поддержки. Пользователь ответил на уточняющий вопрос. "
-        "Используй эту информацию, чтобы полноценно решить проблему."
-    ),
-    "RESOLVED": (
-        "Ты - ассистент поддержки. Похоже, пользователь доволен или проблема решена. "
-        "Вежливо заверши диалог, предложи дополнительную помощь, если нужно."
-    ),
-    "ESCALATION_NEEDED": (
-        "Ты - ассистент поддержки. Ситуация сложная или не может быть решена автоматически. "
-        "Сообщи пользователю, что ты передаешь его вопрос специалисту. "
-        "Будь максимально эмпатичным."
-    ),
-    "ESCALATION_REQUESTED": (
-        "Ты - ассистент поддержки. Пользователь попросил связать с человеком. "
-        "Не сопротивляйся. Вежливо подтверди, что переводишь диалог на оператора."
-    ),
-    "DEFAULT": (
-        "Ты - полезный ассистент поддержки. Отвечай вежливо и по сути."
-    )
+    "INITIAL": _load_prompt("prompt_instruction_initial.txt"),
+    "ANSWER_PROVIDED": _load_prompt("prompt_instruction_answer_provided.txt"),
+    "AWAITING_CLARIFICATION": _load_prompt("prompt_instruction_awaiting_clarification.txt"),
+    "RESOLVED": _load_prompt("prompt_instruction_resolved.txt"),
+    "ESCALATION_NEEDED": _load_prompt("prompt_instruction_escalation_needed.txt"),
+    "ESCALATION_REQUESTED": _load_prompt("prompt_instruction_escalation_requested.txt"),
+    "DEFAULT": _load_prompt("prompt_instruction_default.txt")
 }

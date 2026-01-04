@@ -1,6 +1,7 @@
 from typing import Dict, Any
 from app.nodes.base_node import BaseNode
 from app.observability.tracing import observe
+from app.services.config_loader.loader import get_node_params
 from app.nodes.state_machine.states_config import TRANSITION_RULES, STATE_CONFIG, INITIAL, ANSWER_PROVIDED, ESCALATION_NEEDED, ESCALATION_REQUESTED
 
 class StateMachineNode(BaseNode):
@@ -56,10 +57,12 @@ class StateMachineNode(BaseNode):
                     attempt_count += 1
             new_state = rule_matched_state
 
+        params = get_node_params("state_machine")
+        max_attempts = params.get("max_attempts_before_handoff", 3)
+
         # 3. Dynamic logic
-        if new_state == ANSWER_PROVIDED and attempt_count > STATE_CONFIG["max_attempts"]:
-            if STATE_CONFIG["escalate_on_max_attempts"]:
-                new_state = ESCALATION_NEEDED
+        if new_state == ANSWER_PROVIDED and attempt_count > max_attempts:
+            new_state = ESCALATION_NEEDED
 
         return {
             "dialog_state": new_state,

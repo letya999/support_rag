@@ -1,0 +1,18 @@
+node:
+  name: hybrid_search
+  enabled: true
+
+parameters:
+  vector_top_k: 10
+  lexical_top_k: 10
+  final_top_k: 10
+  fusion_method: rrf
+  rrf_k: 60
+
+vector_search:
+  collection_name: documents
+  score_threshold: 0.0
+
+lexical_search:
+  use_or_logic: true
+  min_word_length: 2

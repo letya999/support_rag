@@ -1,4 +1,10 @@
-import json
+"""
+RAG Pipeline Graph Builder
+
+Constructs the LangGraph workflow based on YAML configuration.
+Migrated from JSON to YAML for better readability and comments support.
+"""
+import yaml
 import os
 from langgraph.graph import StateGraph, START, END
 from app.pipeline.state import State
@@ -20,15 +26,20 @@ from app.nodes.prompt_routing.node import route_prompt_node
 from app.nodes.lexical_search.node import lexical_node
 from app.nodes.fusion.node import fusion_node
 from app.nodes.archive_session.node import archive_session_node
-from app.config.conversation_config import conversation_config
+from app.pipeline.config_proxy import conversation_config
+from app.services.config_loader.loader import load_pipeline_config, get_node_enabled, get_cache_config
 
-# Optional: Import multihop node if available (Phase 3)
+# Optional: Import multihop node if available
 try:
     from app.nodes.multihop.node import multihop_node
     MULTIHOP_AVAILABLE = True
 except ImportError:
     MULTIHOP_AVAILABLE = False
     multihop_node = None
+
+
+
+
 
 def cache_hit_logic(state: State):
     """
@@ -37,7 +48,8 @@ def cache_hit_logic(state: State):
     """
     if state.get("cache_hit", False):
         return "store_in_cache"
-    return "miss"  # Return "miss" to proceed to pipeline
+    return "miss"
+
 
 def router_logic(state: State):
     """
@@ -46,6 +58,7 @@ def router_logic(state: State):
     if state.get("action") == "auto_reply":
         return "generate"
     return END
+
 
 # Mapping of node names to their implementations
 NODE_FUNCTIONS = {
@@ -71,32 +84,29 @@ NODE_FUNCTIONS = {
     "archive_session": archive_session_node,
 }
 
-# Add multihop node if available (Phase 3)
+# Add multihop node if available
 if MULTIHOP_AVAILABLE:
     NODE_FUNCTIONS["multihop"] = multihop_node
 
-# Load configuration
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "pipeline_config.json")
-with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-    config = json.load(f)
 
 # Build graph
 workflow = StateGraph(State)
 
-
-# CACHE LAYER (Phase 2): Always add cache nodes
-cache_enabled = config.get("cache", {}).get("enabled", True)
+# CACHE LAYER: Always add cache nodes if enabled
+cache_enabled = get_node_enabled("check_cache")
 if cache_enabled:
     workflow.add_node("check_cache", NODE_FUNCTIONS["check_cache"])
     workflow.add_node("store_in_cache", NODE_FUNCTIONS["store_in_cache"])
 
-# Identify active nodes
-active_nodes_cfg = config.get("nodes", [])
-active_node_names = [n["name"] for n in active_nodes_cfg if n.get("enabled", False)]
+# Get pipeline nodes from config
+config = load_pipeline_config()
+pipeline_config = config.get("pipeline", config.get("nodes", []))
 
-# Define Groups
-state_machine_group = ["dialog_analysis", "state_machine"]
-rag_pipeline_group = ["aggregate", "fasttext_classify", "classify", "metadata_filter", "expand_query", "retrieve", "lexical_search", "fusion", "hybrid_search", "multihop", "rerank"]
+# Identify active nodes preserving config order
+active_node_names = [
+    n["name"] for n in pipeline_config 
+    if n.get("enabled", False)
+]
 
 # Add all active nodes to workflow
 for name in active_node_names:
@@ -112,18 +122,18 @@ if "session_starter" in active_node_names:
     workflow.add_edge(START, "session_starter")
     if cache_enabled:
         workflow.add_edge("session_starter", "check_cache")
-        start_node = "check_cache" # Cache check is the divergent point
+        start_node = "check_cache"
     else:
         start_node = "session_starter"
 elif cache_enabled:
     workflow.add_edge(START, "check_cache")
     start_node = "check_cache"
 
-# 2. Sequential Logic Construction based on Config Order
-# We follow `active_node_names` for sequence, but if `check_cache` exists, we inject the conditional edge.
-
-# Filter nodes that are part of the pipeline (excluding session_starter, check_cache, store_in_cache, archive_session which we handled)
-pipeline_nodes = [n for n in active_node_names if n not in ["session_starter", "check_cache", "store_in_cache", "archive_session"]]
+# Filter nodes that are part of the main pipeline
+pipeline_nodes = [
+    n for n in active_node_names 
+    if n not in ["session_starter", "check_cache", "store_in_cache", "archive_session"]
+]
 
 if pipeline_nodes:
     first_pipeline_node = pipeline_nodes[0]
@@ -151,7 +161,6 @@ if pipeline_nodes:
             if "generate" in pipeline_nodes:
                 # If prompt routing is enabled, route to it first
                 target = "prompt_routing" if "prompt_routing" in active_node_names else "generate"
-                
                 target_exit = "archive_session" if "archive_session" in active_node_names else ("store_in_cache" if cache_enabled else END)
                 
                 workflow.add_conditional_edges(
@@ -163,27 +172,27 @@ if pipeline_nodes:
                     }
                 )
             else:
-                  target_exit = "archive_session" if "archive_session" in active_node_names else ("store_in_cache" if cache_enabled else END)
-                  workflow.add_edge("route", target_exit)
+                target_exit = "archive_session" if "archive_session" in active_node_names else ("store_in_cache" if cache_enabled else END)
+                workflow.add_edge("route", target_exit)
         else:
             workflow.add_edge(current_node, next_node)
             
     # Handle End of Pipeline
     last_node = pipeline_nodes[-1]
-    if last_node != "route": # Route handles its own exit
-          if "archive_session" in active_node_names:
-              workflow.add_edge(last_node, "archive_session")
-          elif cache_enabled:
-              workflow.add_edge(last_node, "store_in_cache")
-          else:
-              workflow.add_edge(last_node, END)
+    if last_node != "route":
+        if "archive_session" in active_node_names:
+            workflow.add_edge(last_node, "archive_session")
+        elif cache_enabled:
+            workflow.add_edge(last_node, "store_in_cache")
+        else:
+            workflow.add_edge(last_node, END)
               
     # Ensure archive_session has an exit path
     if "archive_session" in active_node_names:
-          if cache_enabled:
-              workflow.add_edge("archive_session", "store_in_cache")
-          else:
-              workflow.add_edge("archive_session", END)
+        if cache_enabled:
+            workflow.add_edge("archive_session", "store_in_cache")
+        else:
+            workflow.add_edge("archive_session", END)
 else:
     # No pipeline nodes
     if cache_enabled:
@@ -195,8 +204,6 @@ else:
                 "miss": END 
             }
         )
-    else:
-        pass # Empty graph
 
 # Cache Store always goes to END
 if cache_enabled:

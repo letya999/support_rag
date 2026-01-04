@@ -1,6 +1,6 @@
 from typing import Dict, Any, List
 from app.nodes.base_node import BaseNode
-from app.config.conversation_config import conversation_config
+from app.pipeline.config_proxy import conversation_config
 from app.nodes.aggregation.lightweight import lightweight_aggregation_node
 from app.nodes.aggregation.llm import llm_aggregation_node
 from app.pipeline.state import State

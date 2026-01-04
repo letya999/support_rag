@@ -1,0 +1,16 @@
+node:
+  name: fasttext_classify
+  enabled: true
+
+parameters:
+  intent_confidence_threshold: 0.3
+  category_confidence_threshold: 0.3
+  skip_if_low_confidence: true
+
+fallback:
+  intent: unknown
+  category: General
+
+model:
+  fasttext_model_path: "models/intent_classifier.bin"
+  sentence_model: "intfloat/multilingual-e5-small"

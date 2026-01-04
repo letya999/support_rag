@@ -1,0 +1,14 @@
+node:
+  name: metadata_filter
+  enabled: true
+
+parameters:
+  use_category_filter: true
+  fallback_category: General
+  skip_on_unknown: true
+
+filters:
+  fields:
+    - category
+    - intent
+    - language

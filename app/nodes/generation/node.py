@@ -1,11 +1,17 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from app.nodes.base_node import BaseNode
 from app.integrations.llm import get_llm
-from app.nodes.generation.prompts import QA_PROMPT, DYNAMIC_QA_PROMPT
-from app.observability.callbacks import get_langfuse_callback_handler
 from app.observability.tracing import observe
+from langchain_core.prompts import ChatPromptTemplate
+from app.observability.callbacks import get_langfuse_callback_handler
 
 class GenerationNode(BaseNode):
+    def __init__(self, name: Optional[str] = None):
+        super().__init__(name)
+        # Load prompts using base class utility
+        self.qa_prompt = ChatPromptTemplate.from_template(self._load_prompt("prompt_qa_simple.txt"))
+        self.dynamic_human_prompt = self._load_prompt("prompt_qa_dynamic_human.txt")
+
     @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -15,34 +21,34 @@ class GenerationNode(BaseNode):
         docs = state.get("docs", [])
         system_prompt = state.get("system_prompt")
         
-        answer = await generate_answer_simple(question, docs, system_prompt)
+        answer = await self._generate_answer(question, docs, system_prompt)
         
         return {"answer": answer}
 
-async def generate_answer_simple(question: str, docs: List[str], system_prompt: str = None) -> str:
-    """
-    Simpler version for evaluation.
-    """
-    docs_str = "\n\n".join(docs)
-    
-    llm = get_llm() # Using defaults
-    
-    if system_prompt:
-        chain = DYNAMIC_QA_PROMPT | llm
-        inputs = {"docs": docs_str, "question": question, "system_prompt": system_prompt}
-    else:
-        chain = QA_PROMPT | llm
-        inputs = {"docs": docs_str, "question": question}
-    
-    # Callback for tracing
-    langfuse_handler = get_langfuse_callback_handler()
-    
-    response = await chain.ainvoke(
-        inputs,
-        config={"callbacks": [langfuse_handler]}
-    )
-    
-    return response.content
+    async def _generate_answer(self, question: str, docs: List[str], system_prompt: str = None) -> str:
+        docs_str = "\n\n".join(docs)
+        llm = get_llm()
+        
+        if system_prompt:
+            # Escape curly braces in system_prompt as it may contain data artifacts (like dicts) 
+            # that LangChain would otherwise try to interpolate as variables.
+            escaped_system_prompt = system_prompt.replace("{", "{{").replace("}", "}}")
+            chain = ChatPromptTemplate.from_messages([
+                ("system", escaped_system_prompt),
+                ("human", self.dynamic_human_prompt)
+            ]) | llm
+            inputs = {"docs": docs_str, "question": question}
+        else:
+            chain = self.qa_prompt | llm
+            inputs = {"docs": docs_str, "question": question}
+        
+        langfuse_handler = get_langfuse_callback_handler()
+        
+        response = await chain.ainvoke(
+            inputs,
+            config={"callbacks": [langfuse_handler]}
+        )
+        return response.content
 
 # For backward compatibility
 generate_node = GenerationNode()

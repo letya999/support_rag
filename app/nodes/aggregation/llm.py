@@ -4,23 +4,25 @@ from langchain_core.output_parsers import StrOutputParser
 from app.integrations.llm import get_llm
 from app.pipeline.state import State
 from app.observability.tracing import observe
-from app.config.conversation_config import conversation_config
+from app.pipeline.config_proxy import conversation_config
 
-AGGREGATION_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """You are a conversation aggregator. Your task is to rewrite the latest user question to be standalone and self-contained, based on the conversation history.
-    - Resolve references like "it", "that", "the order" using the history.
-    - Include specific entities (names, IDs, dates) mentioned earlier if relevant.
-    - Do NOT add information that is not in the history.
-    - If the history is not relevant, return the latest question as is.
-    - Output ONLY the rewritten question."""),
-    ("user", "History:\n{history}\n\nLatest Question: {question}")
-])
+from app.nodes.base_node import BaseNode
 
-class LLMAggregator:
+class LLMAggregator(BaseNode):
     def __init__(self):
+        super().__init__()
         self.llm = get_llm(temperature=0.0) # Low temperature for precision
         self.output_parser = StrOutputParser()
-        self.chain = AGGREGATION_PROMPT | self.llm | self.output_parser
+        
+        # Load prompt using base class utility
+        system_prompt = self._load_prompt("prompt_rewriting.txt")
+        
+        self.prompt = ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            ("user", "History:\n{history}\n\nLatest Question: {question}")
+        ])
+        
+        self.chain = self.prompt | self.llm | self.output_parser
 
     @observe(as_type="span")
     async def aggregate(self, history: List[str], question: str) -> str:

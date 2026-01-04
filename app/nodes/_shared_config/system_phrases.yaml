@@ -1,0 +1,52 @@
+# Patterns to filter OUT from conversation history
+filter_patterns:
+  - regex: "Извините, не смог обработать"
+    type: error
+  - regex: "не смог обработать ваш вопрос"
+    type: error
+  - regex: "Ошибка подключения"
+    type: error
+  - regex: "Произошла ошибка"
+    type: error
+  - regex: "Попробуйте позже"
+    type: retry
+  - regex: "Соединяю с оператором"
+    type: handoff
+  - regex: "Перевожу на оператора"
+    type: handoff
+  - regex: "Не могу найти информацию"
+    type: no_info
+  - regex: "Sorry, couldn't process"
+    type: error
+  - regex: "An error occurred"
+    type: error
+  - regex: "Please try again later"
+    type: retry
+  - regex: "Connecting you to"
+    type: handoff
+  - regex: "I couldn't find"
+    type: no_info
+
+# Phrases for bot to display
+display_phrases:
+  error:
+    ru: "Извините, произошла ошибка. Попробуйте ещё раз."
+    en: "Sorry, an error occurred. Please try again."
+  handoff:
+    ru: "Соединяю вас с оператором поддержки..."
+    en: "Connecting you with a support agent..."
+  greeting:
+    ru: "Здравствуйте! Чем могу помочь?"
+    en: "Hello! How can I help you?"
+  farewell:
+    ru: "До свидания! Рад был помочь."
+    en: "Goodbye! Happy to help."
+  clarify:
+    ru: "Не совсем понял ваш вопрос. Могли бы вы уточнить?"
+    en: "I'm not sure I understand. Could you please clarify?"
+  no_info:
+    ru: "К сожалению, у меня нет информации по этому вопросу."
+    en: "Unfortunately, I don't have information about this."
+  low_confidence:
+    ru: "Не уверен, что правильно понял вопрос. Вот что удалось найти:"
+    en: "I'm not entirely sure I understood correctly. Here's what I found:"

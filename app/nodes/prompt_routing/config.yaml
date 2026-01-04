@@ -1,0 +1,19 @@
+node:
+  name: prompt_routing
+  enabled: true
+
+parameters:
+  history_source: conversation_history
+  max_history_messages: 5
+  include_user_profile: true
+  include_entities: true
+  filter_system_messages: true
+
+history_formatting:
+  message_template: "{role}: {content}"
+  separator: "\n"
+  max_message_length: 300
+
+fallback:
+  use_session_summaries: true
+  summary_template: "Предыдущий разговор: {summary}"

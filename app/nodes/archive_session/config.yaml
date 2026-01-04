@@ -1,0 +1,13 @@
+node:
+  name: archive_session
+  enabled: true
+
+parameters:
+  save_to_postgres: true
+  update_redis_session: true
+  filter_system_messages: true
+  generate_summary: true
+
+summary:
+  method: rule_based
+  max_length: 200
