@@ -11,6 +11,14 @@
             "enabled": true
         },
         {
+            "name": "analyze_dialog",
+            "enabled": true
+        },
+        {
+            "name": "update_state",
+            "enabled": true
+        },
+        {
             "name": "aggregate",
             "enabled": true
         },
@@ -48,6 +56,10 @@
         },
         {
             "name": "route",
+            "enabled": true
+        },
+        {
+            "name": "route_prompt",
             "enabled": true
         },
         {

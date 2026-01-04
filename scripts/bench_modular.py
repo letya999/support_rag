@@ -21,6 +21,9 @@ from app.nodes.classification.evaluator import evaluator as cls_evaluator
 from app.nodes.easy_classification.evaluator import evaluator as ft_evaluator
 from app.cache.nodes import check_cache_node, store_in_cache_node # Cache imports
 from app.nodes.session_starter.node import load_session_node # Session starter import
+from app.nodes.dialog_analysis.node import dialog_analysis_node # Dialog analysis import
+from app.nodes.prompt_routing.node import route_prompt_node # Prompt Routing
+from app.nodes.prompt_routing.evaluator import evaluator as pr_evaluator
 
 langfuse = get_langfuse_client()
 
@@ -42,6 +45,8 @@ def update_config_from_args(config: Dict[str, Any], args: argparse.Namespace):
     set_enabled("fasttext_classify", args.use_fasttext)
     set_enabled("rerank", args.use_reranker)
     set_enabled("load_session", args.use_session_loader)
+    set_enabled("analyze_dialog", args.use_dialog_analysis)
+    set_enabled("prompt_routing", args.use_prompt_routing)
 
     
     return config
@@ -67,6 +72,8 @@ async def run_modular_bench(args, config):
     print(f"   Classifier (FastText):  {'ON' if args.use_fasttext else 'OFF'}")
     print(f"   Reranker:  {'ON' if args.use_reranker else 'OFF'} (k={top_k_rerank})")
     print(f"   Cache:     {'ON' if cache_enabled else 'OFF'}")
+    print(f"   Dialog Analysis: {'ON' if args.use_dialog_analysis else 'OFF'}")
+    print(f"   Prompt Routing:  {'ON' if args.use_prompt_routing else 'OFF'}")
 
     classifier = ClassificationService() if args.use_classifier else None
     ft_classifier = FastTextClassificationService() if args.use_fasttext else None
@@ -80,6 +87,8 @@ async def run_modular_bench(args, config):
     
     all_metrics = []
     cls_results = {"zs": {"true": [], "pred": [], "conf": []}, "ft": {"true": [], "pred": [], "conf": []}}
+    # Store selected prompts for distribution analysis
+    selected_prompts_list = []
     
     for i, item in enumerate(dataset.items, 1):
         question = item.input["question"]
@@ -143,6 +152,25 @@ async def run_modular_bench(args, config):
                             if not category_filter:
                                 category_filter = ft_res.category if ft_res.category_confidence >= args.confidence_threshold else None
 
+                    # Dialog Analysis
+                    dialog_analysis_res = {}
+                    if args.use_dialog_analysis:
+                        # Ensure history exists (mock if needed for single-turn bench)
+                        if "session_history" not in state:
+                            state["session_history"] = []
+                        da_out = await dialog_analysis_node(state)
+                        dialog_analysis_res = da_out.get("dialog_analysis", {})
+                        state.update(da_out)
+
+                    # Prompt Routing
+                    selected_prompt_key = "DEFAULT"
+                    if args.use_prompt_routing:
+                         pr_out = await route_prompt_node(state)
+                         state.update(pr_out)
+                         # We infer the key from dialog state as the real prompt text is long
+                         selected_prompt_key = state.get("dialog_state", "DEFAULT")
+                         selected_prompts_list.append(selected_prompt_key)
+
                     # Retrieval logic
                     if not args.use_expansion and not args.use_reranker and not args.use_hybrid and not classifier and not args.use_fasttext:
                         output = await retrieve_context(question, top_k=top_k_retrieval, category_filter=category_filter)
@@ -185,7 +213,9 @@ async def run_modular_bench(args, config):
                         "reranker": args.use_reranker,
                         "search_type": search_type,
                         "category_filter": category_filter if not cached_docs else "N/A",
-                        "cache_hit": bool(cached_docs)
+                        "cache_hit": bool(cached_docs),
+                        "dialog_analysis": dialog_analysis_res,
+                        "selected_prompt": selected_prompt_key if args.use_prompt_routing else "N/A"
                     }
                 )
                 
@@ -223,6 +253,13 @@ async def run_modular_bench(args, config):
                 for k, v in metrics.items():
                     print(f"  - {k.replace('_', ' ').title()}: {v:.4f}")
                     langfuse.score(name=f"{tag}_{k}", value=v)
+        
+        # Prompt Routing Distribution
+        if args.use_prompt_routing and selected_prompts_list:
+            dist = pr_evaluator.analyze_distribution(selected_prompts_list)
+            print(f"\n🎭 Prompt Routing Distribution:")
+            for k, v in dist.items():
+                print(f"  - {k}: {v:.2%}")
 
 if __name__ == "__main__":
     # Load config from JSON if exists
@@ -251,6 +288,8 @@ if __name__ == "__main__":
     parser.add_argument("--use_fasttext", action="store_true", default=get_enabled_default("fasttext_classify"))
     parser.add_argument("--use_reranker", action="store_true", default=get_enabled_default("rerank"))
     parser.add_argument("--use_session_loader", action="store_true", default=get_enabled_default("load_session"))
+    parser.add_argument("--use_dialog_analysis", action="store_true", default=get_enabled_default("analyze_dialog"))
+    parser.add_argument("--use_prompt_routing", action="store_true", default=get_enabled_default("prompt_routing"))
     parser.add_argument("--top_k_retrieval", type=int, default=config.get("top_k_retrieval", 10))
     parser.add_argument("--top_k_rerank", type=int, default=config.get("top_k_rerank", 5))
     parser.add_argument("--confidence_threshold", type=float, default=config.get("confidence_threshold", 0.5))

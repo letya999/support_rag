@@ -6,6 +6,7 @@ class ConversationConfig(BaseSettings):
     aggregation_max_messages: int = 6
     extract_entities_enabled: bool = True
     use_llm_aggregation: bool = False  # for A/B testing
+    use_llm_analysis: bool = True  # LLM-based dialog analysis
 
     # Session management
     session_ttl_hours: int = 24

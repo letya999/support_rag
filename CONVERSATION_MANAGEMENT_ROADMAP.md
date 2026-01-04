@@ -207,14 +207,14 @@ Output: `escalation_decision` ("escalate" | "auto_reply") + `escalation_reason` 
 - [x] Интеграция с существующим pipeline
 
 ### Этап 3: State Machine (2 ч)
-- [ ] Dialog analyzer node
-- [ ] Session state updater node
-- [ ] Перестройка графа на параллельные ветки
+- [x] Dialog analyzer node
+- [x] Session state updater node
+- [x] Перестройка графа на параллельные ветки
 
 ### Этап 4: Prompt Routing (1.5 ч)
-- [ ] Prompt router node
-- [ ] Модифицировать generation на использование routed prompts
-- [ ] State-aware промпты
+- [x] Prompt router node
+- [x] Модифицировать generation на использование routed prompts
+- [x] State-aware промпты
 
 ### Этап 5: Safety & Emotion (1.5 ч)
 - [ ] Emotion detector node

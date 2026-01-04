@@ -15,6 +15,9 @@ from app.cache.nodes import check_cache_node, store_in_cache_node
 from app.nodes.session_starter.node import load_session_node
 from app.nodes.aggregation.lightweight import lightweight_aggregation_node
 from app.nodes.aggregation.llm import llm_aggregation_node
+from app.nodes.dialog_analysis.node import dialog_analysis_node
+from app.nodes.session_update.node import session_update_node
+from app.nodes.prompt_routing.node import route_prompt_node
 from app.config.conversation_config import conversation_config
 
 # Optional: Import multihop node if available (Phase 3)
@@ -32,9 +35,7 @@ def cache_hit_logic(state: State):
     """
     if state.get("cache_hit", False):
         return "store_in_cache"
-    return "classify"  # This return value serves as the "cache miss" Edge Key
-
-from app.nodes.multihop.node import multihop_node
+    return "miss"  # Return "miss" to proceed to pipeline
 
 def router_logic(state: State):
     """
@@ -59,10 +60,13 @@ NODE_FUNCTIONS = {
     "rerank": rerank_node,
     "multihop": multihop_node,
     "route": route_node,
+    "route_prompt": route_prompt_node,
     "generate": generate_node,
     "store_in_cache": store_in_cache_node,
     "load_session": load_session_node,
     "aggregate": aggregate_impl,
+    "analyze_dialog": dialog_analysis_node,
+    "update_state": session_update_node,
 }
 
 # Add multihop node if available (Phase 3)
@@ -84,138 +88,105 @@ if cache_enabled:
     workflow.add_node("check_cache", NODE_FUNCTIONS["check_cache"])
     workflow.add_node("store_in_cache", NODE_FUNCTIONS["store_in_cache"])
 
-active_nodes = []
-# 1. Add active nodes to the graph (excluding cache nodes which we handle separately)
-for node_cfg in config.get("nodes", []):
-    name = node_cfg["name"]
-    enabled = node_cfg.get("enabled", False)
+# Identify active nodes
+active_nodes_cfg = config.get("nodes", [])
+active_node_names = [n["name"] for n in active_nodes_cfg if n.get("enabled", False)]
 
-    if enabled and name in NODE_FUNCTIONS and name not in ["check_cache", "store_in_cache"]:
+# Define Groups
+state_machine_group = ["analyze_dialog", "update_state"]
+rag_pipeline_group = ["aggregate", "fasttext_classify", "classify", "metadata_filter", "expand_query", "retrieve", "hybrid_search", "multihop", "rerank"]
+
+# Add all active nodes to workflow
+for name in active_node_names:
+    if name in NODE_FUNCTIONS and name not in ["check_cache", "store_in_cache"]:
         workflow.add_node(name, NODE_FUNCTIONS[name])
-        active_nodes.append(name)
 
-# Ensure load_session is at the beginning if enabled
-if "load_session" in active_nodes:
-    active_nodes.remove("load_session")
-    active_nodes.insert(0, "load_session")
+# --- CONNECT EDGES ---
 
-# 2. Connect nodes with cache layer integration
-if not active_nodes:
+start_node = START
+
+# 1. Load Session (Optional)
+if "load_session" in active_node_names:
+    workflow.add_edge(START, "load_session")
     if cache_enabled:
-        # Only cache check -> END
-        workflow.add_edge(START, "check_cache")
+        workflow.add_edge("load_session", "check_cache")
+        start_node = "check_cache" # Cache check is the divergent point
+    else:
+        start_node = "load_session"
+elif cache_enabled:
+    workflow.add_edge(START, "check_cache")
+    start_node = "check_cache"
+
+# 2. Sequential Logic Construction based on Config Order
+# We follow `active_node_names` for sequence, but if `check_cache` exists, we inject the conditional edge.
+
+# Filter nodes that are part of the pipeline (excluding load_session, check_cache, store_in_cache which we handled)
+pipeline_nodes = [n for n in active_node_names if n not in ["load_session", "check_cache", "store_in_cache"]]
+
+if pipeline_nodes:
+    first_pipeline_node = pipeline_nodes[0]
+    
+    # Connect Start/Cache to Pipeline
+    if cache_enabled:
         workflow.add_conditional_edges(
             "check_cache",
             cache_hit_logic,
             {
                 "store_in_cache": "store_in_cache",
-                "classify": END  # No pipeline, just end
+                "miss": first_pipeline_node
             }
         )
-        workflow.add_edge("store_in_cache", END)
-    else:
-        workflow.add_edge(START, END)
-else:
-    # With pipeline nodes
-    first_node = active_nodes[0]
+    elif start_node == START and "load_session" not in active_node_names:
+        workflow.add_edge(START, first_pipeline_node)
     
-    if cache_enabled:
-        # START -> check_cache
-        # If load_session is first, we might want START -> load_session -> check_cache ??
-        # Or load_session effectively happens "before" the cache check contextually?
-        # Actually session loading is needed probably BEFORE cache check to know user context?
-        # Let's handle load_session as a distinct pre-step if present.
-        
-        start_target = "check_cache"
-        
-        if first_node == "load_session":
-            # START -> load_session -> check_cache
-            workflow.add_edge(START, "load_session")
-            workflow.add_edge("load_session", "check_cache")
-            # Remove load_session from the "pipeline after cache" list
-            pipeline_nodes = active_nodes[1:]
-        else:
-            workflow.add_edge(START, "check_cache")
-            pipeline_nodes = active_nodes
+    # Connect Pipeline Nodes sequentially
+    for i in range(len(pipeline_nodes) - 1):
+        current_node = pipeline_nodes[i]
+        next_node = pipeline_nodes[i+1]
 
-        # check_cache -> (cache hit) -> store_in_cache -> END
-        #             -> (cache miss) -> first_pipeline_node
-        
-        if pipeline_nodes:
-            miss_target = pipeline_nodes[0]
-            workflow.add_conditional_edges(
-                "check_cache",
-                cache_hit_logic,
-                {
-                    "store_in_cache": "store_in_cache",
-                    "classify": miss_target
-                }
-            )
-            
-             # Handle the pipeline connections
-            for i in range(len(pipeline_nodes) - 1):
-                current_node = pipeline_nodes[i]
-                next_node = pipeline_nodes[i+1]
-
-                # Special logic for routing if it's in the middle
-                if current_node == "route":
-                    if "generate" in pipeline_nodes:
-                        workflow.add_conditional_edges(
-                            "route",
-                            router_logic,
-                            {
-                                "generate": "generate",
-                                END: "store_in_cache"  # After generation, cache it
-                            }
-                        )
-                    else:
-                        workflow.add_edge("route", "store_in_cache")
-                else:
-                    workflow.add_edge(current_node, next_node)
-            
-            # Last node -> store_in_cache
-            last_node = pipeline_nodes[-1]
-            if last_node != "route":
-                workflow.add_edge(last_node, "store_in_cache")
-        else:
-             # No pipeline nodes after cache check?
-             workflow.add_conditional_edges(
-                "check_cache",
-                cache_hit_logic,
-                {
-                    "store_in_cache": "store_in_cache",
-                    "classify": END 
-                }
-            )
-
-        # store_in_cache -> END
-        workflow.add_edge("store_in_cache", END)
-    else:
-        # No cache, original behavior
-        workflow.add_edge(START, first_node)
-
-        for i in range(len(active_nodes) - 1):
-            current_node = active_nodes[i]
-            next_node = active_nodes[i+1]
-
-            if current_node == "route":
-                if "generate" in active_nodes:
-                    workflow.add_conditional_edges(
-                        "route",
-                        router_logic,
-                        {
-                            "generate": "generate",
-                            END: END
-                        }
-                    )
-                else:
-                    workflow.add_edge("route", END)
+        # Special logic for routing if it's in the middle
+        if current_node == "route":
+            if "generate" in pipeline_nodes:
+                # If prompt routing is enabled, route to it first
+                target = "route_prompt" if "route_prompt" in active_node_names else "generate"
+                
+                workflow.add_conditional_edges(
+                    "route",
+                    router_logic,
+                    {
+                        "generate": target,
+                        END: "store_in_cache" if cache_enabled else END
+                    }
+                )
             else:
-                workflow.add_edge(current_node, next_node)
+                 workflow.add_edge("route", "store_in_cache" if cache_enabled else END)
+        else:
+            workflow.add_edge(current_node, next_node)
+            
+    # Handle End of Pipeline
+    last_node = pipeline_nodes[-1]
+    if last_node != "route": # Route handles its own exit
+         if cache_enabled:
+             workflow.add_edge(last_node, "store_in_cache")
+         else:
+             workflow.add_edge(last_node, END)
+else:
+    # No pipeline nodes
+    if cache_enabled:
+        workflow.add_conditional_edges(
+            "check_cache",
+            cache_hit_logic,
+            {
+                "store_in_cache": "store_in_cache",
+                "miss": END 
+            }
+        )
+    else:
+        pass # Empty graph
 
-        last_node = active_nodes[-1]
-        if last_node != "route":
-            workflow.add_edge(last_node, END)
+# Cache Store always goes to END
+if cache_enabled:
+    workflow.add_edge("store_in_cache", END)
 
 # Compile
 rag_graph = workflow.compile()

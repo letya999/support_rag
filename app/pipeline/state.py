@@ -57,6 +57,11 @@ class State(TypedDict):
     cache_hit: Optional[bool]
     cache_key: Optional[str]
     cache_stats: Optional[Dict[str, Any]]
+
+    # Phase 3: State Machine
+    dialog_state: Optional[str]
+    attempt_count: Optional[int]
+    dialog_analysis: Optional[Dict[str, Any]]
     # Multi-hop
     complexity_level: Optional[Literal["simple", "medium", "complex"]]
     complexity_score: Optional[float]
@@ -67,3 +72,7 @@ class State(TypedDict):
     merged_context: Optional[str]
     multihop_used: Optional[bool]
     hops_performed: Optional[int]
+
+    # Phase 4: Prompt Routing
+    system_prompt: Optional[str]
+    generation_strategy: Optional[str]

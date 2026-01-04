@@ -24,6 +24,10 @@
         {
             "name": "fasttext_classify",
             "enabled": true
+        },
+        {
+            "name": "prompt_routing",
+            "enabled": true
         }
     ],
     "top_k_retrieval": 10,
