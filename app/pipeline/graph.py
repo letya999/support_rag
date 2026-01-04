@@ -13,11 +13,12 @@ from app.nodes.easy_classification.node import fasttext_classify_node
 from app.nodes.metadata_filtering.node import metadata_filter_node
 from app.cache.nodes import check_cache_node, store_in_cache_node
 from app.nodes.session_starter.node import load_session_node
-from app.nodes.aggregation.lightweight import lightweight_aggregation_node
-from app.nodes.aggregation.llm import llm_aggregation_node
+from app.nodes.aggregation.node import aggregate_node
 from app.nodes.dialog_analysis.node import dialog_analysis_node
 from app.nodes.state_machine.node import state_machine_node
 from app.nodes.prompt_routing.node import route_prompt_node
+from app.nodes.lexical_search.node import lexical_node
+from app.nodes.fusion.node import fusion_node
 from app.config.conversation_config import conversation_config
 
 # Optional: Import multihop node if available (Phase 3)
@@ -45,9 +46,6 @@ def router_logic(state: State):
         return "generate"
     return END
 
-# Select aggregation implementation
-aggregate_impl = llm_aggregation_node if conversation_config.use_llm_aggregation else lightweight_aggregation_node
-
 # Mapping of node names to their implementations
 NODE_FUNCTIONS = {
     "check_cache": check_cache_node,
@@ -60,13 +58,15 @@ NODE_FUNCTIONS = {
     "rerank": rerank_node,
     "multihop": multihop_node,
     "route": route_node,
-    "route_prompt": route_prompt_node,
     "generate": generate_node,
     "store_in_cache": store_in_cache_node,
-    "load_session": load_session_node,
-    "aggregate": aggregate_impl,
-    "analyze_dialog": dialog_analysis_node,
-    "update_state": state_machine_node,
+    "session_starter": load_session_node,
+    "aggregate": aggregate_node,
+    "dialog_analysis": dialog_analysis_node,
+    "state_machine": state_machine_node,
+    "prompt_routing": route_prompt_node,
+    "lexical_search": lexical_node,
+    "fusion": fusion_node,
 }
 
 # Add multihop node if available (Phase 3)
@@ -93,8 +93,8 @@ active_nodes_cfg = config.get("nodes", [])
 active_node_names = [n["name"] for n in active_nodes_cfg if n.get("enabled", False)]
 
 # Define Groups
-state_machine_group = ["analyze_dialog", "update_state"]
-rag_pipeline_group = ["aggregate", "fasttext_classify", "classify", "metadata_filter", "expand_query", "retrieve", "hybrid_search", "multihop", "rerank"]
+state_machine_group = ["dialog_analysis", "state_machine"]
+rag_pipeline_group = ["aggregate", "fasttext_classify", "classify", "metadata_filter", "expand_query", "retrieve", "lexical_search", "fusion", "hybrid_search", "multihop", "rerank"]
 
 # Add all active nodes to workflow
 for name in active_node_names:
@@ -106,13 +106,13 @@ for name in active_node_names:
 start_node = START
 
 # 1. Load Session (Optional)
-if "load_session" in active_node_names:
-    workflow.add_edge(START, "load_session")
+if "session_starter" in active_node_names:
+    workflow.add_edge(START, "session_starter")
     if cache_enabled:
-        workflow.add_edge("load_session", "check_cache")
+        workflow.add_edge("session_starter", "check_cache")
         start_node = "check_cache" # Cache check is the divergent point
     else:
-        start_node = "load_session"
+        start_node = "session_starter"
 elif cache_enabled:
     workflow.add_edge(START, "check_cache")
     start_node = "check_cache"
@@ -120,8 +120,8 @@ elif cache_enabled:
 # 2. Sequential Logic Construction based on Config Order
 # We follow `active_node_names` for sequence, but if `check_cache` exists, we inject the conditional edge.
 
-# Filter nodes that are part of the pipeline (excluding load_session, check_cache, store_in_cache which we handled)
-pipeline_nodes = [n for n in active_node_names if n not in ["load_session", "check_cache", "store_in_cache"]]
+# Filter nodes that are part of the pipeline (excluding session_starter, check_cache, store_in_cache which we handled)
+pipeline_nodes = [n for n in active_node_names if n not in ["session_starter", "check_cache", "store_in_cache"]]
 
 if pipeline_nodes:
     first_pipeline_node = pipeline_nodes[0]
@@ -136,7 +136,7 @@ if pipeline_nodes:
                 "miss": first_pipeline_node
             }
         )
-    elif start_node == START and "load_session" not in active_node_names:
+    elif start_node == START and "session_starter" not in active_node_names:
         workflow.add_edge(START, first_pipeline_node)
     
     # Connect Pipeline Nodes sequentially
@@ -148,7 +148,7 @@ if pipeline_nodes:
         if current_node == "route":
             if "generate" in pipeline_nodes:
                 # If prompt routing is enabled, route to it first
-                target = "route_prompt" if "route_prompt" in active_node_names else "generate"
+                target = "prompt_routing" if "prompt_routing" in active_node_names else "generate"
                 
                 workflow.add_conditional_edges(
                     "route",

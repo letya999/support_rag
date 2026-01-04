@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Union
 
@@ -6,11 +5,12 @@ from app.observability.langfuse_client import get_langfuse_client
 from app.observability.score_logger import log_score
 from app.observability.tracing import observe
 from app.dataset.loader import load_ground_truth_dataset, sync_dataset_to_langfuse
+from app.nodes.base_node import BaseEvaluator
 from app.nodes.retrieval.search import retrieve_context
 from app.nodes.retrieval.metrics import HitRate, MRR, ExactMatch, AverageScore, FirstChunkScore, Recall, F1Score
 from app.nodes.reranking.metrics.ndcg import NDCG
 
-class RetrievalEvaluator:
+class RetrievalEvaluator(BaseEvaluator):
     def __init__(self):
         self.metrics = [HitRate(), MRR(), ExactMatch(), AverageScore(), FirstChunkScore(), Recall(), F1Score(), NDCG()]
 

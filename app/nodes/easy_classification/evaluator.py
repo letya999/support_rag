@@ -1,8 +1,9 @@
 from typing import List, Dict, Any, Optional
+from app.nodes.base_node import BaseEvaluator
 from app.nodes.easy_classification.metrics.quality import QualityMetrics
 from app.nodes.easy_classification.metrics.calibration import CalibrationMetrics
 
-class EasyClassificationEvaluator:
+class EasyClassificationEvaluator(BaseEvaluator):
     def __init__(self):
         self.quality = QualityMetrics()
         self.calibration = CalibrationMetrics()
@@ -11,7 +12,8 @@ class EasyClassificationEvaluator:
         self, 
         y_true: List[str], 
         y_pred: List[str], 
-        confidences: Optional[List[float]] = None
+        confidences: Optional[List[float]] = None,
+        **kwargs
     ) -> Dict[str, float]:
         """
         Calculate classification metrics.
@@ -24,5 +26,8 @@ class EasyClassificationEvaluator:
             results["confidence_gap"] = gap
             
         return results
+
+    async def evaluate_single(self, **kwargs) -> Dict[str, Any]:
+        return {}
 
 evaluator = EasyClassificationEvaluator()

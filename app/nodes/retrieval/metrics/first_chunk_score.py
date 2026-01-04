@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
-from app.nodes.retrieval.metrics.base import BaseMetric
+from app.nodes.retrieval.metrics.base import RetrievalBaseMetric
 
-class FirstChunkScore(BaseMetric):
+class FirstChunkScore(RetrievalBaseMetric):
     """
     Metric to return the score of the very first retrieved chunk.
     """
@@ -10,8 +10,3 @@ class FirstChunkScore(BaseMetric):
         if not actual:
             return 0.0
         return float(actual[0].get("score", 0.0))
-        
-    def aggregate(self, scores: List[float]) -> float:
-        if not scores:
-            return 0.0
-        return sum(scores) / len(scores)

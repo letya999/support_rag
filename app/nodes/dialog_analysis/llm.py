@@ -2,7 +2,7 @@ from typing import Dict, Any, List
 import json
 from app.pipeline.state import State
 from app.observability.tracing import observe
-from app.integrations.openai import llm_client
+from app.integrations.llm import get_llm
 from app.nodes.state_machine.states_config import (
     SIGNAL_GRATITUDE, SIGNAL_ESCALATION_REQ, SIGNAL_QUESTION, 
     SIGNAL_REPEATED, SIGNAL_FRUSTRATION
@@ -83,11 +83,9 @@ Constraints:
 """
 
     try:
-        response = await llm_client.generate(
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.0,
-            json_mode=True
-        )
+        # Using standard LLM integration
+        llm = get_llm(temperature=0.0, json_mode=True)
+        response = await llm.ainvoke([{"role": "user", "content": prompt}])
         
         # Parse JSON
         analysis_content = response.content

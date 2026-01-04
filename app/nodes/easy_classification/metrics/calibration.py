@@ -1,15 +1,18 @@
-from typing import List
+from typing import List, Dict, Any
 import numpy as np
+from app.nodes.easy_classification.metrics.base import EasyClassificationBaseMetric
 
-class CalibrationMetrics:
+class CalibrationMetrics(EasyClassificationBaseMetric):
     """
     Metrics to analyze how well the classifier's confidence matches its accuracy.
     """
+    def calculate(self, confidences: List[float], correct_flags: List[bool], **kwargs) -> float:
+        return self.calculate_gap(confidences, correct_flags)
+
     @staticmethod
     def calculate_gap(confidences: List[float], correct_flags: List[bool]) -> float:
         """
         Returns the gap between average confidence of correct vs incorrect predictions.
-        Higher value means better calibration (more confident when right).
         """
         if not confidences or not any(correct_flags) or all(correct_flags):
             return 0.0

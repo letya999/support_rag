@@ -1,10 +1,12 @@
 from typing import List, Dict, Any, Optional
+from app.nodes.base_node import BaseEvaluator
 
-class DialogEvaluator:
+class DialogEvaluator(BaseEvaluator):
     def calculate_metrics(
         self, 
         y_true: List[Dict[str, Any]], 
-        y_pred: List[Dict[str, Any]]
+        y_pred: List[Dict[str, Any]],
+        **kwargs
     ) -> Dict[str, float]:
         """
         Calculate metrics for dialog analysis.
@@ -32,5 +34,8 @@ class DialogEvaluator:
             metrics[f"{key}_accuracy"] = correct / total
             
         return metrics
+
+    async def evaluate_single(self, **kwargs) -> Dict[str, Any]:
+        return {}
 
 evaluator = DialogEvaluator()

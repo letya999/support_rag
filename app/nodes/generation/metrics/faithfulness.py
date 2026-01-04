@@ -1,10 +1,10 @@
-from app.nodes.retrieval.metrics.base import BaseMetric
+from app.nodes.generation.metrics.base import GenerationBaseMetric
 from typing import Any, List
 from app.integrations.llm import get_llm
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-class Faithfulness(BaseMetric):
+class Faithfulness(GenerationBaseMetric):
     def __init__(self):
         self.llm = get_llm(temperature=0)
         self.prompt = ChatPromptTemplate.from_messages([
@@ -31,9 +31,4 @@ class Faithfulness(BaseMetric):
             return float(response.strip())
         except Exception:
             return 0.0
-        
-    def aggregate(self, scores: List[float]) -> float:
-        if not scores:
-            return 0.0
-        return sum(scores) / len(scores)
 

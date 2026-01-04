@@ -1,5 +1,31 @@
-from typing import List, Dict
+from typing import List, Dict, Any
+from app.nodes.base_node import BaseNode
 from app.storage.models import SearchResult
+from app.observability.tracing import observe
+
+class FusionNode(BaseNode):
+    @observe(as_type="span")
+    async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Fusion logic.
+        """
+        vector_results = state.get("vector_results", [])
+        lexical_results = state.get("lexical_results", [])
+        
+        fused_results = reciprocal_rank_fusion(
+            vector_results=vector_results,
+            lexical_results=lexical_results
+        )
+        
+        docs = [r.content for r in fused_results]
+        scores = [r.score for r in fused_results]
+        
+        return {
+            "docs": docs,
+            "rerank_scores": scores, # Using rerank_scores or just scores? 
+            "confidence": scores[0] if scores else 0.0,
+            "best_doc_metadata": fused_results[0].metadata if fused_results else {}
+        }
 
 def reciprocal_rank_fusion(
     vector_results: List[SearchResult],
@@ -9,12 +35,6 @@ def reciprocal_rank_fusion(
 ) -> List[SearchResult]:
     """
     Combine vector and lexical search results using Reciprocal Rank Fusion.
-    
-    Args:
-        vector_results: Results from vector search
-        lexical_results: Results from lexical search
-        k: Constant for RRF formula (default 60)
-        top_n: Number of top results to return
     """
     scores: Dict[str, float] = {}
     content_to_result: Dict[str, SearchResult] = {}
@@ -47,3 +67,6 @@ def reciprocal_rank_fusion(
         ))
         
     return fused_results
+
+# For backward compatibility
+fusion_node = FusionNode()

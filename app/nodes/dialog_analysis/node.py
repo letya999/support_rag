@@ -1,5 +1,6 @@
 from typing import Dict, Any, List
 import re
+from app.nodes.base_node import BaseNode
 from app.pipeline.state import State
 from app.observability.tracing import observe
 from app.config.conversation_config import conversation_config
@@ -8,6 +9,17 @@ from app.nodes.state_machine.states_config import (
     SIGNAL_GRATITUDE, SIGNAL_ESCALATION_REQ, SIGNAL_QUESTION, 
     SIGNAL_REPEATED, SIGNAL_FRUSTRATION
 )
+
+class DialogAnalysisNode(BaseNode):
+    @observe(as_type="span")
+    async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Dispatcher for dialog analysis.
+        """
+        if conversation_config.use_llm_analysis:
+            return await llm_dialog_analysis_node(state)
+        else:
+            return regex_dialog_analysis_node(state)
 
 def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
     """
@@ -27,7 +39,6 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
     }
 
     # 1. Gratitude check
-    # Russian and English keywords
     gratitude_keywords = [
         "thank", "thanks", "thx", "appreciate", "good job",
         "спасибо", "благодарю", "спс", "класс", "молодец"
@@ -51,7 +62,7 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
     if "?" in current_question or any(current_question.strip().startswith(w) for w in question_starters):
         analysis[SIGNAL_QUESTION] = True
 
-    # 4. Frustration detection (simple keyword based)
+    # 4. Frustration detection
     frustration_keywords = [
         "stupid", "useless", "bad", "wrong", "broke", "hate", "idiot",
         "тупой", "глупый", "бесполезный", "плохой", "ужас", "бред", "идиот"
@@ -60,24 +71,19 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
         analysis[SIGNAL_FRUSTRATION] = True
 
     # 5. Repeated question check
-    # Check if the current user message is very similar to the last user message
     last_user_msg = None
-    # Iterate backwards through history to find the last user message
     for msg in reversed(history):
         if msg.get("role") == "user":
             last_user_msg = msg.get("content", "").lower()
             break
             
     if last_user_msg:
-        # Simple exact match or subset check for MVP
-        # Basic normalization (remove punctuation, spaces)
         def clean(s): return re.sub(r'[^\w\s]', '', s).strip()
         if clean(current_question) == clean(last_user_msg):
             analysis[SIGNAL_REPEATED] = True
     
     return {
         "dialog_analysis": analysis,
-        # Default values for Phase 5/6 fields in regex mode
         "sentiment": {"label": "frustrated" if analysis[SIGNAL_FRUSTRATION] else "neutral", "score": 0.5},
         "safety_violation": False,
         "safety_reason": None,
@@ -85,12 +91,5 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
         "escalation_reason": "regex_keyword_match" if analysis[SIGNAL_ESCALATION_REQ] else None
     }
 
-@observe(as_type="span")
-async def dialog_analysis_node(state: State) -> Dict[str, Any]:
-    """
-    Dispatcher for dialog analysis.
-    """
-    if conversation_config.use_llm_analysis:
-        return await llm_dialog_analysis_node(state)
-    else:
-        return regex_dialog_analysis_node(state)
+# For backward compatibility
+dialog_analysis_node = DialogAnalysisNode()

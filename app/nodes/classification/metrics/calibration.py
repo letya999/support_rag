@@ -1,10 +1,19 @@
-from typing import List
+from typing import List, Any
 import numpy as np
+from app.nodes.classification.metrics.base import ClassificationBaseMetric
 
-class CalibrationMetrics:
+class CalibrationMetrics(ClassificationBaseMetric):
     """
     Metrics to analyze how well the classifier's confidence matches its accuracy.
     """
+    def calculate(self, expected: Any, actual: Any, **kwargs) -> float:
+        """
+        Implementation of calculate for base class compatibility.
+        Expected: List of correct flags (bool)
+        Actual: List of confidences (float)
+        """
+        return self.calculate_gap(actual, expected)
+
     @staticmethod
     def calculate_gap(confidences: List[float], correct_flags: List[bool]) -> float:
         """

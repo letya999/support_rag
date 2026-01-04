@@ -1,3 +1,5 @@
-from app.nodes.retrieval.metrics.base import BaseMetric
+from app.nodes.base_node.metrics.base_metric import BaseMetric
 
-__all__ = ["BaseMetric"]
+class GenerationBaseMetric(BaseMetric):
+    """Base class for all generation metrics."""
+    pass

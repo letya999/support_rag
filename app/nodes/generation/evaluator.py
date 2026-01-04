@@ -1,12 +1,15 @@
 from typing import Dict, Any, Optional, List
+from app.nodes.base_node import BaseEvaluator
 from app.nodes.generation.metrics import Faithfulness, Relevancy
 from app.nodes.generation.node import generate_answer_simple
 from app.nodes.retrieval.search import retrieve_context
 
-class GenerationEvaluator:
+class GenerationEvaluator(BaseEvaluator):
     def __init__(self):
+        super().__init__()
         self.faithfulness = Faithfulness()
         self.relevancy = Relevancy()
+        self.metrics = [self.faithfulness, self.relevancy]
         
     def calculate_metrics(self, question: str, context: str, answer: str) -> Dict[str, float]:
         """

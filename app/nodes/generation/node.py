@@ -1,22 +1,23 @@
 from typing import Dict, Any, List
+from app.nodes.base_node import BaseNode
 from app.integrations.llm import get_llm
 from app.nodes.generation.prompts import QA_PROMPT, DYNAMIC_QA_PROMPT
-from app.nodes.generation.models import GenerationInput, GenerationOutput
-from app.observability.tracing import observe
 from app.observability.callbacks import get_langfuse_callback_handler
+from app.observability.tracing import observe
 
-@observe(as_type="span")
-async def generate_node(state: Dict[str, Any]):
-    """
-    Generation node.
-    """
-    question = state.get("aggregated_query") or state.get("question")
-    docs = state.get("docs", [])
-    system_prompt = state.get("system_prompt")
-    
-    answer = await generate_answer_simple(question, docs, system_prompt)
-    
-    return {"answer": answer}
+class GenerationNode(BaseNode):
+    @observe(as_type="span")
+    async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generation node logic.
+        """
+        question = state.get("aggregated_query") or state.get("question")
+        docs = state.get("docs", [])
+        system_prompt = state.get("system_prompt")
+        
+        answer = await generate_answer_simple(question, docs, system_prompt)
+        
+        return {"answer": answer}
 
 async def generate_answer_simple(question: str, docs: List[str], system_prompt: str = None) -> str:
     """
@@ -42,4 +43,7 @@ async def generate_answer_simple(question: str, docs: List[str], system_prompt: 
     )
     
     return response.content
+
+# For backward compatibility
+generate_node = GenerationNode()
 

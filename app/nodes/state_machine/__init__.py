@@ -1,3 +1,3 @@
-from .node import session_update_node
+from .node import state_machine_node
 
-__all__ = ["session_update_node"]
+__all__ = ["state_machine_node"]

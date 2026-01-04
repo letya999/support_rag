@@ -1,15 +1,11 @@
-from abc import ABC, abstractmethod
-from typing import Any, List, Dict
+from abc import abstractmethod
+from typing import Any, List
+from app.nodes.base_node.metrics.base_metric import BaseMetric
 
-class BaseMetric(ABC):
+class RetrievalBaseMetric(BaseMetric):
     """Base class for all retrieval metrics."""
     
     @abstractmethod
     def calculate(self, expected: Any, actual: Any, **kwargs) -> float:
         """Calculate metric for a single item."""
-        pass
-        
-    @abstractmethod
-    def aggregate(self, scores: List[float]) -> float:
-        """Aggregate scores across a batch."""
         pass

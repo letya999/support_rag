@@ -1,12 +1,12 @@
 from typing import List, Dict, Any
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from app.nodes.classification.metrics.base import ClassificationBaseMetric
 
-class QualityMetrics:
+class QualityMetrics(ClassificationBaseMetric):
     """
     Standard classification quality metrics (Accuracy, F1, Precision, Recall).
     """
-    @staticmethod
-    def calculate(y_true: List[str], y_pred: List[str]) -> Dict[str, float]:
+    def calculate(self, y_true: List[str], y_pred: List[str], **kwargs) -> Dict[str, float]:
         if not y_true or not y_pred:
             return {}
             

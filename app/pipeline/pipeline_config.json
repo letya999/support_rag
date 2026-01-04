@@ -7,16 +7,16 @@
     },
     "nodes": [
         {
-            "name": "load_session",
+            "name": "session_starter",
             "enabled": true
         },
         {
-            "name": "analyze_dialog",
-            "enabled": true
+            "name": "dialog_analysis",
+            "enabled": false
         },
         {
-            "name": "update_state",
-            "enabled": true
+            "name": "state_machine",
+            "enabled": false
         },
         {
             "name": "aggregate",
@@ -47,6 +47,14 @@
             "enabled": false
         },
         {
+            "name": "lexical_search",
+            "enabled": false
+        },
+        {
+            "name": "fusion",
+            "enabled": false
+        },
+        {
             "name": "rerank",
             "enabled": true
         },
@@ -59,8 +67,8 @@
             "enabled": true
         },
         {
-            "name": "route_prompt",
-            "enabled": true
+            "name": "prompt_routing",
+            "enabled": false
         },
         {
             "name": "generate",

@@ -1,9 +1,9 @@
 from typing import List, Dict, Any, Union
 import math
-from app.nodes.retrieval.metrics.base import BaseMetric
+from app.nodes.reranking.metrics.base import RerankingBaseMetric
 
-class NDCG(BaseMetric):
-    def calculate(self, expected: Union[str, List[str]], actual: List[Dict[str, Any]], top_k: int = 10) -> float:
+class NDCG(RerankingBaseMetric):
+    def calculate(self, expected: Union[str, List[str]], actual: List[Dict[str, Any]], top_k: int = 10, **kwargs) -> float:
         """
         Calculate NDCG@K (Normalized Discounted Cumulative Gain).
         For this simplified version, we assume binary relevance: 1 if chunk contains answer, 0 otherwise.
@@ -27,13 +27,6 @@ class NDCG(BaseMetric):
                 relevant_items_count += 1
                 
         # Calculate IDCG (Ideal DCG)
-        # In ideal ranking, all relevant items are at the top
-        # We have 'relevant_items_count' actually found relevant items? 
-        # No, IDCG should be based on the total possible relevant items present in the dataset (or capped at K)
-        # But here we only know about 'expected' count.
-        # Assuming each expected chunk is distinct and should appear once.
-        # Maximum possible relevant items is min(len(expected), top_k)
-        
         ideal_relevant_count = min(len(expected), top_k)
         
         for i in range(ideal_relevant_count):
@@ -44,8 +37,3 @@ class NDCG(BaseMetric):
             return 0.0
             
         return dcg / idcg
-
-    def aggregate(self, scores: List[float]) -> float:
-        if not scores:
-            return 0.0
-        return sum(scores) / len(scores)

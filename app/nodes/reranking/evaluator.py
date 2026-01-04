@@ -1,4 +1,5 @@
-from typing import List, Any
+from typing import List, Any, Dict
+from app.nodes.base_node import BaseEvaluator
 
 def calculate_mrr(relevant_indices: List[int]) -> float:
     """
@@ -23,15 +24,14 @@ def calculate_precision_at_k(relevant_indices: List[int], k: int) -> float:
     relevant_count = len([idx for idx in relevant_indices if idx <= k])
     return relevant_count / k
 
-class RerankEvaluator:
+class RerankEvaluator(BaseEvaluator):
     def __init__(self, k: int = 5):
+        super().__init__()
         self.k = k
 
-    def evaluate(self, reranked_docs: List[str], ground_truth: str) -> dict:
+    def calculate_metrics(self, reranked_docs: List[str], ground_truth: str, **kwargs) -> Dict[str, float]:
         """
         Evaluate reranking results against ground truth.
-        For simplicity, we assume exact match or presence of certain keywords.
-        In a real scenario, this would use more complex matching.
         """
         # Very simple relevance check: is ground truth content in the doc?
         relevant_indices = []
@@ -43,6 +43,12 @@ class RerankEvaluator:
         precision_k = calculate_precision_at_k(relevant_indices, self.k)
         
         return {
-            f"mrr": mrr,
+            "mrr": mrr,
             f"precision_at_{self.k}": precision_k
         }
+
+    async def evaluate_single(self, **kwargs) -> Dict[str, Any]:
+        return {}
+
+# For backward compatibility
+evaluator = RerankEvaluator()

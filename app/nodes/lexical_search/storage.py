@@ -15,15 +15,20 @@ async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
     # Prepare queries for each language index
     # If it's RU, we need an EN version for fts_en
     # If it's EN, we need a RU version for fts_ru
-    query_lang = translator.detect_language(query)
-    
-    query_en = query
-    query_ru = query
-    
-    if query_lang == "ru":
-        query_en = translator.translate_ru_to_en(query)
-    elif query_lang == "en":
-        query_ru = translator.translate_en_to_ru(query)
+    try:
+        query_lang = translator.detect_language(query)
+        
+        query_en = query
+        query_ru = query
+        
+        if query_lang == "ru":
+            query_en = translator.translate_ru_to_en(query)
+        elif query_lang == "en":
+            query_ru = translator.translate_en_to_ru(query)
+    except Exception as e:
+        print(f"⚠️ Query translation failed: {e}")
+        query_en = query
+        query_ru = query
 
     
     # Helper to construct OR-based tsquery string

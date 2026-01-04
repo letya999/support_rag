@@ -25,7 +25,8 @@ async def retrieve_context(question: str, top_k: int = 3, category_filter: Optio
         docs=docs,
         scores=scores,
         confidence=confidence,
-        best_doc_metadata=best_doc_metadata
+        best_doc_metadata=best_doc_metadata,
+        vector_results=results
     )
 
 async def retrieve_context_expanded(
@@ -102,7 +103,8 @@ async def retrieve_context_expanded(
         docs=docs,
         scores=scores,
         confidence=confidence,
-        best_doc_metadata=best_doc_metadata
+        best_doc_metadata=best_doc_metadata,
+        vector_results=unique_results[:top_k_retrieval]
     )
 
 async def search_single_query(query: str, top_k: int, category_filter: Optional[str] = None):

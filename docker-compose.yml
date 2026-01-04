@@ -38,14 +38,11 @@ services:
       - "6333:6333"
     volumes:
       - qdrant_storage:/qdrant/storage
-    healthcheck:
-      test: [ "CMD", "./tools/healthcheck" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   api:
     build: .
+    env_file:
+      - .env
     container_name: support_rag_api
     depends_on:
       db:
@@ -53,13 +50,11 @@ services:
       redis:
         condition: service_healthy
       qdrant:
-        condition: service_healthy
+        condition: service_started
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-support_rag}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
-      - QDRANT_URL=${QDRANT_URL:-http://qdrant:6333}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
