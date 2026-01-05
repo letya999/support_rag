@@ -1,0 +1,25 @@
+# Pipeline Node Execution Order
+# This file defines the standard sequence of nodes in the RAG pipeline
+# Modify this file to change the order of nodes in the generated pipeline_config.yaml
+
+pipeline_order:
+  - session_starter
+  - check_cache
+  - dialog_analysis
+  - state_machine
+  - aggregation
+  - easy_classification
+  - classify
+  - metadata_filtering
+  - expand_query
+  - hybrid_search
+  - retrieve
+  - lexical_search
+  - fusion
+  - reranking
+  - multihop
+  - routing
+  - prompt_routing
+  - generation
+  - archive_session
+  - store_in_cache

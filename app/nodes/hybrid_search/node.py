@@ -56,13 +56,13 @@ async def search_hybrid(query: str, top_k: int = 10, category_filter: Optional[s
     Perform hybrid search by combining vector and lexical search.
     Logic function independent of LangGraph state.
     """
-    # 1. Get embedding for vector search
-    embedding_task = get_embedding(query)
-    embedding = await embedding_task
-    
     # 2. Run both searches in parallel
-    # Pass category_filter only to vector search
-    vector_task = search_documents(embedding, top_k=top_k * 2, category_filter=category_filter)
+    # Define vector search chain (embedding -> search)
+    async def run_vector_search():
+        embedding = await get_embedding(query)
+        return await search_documents(embedding, top_k=top_k * 2, category_filter=category_filter)
+
+    vector_task = run_vector_search()
     lexical_task = lexical_search_node(query, top_k=top_k * 2)
     
     vector_results, lexical_results = await asyncio.gather(vector_task, lexical_task)

@@ -10,6 +10,9 @@ from app.services.config_loader.loader import get_cache_config
 from app.nodes.reranking.ranker import get_reranker
 from app.nodes.easy_classification.semantic_classifier import SemanticClassificationService
 from app.integrations.embeddings import get_embedding
+from app.integrations.embeddings import get_embedding
+from app.storage.connection import init_db_pool, close_db_pool
+from app.nodes.lexical_search.translator import translator
 
 
 # Startup/shutdown events
@@ -30,6 +33,10 @@ async def lifespan(app: FastAPI):
         )
         health = await cache.health_check()
         print(f"✅ Cache initialized: {health['backend'].upper()}")
+        
+        # Initialize DB Pool
+        await init_db_pool()
+        print("✅ DB Pool initialized")
     except Exception as e:
         print(f"⚠️  Cache initialization warning: {e}")
     
@@ -52,11 +59,17 @@ async def lifespan(app: FastAPI):
             # 3. Embeddings
             await get_embedding("warmup")
             print("✅ Embeddings Warmed Up")
+
+            # 4. Translator
+            await loop.run_in_executor(None, translator.warmup)
+            print("✅ Translator Warmed Up")
+
         except Exception as e:
             print(f"⚠️ Warmup failed: {e}")
 
-    # Fire and forget (or await if critical)
-    asyncio.create_task(warmup())
+    # Await warmup to ensure models are ready before serving traffic
+    # This increases startup time but prevents the first user from waiting 10+ seconds
+    await warmup()
 
     yield
 
@@ -67,6 +80,9 @@ async def lifespan(app: FastAPI):
         cache = await get_cache_manager()
         await cache.close()
         print("✅ Cache closed")
+        
+        await close_db_pool()
+        print("✅ DB Pool closed")
     except Exception as e:
         print(f"⚠️  Cache cleanup warning: {e}")
 

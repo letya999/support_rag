@@ -74,4 +74,11 @@ class QueryTranslator:
             
         return query
 
+    def warmup(self):
+        """Preload models into memory."""
+        print("Translating warmup...")
+        self._load_ru_en()
+        self._load_en_ru()
+        print("Translator models loaded.")
+
 translator = QueryTranslator.get_instance()

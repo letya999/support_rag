@@ -40,32 +40,33 @@ class EmbeddingModel:
 # Initialize global instance
 embedding_model = EmbeddingModel.get_instance()
 
-async def _get_embedding_base(text: str) -> List[float]:
+async def _get_embedding_base(text: str, is_query: bool = True) -> List[float]:
     """Base logic for getting a single embedding."""
     loop = asyncio.get_running_loop()
+    prefix = "query: " if is_query else "passage: "
     # Run in executor to avoid blocking event loop
     embeddings = await loop.run_in_executor(
         executor, 
         embedding_model.encode_sync, 
-        [f"query: {text}"], 
+        [f"{prefix}{text}"], 
         1
     )
     return embeddings[0]
 
 @observe(as_type="span", name="get_embedding")
-async def _get_embedding_observed(text: str) -> List[float]:
+async def _get_embedding_observed(text: str, is_query: bool = True) -> List[float]:
     """Observed version of get_embedding."""
-    return await _get_embedding_base(text)
+    return await _get_embedding_base(text, is_query)
 
-async def get_embedding(text: str) -> List[float]:
+async def get_embedding(text: str, is_query: bool = True) -> List[float]:
     """
-    Get embedding for a single string (Query).
-    Adds 'query: ' prefix as required by E5 models.
+    Get embedding for a single string.
+    Adds 'query: ' prefix for queries and 'passage: ' for documents.
     Skips Langfuse if text is 'warmup'.
     """
     if text == "warmup":
-        return await _get_embedding_base(text)
-    return await _get_embedding_observed(text)
+        return await _get_embedding_base(text, is_query)
+    return await _get_embedding_observed(text, is_query)
 
 async def _get_embeddings_batch_base(texts: List[str], batch_size: int = 32) -> List[List[float]]:
     """Base logic for getting batch embeddings."""

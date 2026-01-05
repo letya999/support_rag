@@ -21,6 +21,21 @@ class Reranker:
         # Run the heavy computation in a thread pool
         return await asyncio.to_thread(self.rank, query, documents)
 
+    def _extract_answer(self, doc: str) -> str:
+        """Extract only the answer from the document."""
+        if "Answer:" in doc:
+            return doc.split("Answer:", 1)[1].strip()
+        return doc
+
+    def _prepare_pairs(self, query: str, docs: List[str]) -> List[List[str]]:
+        """Prepare pairs for reranker in the correct format."""
+        pairs = []
+        for doc in docs:
+            # Clean formatting
+            clean_doc = self._extract_answer(doc)
+            pairs.append([query, clean_doc])
+        return pairs
+
     def rank(self, query: str, documents: List[str]) -> List[Tuple[float, str]]:
         """
         Rerank documents based on the query (Synchronous).
@@ -28,10 +43,15 @@ class Reranker:
         if not documents:
             return []
             
-        pairs = [[query, doc] for doc in documents]
+        pairs = self._prepare_pairs(query, documents)
+        
+        # Predict returns logits for this model
         scores = self.model.predict(pairs)
         
-        # Convert to float and combine with docs
+        # Apply sigmoid to get [0, 1] range
+        scores = 1 / (1 + np.exp(-scores))
+        
+        # Convert to float and combine with original docs (not cleaned ones)
         results = zip(scores.tolist(), documents)
         
         # Sort by score descending

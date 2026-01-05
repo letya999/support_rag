@@ -10,6 +10,7 @@ from app.nodes.state_machine.states_config import (
     SIGNAL_GRATITUDE, SIGNAL_ESCALATION_REQ, SIGNAL_QUESTION, 
     SIGNAL_REPEATED, SIGNAL_FRUSTRATION
 )
+from app.nodes.dialog_analysis.rules.question_detector import is_question
 
 class DialogAnalysisNode(BaseNode):
     @observe(as_type="span")
@@ -55,9 +56,7 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
         analysis[SIGNAL_ESCALATION_REQ] = True
 
     # 3. Question check
-    question_starters = ["что", "как", "почему", "когда", "можно", "можешь", "what", "how", "why", "when", "can"]
-    if "?" in current_question or any(current_question.strip().startswith(w) for w in question_starters):
-        analysis[SIGNAL_QUESTION] = True
+    analysis[SIGNAL_QUESTION] = is_question(state.get("question", ""))
 
     # 4. Frustration detection
     frustration_keywords = keywords.get("frustration", ["тупой", "stupid"])

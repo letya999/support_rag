@@ -1,5 +1,6 @@
 from typing import List
 import re
+import time
 from langfuse import observe
 from app.storage.connection import get_db_connection
 from app.storage.models import SearchResult
@@ -14,8 +15,10 @@ async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
     
     # Prepare queries for each language index
     # If it's RU, we need an EN version for fts_en
+    # If it's RU, we need an EN version for fts_en
     # If it's EN, we need a RU version for fts_ru
     try:
+        t_start_trans = time.perf_counter()
         query_lang = translator.detect_language(query)
         
         query_en = query
@@ -25,6 +28,7 @@ async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
             query_en = translator.translate_ru_to_en(query)
         elif query_lang == "en":
             query_ru = translator.translate_en_to_ru(query)
+        print(f"🔄 Translation took {time.perf_counter() - t_start_trans:.4f}s")
     except Exception as e:
         print(f"⚠️ Query translation failed: {e}")
         query_en = query
@@ -50,49 +54,39 @@ async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
     if not ru_tsquery_str: ru_tsquery_str = "EMPTY_QUERY"
 
     results = []
+    
+    t_start_db = time.perf_counter()
     async with get_db_connection() as conn:
         async with conn.cursor() as cur:
             try:
-                # Use to_tsquery with our constructed OR string
+                # Optimized query using search_vector (GIN indexed)
+                # We combine English and Russian queries with OR (||)
                 await cur.execute(
                     """
                     SELECT 
                         content, 
-                        GREATEST(
-                            ts_rank_cd(fts_en, to_tsquery('english', %s)),
-                            ts_rank_cd(fts_ru, to_tsquery('russian', %s))
-                        ) AS score, 
+                        ts_rank_cd(search_vector, query) AS score, 
                         metadata
-                    FROM documents
-                    WHERE 
-                        fts_en @@ to_tsquery('english', %s) OR
-                        fts_ru @@ to_tsquery('russian', %s)
+                    FROM documents, 
+                         (SELECT (to_tsquery('english', %s) || to_tsquery('russian', %s)) AS query) AS q
+                    WHERE search_vector @@ query
                     ORDER BY score DESC
                     LIMIT %s;
                     """,
-                    (en_tsquery_str, ru_tsquery_str, en_tsquery_str, ru_tsquery_str, top_k)
+                    (en_tsquery_str, ru_tsquery_str, top_k)
                 )
                 rows = await cur.fetchall()
             except Exception as e:
-                print(f"FTS optimized search failed, falling back: {e}")
-                # Fallback to dynamic calculation if columns are missing
+                print(f"Index scan failed, falling back: {e}")
+                # Fallback to simple query if something goes wrong
                 await cur.execute(
                     """
-                    SELECT 
-                        content, 
-                        GREATEST(
-                            ts_rank_cd(to_tsvector('english', content), to_tsquery('english', %s)),
-                            ts_rank_cd(to_tsvector('russian', content), to_tsquery('russian', %s))
-                        ) AS score, 
-                        metadata
+                    SELECT content, 0.0, metadata
                     FROM documents
-                    WHERE 
-                        to_tsvector('english', content) @@ to_tsquery('english', %s) OR
-                        to_tsvector('russian', content) @@ to_tsquery('russian', %s)
-                    ORDER BY score DESC
-                    LIMIT %s;
+                    WHERE content ILIKE %s
+                    LIMIT %s
                     """,
-                    (en_tsquery_str, ru_tsquery_str, en_tsquery_str, ru_tsquery_str, top_k)
+                    (f"%{query}%", top_k)
                 )
                 rows = await cur.fetchall()
 
@@ -102,4 +96,5 @@ async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
                     score=float(row[1]),
                     metadata=row[2]
                 ))
+    print(f"🐘 DB Search took {time.perf_counter() - t_start_db:.4f}s")
     return results

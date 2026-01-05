@@ -7,6 +7,7 @@ parameters:
   min_confidence_auto_reply: 0.3
   respect_escalation_decision: true
   respect_requires_handoff: true
+  clarification_enabled: true
 
 # Текстовые настройки и словари
 config:
@@ -16,3 +17,21 @@ config:
     3: requires_handoff
     4: low_confidence
     5: auto_reply
+  
+  # Confidence range for triggering clarification
+  clarification_confidence_range:
+    - 0.3
+    - 0.6
+  
+  # Categories that always require human escalation
+  always_escalate_categories:
+    - billing_dispute
+    - account_closure
+    - complaint
+    - refund_request
+  
+  # Intents that always require human escalation
+  always_escalate_intents:
+    - urgent
+    - vip
+    - escalation
