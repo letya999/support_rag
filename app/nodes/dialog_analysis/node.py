@@ -29,6 +29,9 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
     """
     params = get_node_params("dialog_analysis")
     
+    # Get keywords from nested structure (new format) or flat structure (fallback)
+    keywords = params.get("keywords", {})
+    
     history = state.get("session_history", []) or []
     current_question = state.get("question", "").lower()
     
@@ -42,12 +45,12 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
     }
 
     # 1. Gratitude check
-    gratitude_keywords = params.get("gratitude_keywords", ["спасибо", "thank"])
+    gratitude_keywords = keywords.get("gratitude", ["спасибо", "thank"])
     if any(k in current_question for k in gratitude_keywords):
         analysis[SIGNAL_GRATITUDE] = True
 
     # 2. Escalation check
-    escalation_keywords = params.get("escalation_keywords", ["оператор", "human"])
+    escalation_keywords = keywords.get("escalation", ["оператор", "human"])
     if any(k in current_question for k in escalation_keywords):
         analysis[SIGNAL_ESCALATION_REQ] = True
 
@@ -57,7 +60,7 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
         analysis[SIGNAL_QUESTION] = True
 
     # 4. Frustration detection
-    frustration_keywords = params.get("frustration_keywords", ["тупой", "stupid"])
+    frustration_keywords = keywords.get("frustration", ["тупой", "stupid"])
     if any(k in current_question for k in frustration_keywords):
         analysis[SIGNAL_FRUSTRATION] = True
 

@@ -2,16 +2,18 @@ node:
   name: session_starter
   enabled: true
 
+# Числовые и булевые параметры
 parameters:
   load_conversation_history: true
   max_history_messages: 10
   load_session_history: true
   max_session_history: 3
   filter_system_messages: true
-
-user_profile:
   load_user_profile: true
-  fields:
+
+# Текстовые настройки и словари
+config:
+  user_profile_fields:
     - name
     - language_preference
     - tier

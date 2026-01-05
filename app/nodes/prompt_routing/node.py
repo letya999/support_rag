@@ -18,9 +18,8 @@ from app.services.config_loader.loader import get_node_params
 DEFAULT_MAX_HISTORY_MESSAGES = 5
 DEFAULT_MAX_MESSAGE_LENGTH = 300
 
-
 def _get_params() -> Dict[str, Any]:
-    """Get node parameters from centralized config."""
+    """Get node parameters and config from centralized config."""
     try:
         return get_node_params("prompt_routing")
     except Exception:
@@ -28,9 +27,29 @@ def _get_params() -> Dict[str, Any]:
 
 
 class PromptRoutingNode(BaseNode):
+    """
+    Prompt Routing Node.
+    
+    Selects and builds the system prompt based on dialog state and state behavior
+    from the State Machine Rules Engine.
+    """
+    
+    # Default tone modifiers (fallback if config is missing)
+    DEFAULT_TONE_MODIFIERS = {
+        "professional": "",
+        "helpful": "Будь дружелюбным и готовым помочь.",
+        "warm": "Отвечай тепло и с благодарностью.",
+        "empathetic": "Прояви эмпатию и понимание. Пользователь может быть расстроен.",
+        "curious": "Задавай уточняющие вопросы вежливо и конструктивно.",
+        "supportive": "Окажи поддержку и упомяни возможность связаться с оператором.",
+        "understanding": "Подтверди, что переключишь пользователя на живого оператора.",
+        "patient": "Терпеливо жди и предлагай дополнительную помощь."
+    }
+    
     def __init__(self, name: Optional[str] = None):
         super().__init__(name)
         self._instructions = None
+        self._tone_modifiers = None
 
     def _get_instruction(self, state_name: str) -> str:
         """Lazy load instructions using BaseNode utility."""
@@ -42,14 +61,35 @@ class PromptRoutingNode(BaseNode):
                 "RESOLVED": self._load_prompt("prompt_instruction_resolved.txt"),
                 "ESCALATION_NEEDED": self._load_prompt("prompt_instruction_escalation_needed.txt"),
                 "ESCALATION_REQUESTED": self._load_prompt("prompt_instruction_escalation_requested.txt"),
+                "EMPATHY_MODE": self._load_prompt("prompt_instruction_empathy.txt"),
+                "CLARIFY": self._load_prompt("prompt_instruction_clarify.txt"),
                 "DEFAULT": self._load_prompt("prompt_instruction_default.txt")
             }
         return self._instructions.get(state_name, self._instructions["DEFAULT"])
+
+    def _get_tone_modifiers(self) -> Dict[str, str]:
+        """Lazy load tone modifiers from config."""
+        if self._tone_modifiers is None:
+            params = _get_params()
+            # Try to load from config, fallback to defaults
+            config_modifiers = params.get("tone_modifiers", {})
+            if config_modifiers:
+                self._tone_modifiers = config_modifiers
+            else:
+                self._tone_modifiers = self.DEFAULT_TONE_MODIFIERS
+        return self._tone_modifiers
+
+    def _get_tone_modifier(self, state_behavior: Dict[str, Any]) -> str:
+        """Get tone modifier based on state behavior."""
+        tone = state_behavior.get("tone", "professional")
+        modifiers = self._get_tone_modifiers()
+        return modifiers.get(tone, "")
 
     @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Selects and builds the system prompt based on dialog state.
+        Uses state_behavior from State Machine for tone selection.
         Uses conversation_history (correct format) instead of session_history.
         """
         params = _get_params()
@@ -57,10 +97,18 @@ class PromptRoutingNode(BaseNode):
         include_profile = params.get("include_user_profile", True)
         include_entities = params.get("include_entities", True)
         filter_system = params.get("filter_system_messages", True)
+        use_tone_modifiers = params.get("use_tone_modifiers", True)
         
         dialog_state = state.get("dialog_state", "INITIAL")
+        state_behavior = state.get("state_behavior", {})
+        
         # Load instruction using base class utility via helper
         instruction = self._get_instruction(dialog_state)
+        
+        # Add tone modifier if enabled
+        tone_modifier = ""
+        if use_tone_modifiers and state_behavior:
+            tone_modifier = self._get_tone_modifier(state_behavior)
         
         # Get clean history using proper source
         history_str = _get_formatted_history(state, max_history, filter_system)
@@ -70,7 +118,13 @@ class PromptRoutingNode(BaseNode):
         profile_str = _format_profile(state.get("user_profile", {})) if include_profile else ""
         
         # Build final system block
-        system_prompt = f"{instruction}\n\n"
+        system_prompt = ""
+        
+        # Add tone modifier at the beginning
+        if tone_modifier:
+            system_prompt += f"{tone_modifier}\n\n"
+        
+        system_prompt += f"{instruction}\n\n"
         
         if profile_str:
             system_prompt += f"--- Информация о пользователе ---\n{profile_str}\n\n"
@@ -81,7 +135,10 @@ class PromptRoutingNode(BaseNode):
         if history_str:
             system_prompt += f"--- История диалога ---\n{history_str}\n\n"
 
-        return {"system_prompt": system_prompt}
+        return {
+            "system_prompt": system_prompt,
+            "prompt_hint": state_behavior.get("prompt_hint", "standard")
+        }
 
 
 def _get_formatted_history(state: Dict[str, Any], max_messages: int, filter_system: bool) -> str:

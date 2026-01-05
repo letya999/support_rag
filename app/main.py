@@ -103,3 +103,81 @@ async def cache_status():
             "status": "error",
             "message": str(e)
         }
+
+
+@app.post("/admin/refresh-intents")
+async def refresh_intents():
+    """
+    Refresh the intents registry and reload classifier embeddings.
+    
+    This endpoint:
+    1. Reloads the intents_registry.yaml file
+    2. Updates the SemanticClassificationService embeddings
+    
+    Call this after running `python scripts/refresh_intents.py` to pick up
+    changes without restarting the service.
+    """
+    from app.nodes._shared_config.intent_registry import get_registry
+    
+    try:
+        # Reload registry from file
+        registry = get_registry()
+        registry.reload()
+        
+        # Refresh classifier embeddings
+        classifier = SemanticClassificationService()
+        success = await classifier.refresh_embeddings()
+        
+        if success:
+            return {
+                "status": "success",
+                "message": "Intents registry and classifier embeddings refreshed",
+                "categories": len(registry.categories),
+                "intents": len(registry.intents),
+                "metadata": registry.metadata
+            }
+        else:
+            return {
+                "status": "partial",
+                "message": "Registry reloaded but classifier refresh failed (model not initialized)",
+                "categories": len(registry.categories),
+                "intents": len(registry.intents)
+            }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
+@app.get("/admin/intents-registry")
+async def get_intents_registry():
+    """
+    Get current state of the intents registry.
+    
+    Returns the loaded categories, intents, and metadata.
+    """
+    from app.nodes._shared_config.intent_registry import get_registry
+    
+    try:
+        registry = get_registry()
+        
+        return {
+            "status": "loaded" if registry.is_loaded else "not_loaded",
+            "metadata": registry.metadata,
+            "categories": [
+                {
+                    "name": cat,
+                    "description": registry.get_category_description(cat),
+                    "intents": registry.get_intents_for_category(cat)
+                }
+                for cat in registry.categories
+            ],
+            "total_categories": len(registry.categories),
+            "total_intents": len(registry.intents)
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }

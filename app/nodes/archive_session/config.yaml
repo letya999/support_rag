@@ -2,12 +2,14 @@ node:
   name: archive_session
   enabled: true
 
+# Числовые и булевые параметры
 parameters:
   save_to_postgres: true
   update_redis_session: true
   filter_system_messages: true
   generate_summary: true
+  max_summary_length: 200
 
-summary:
-  method: rule_based
-  max_length: 200
+# Текстовые настройки
+config:
+  summary_method: rule_based

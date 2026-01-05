@@ -120,9 +120,12 @@ def get_node_params(node_name: str, pipeline_config: Optional[dict] = None) -> d
         result.update(node_details.get("config", {}))
         return result
     
-    # Fallback to node's own config
+    # Fallback to node's own config - merge both parameters and config
     node_config = load_node_config(node_name)
-    return node_config.get("parameters", {})
+    result = {}
+    result.update(node_config.get("parameters", {}))
+    result.update(node_config.get("config", {}))
+    return result
 
 
 def get_node_detail(node_name: str, section: str = "parameters") -> dict:

@@ -1,13 +1,15 @@
 node:
-  name: rerank
+  name: reranking
   enabled: true
 
+# Числовые и булевые параметры
 parameters:
   confidence_threshold: 0.3
   top_k: 5
-  model_name: "BAAI/bge-reranker-v2-m3"
   batch_size: 32
   use_gpu: true
+  inference_timeout_ms: 5000
 
-timeouts:
-  inference_ms: 5000
+# Текстовые настройки
+config:
+  model_name: "BAAI/bge-reranker-v2-m3"

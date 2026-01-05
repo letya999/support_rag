@@ -1,25 +1,22 @@
 node:
-  name: generate
+  name: generation
   enabled: true
 
+# Числовые и булевые параметры
 parameters:
-  model: gpt-4o-mini
   temperature: 0.3
   max_tokens: 1000
   include_sources: true
-
-prompts:
-  language_instruction:
-    ru: "Отвечай на русском языке."
-    en: "Respond in English."
-  context_template: |
-    Используй следующую информацию для ответа:
-    
-    {context}
-
-response_formatting:
   add_confidence_warning: true
   confidence_warning_threshold: 0.3
-  low_confidence_prefix:
-    ru: "Я не полностью уверен, но вот что удалось найти:\n\n"
-    en: "I'm not entirely sure, but here's what I found:\n\n"
+
+# Текстовые настройки и словари
+config:
+  model: gpt-4o-mini
+  
+  # Промпты загружаются из .txt файлов:
+  # - context_template.txt
+  # - language_instruction_ru.txt
+  # - language_instruction_en.txt
+  # - low_confidence_prefix_ru.txt
+  # - low_confidence_prefix_en.txt

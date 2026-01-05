@@ -11,7 +11,7 @@ class SemanticClassificationNode(BaseNode):
         question = state.get("aggregated_query") or state.get("question", "")
         service = SemanticClassificationService()
         
-        params = get_node_params("fasttext_classify")
+        params = get_node_params("easy_classification")
         i_threshold = params.get("intent_confidence_threshold", 0.3)
         c_threshold = params.get("category_confidence_threshold", 0.3)
         fallback_intent = params.get("fallback_intent", "unknown")

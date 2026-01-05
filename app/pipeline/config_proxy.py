@@ -9,11 +9,11 @@ from app.services.config_loader.loader import get_node_params, get_global_param,
 class ConversationConfig:
     @property
     def aggregation_max_messages(self) -> int:
-        return get_node_params("aggregate").get("history_messages_count", 6)
+        return get_node_params("aggregation").get("history_messages_count", 6)
 
     @property
     def use_llm_aggregation(self) -> bool:
-        return get_node_enabled("aggregate") and get_node_params("aggregate").get("mode") == "llm"
+        return get_node_enabled("aggregation") and get_node_params("aggregation").get("mode") == "llm"
 
     @property
     def use_llm_analysis(self) -> bool:

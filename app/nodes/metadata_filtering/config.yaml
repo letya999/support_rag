@@ -1,14 +1,17 @@
 node:
-  name: metadata_filter
+  name: metadata_filtering
   enabled: true
 
+# Числовые и булевые параметры
 parameters:
   use_category_filter: true
-  fallback_category: General
   skip_on_unknown: true
 
-filters:
-  fields:
+# Текстовые настройки и словари
+config:
+  fallback_category: General
+  
+  filter_fields:
     - category
     - intent
     - language

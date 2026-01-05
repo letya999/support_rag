@@ -2,17 +2,17 @@ node:
   name: hybrid_search
   enabled: true
 
+# Числовые и булевые параметры
 parameters:
   vector_top_k: 10
   lexical_top_k: 10
   final_top_k: 10
-  fusion_method: rrf
   rrf_k: 60
-
-vector_search:
-  collection_name: documents
   score_threshold: 0.0
-
-lexical_search:
   use_or_logic: true
   min_word_length: 2
+
+# Текстовые настройки
+config:
+  fusion_method: rrf
+  collection_name: documents

@@ -1,16 +1,18 @@
 node:
-  name: fasttext_classify
+  name: easy_classification
   enabled: true
 
+# Числовые и булевые параметры
 parameters:
   intent_confidence_threshold: 0.3
   category_confidence_threshold: 0.3
   skip_if_low_confidence: true
 
-fallback:
-  intent: unknown
-  category: General
-
-model:
-  fasttext_model_path: "models/intent_classifier.bin"
-  sentence_model: "intfloat/multilingual-e5-small"
+# Текстовые настройки и словари
+config:
+  fallback_intent: unknown
+  fallback_category: General
+  
+  model:
+    fasttext_model_path: "models/intent_classifier.bin"
+    sentence_model: "intfloat/multilingual-e5-small"

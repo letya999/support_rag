@@ -47,7 +47,7 @@ reranker_instance = None
 def get_reranker():
     global reranker_instance
     if reranker_instance is None:
-        params = get_node_params("rerank")
+        params = get_node_params("reranking")
         model_name = params.get("model_name", "BAAI/bge-reranker-v2-m3")
         reranker_instance = Reranker(model_name=model_name)
     return reranker_instance

@@ -2,18 +2,35 @@ node:
   name: prompt_routing
   enabled: true
 
+# Числовые и булевые параметры
 parameters:
-  history_source: conversation_history
   max_history_messages: 5
+  max_message_length: 300
   include_user_profile: true
   include_entities: true
   filter_system_messages: true
-
-history_formatting:
-  message_template: "{role}: {content}"
-  separator: "\n"
-  max_message_length: 300
-
-fallback:
+  use_tone_modifiers: true
   use_session_summaries: true
-  summary_template: "Предыдущий разговор: {summary}"
+
+# Текстовые настройки, шаблоны и словари
+config:
+  history_source: conversation_history
+  
+  history_formatting:
+    message_template: "{role}: {content}"
+    separator: "\n"
+  
+  fallback:
+    summary_template: "Предыдущий разговор: {summary}"
+  
+  # Модификаторы тона для разных состояний диалога
+  # Добавляются в начало промпта для настройки стиля ответа
+  tone_modifiers:
+    professional: ""  # Стандартный профессиональный тон
+    helpful: "Будь дружелюбным и готовым помочь."
+    warm: "Отвечай тепло и с благодарностью."
+    empathetic: "Прояви эмпатию и понимание. Пользователь может быть расстроен."
+    curious: "Задавай уточняющие вопросы вежливо и конструктивно."
+    supportive: "Окажи поддержку и упомяни возможность связаться с оператором."
+    understanding: "Подтверди, что переключишь пользователя на живого оператора."
+    patient: "Терпеливо жди и предлагай дополнительную помощь."

@@ -1,0 +1,184 @@
+# ============================================================
+# State Machine Rules Engine Configuration
+# ============================================================
+# Declarative rules for state transitions based on dialog analysis signals.
+# Priority: Lower number = higher priority (evaluated first)
+#
+# Available signals from dialog_analysis:
+#   - is_gratitude: User expressed thanks
+#   - escalation_requested: User explicitly asked for operator/human
+#   - is_question: User is asking a question
+#   - repeated_question: User is repeating a previous question
+#   - frustration_detected: High negativity/frustration in user message
+#   - sentiment: overall sentiment (positive, negative, neutral)
+#   - topic_shift: User changed topic significantly
+#
+# Available states:
+#   - INITIAL: Starting state for new conversations
+#   - ANSWER_PROVIDED: Bot has provided an answer
+#   - RESOLVED: User confirmed issue is resolved (gratitude)
+#   - CLARIFY: Need more information from user
+#   - EMPATHY_MODE: User frustrated, switch to empathetic tone
+#   - ESCALATION_NEEDED: Should suggest handoff to operator
+#   - ESCALATION_REQUESTED: User explicitly requested operator
+#   - AWAITING_CLARIFICATION: Waiting for user to provide more details
+# ============================================================
+
+_meta:
+  version: "1.0"
+  description: "State transition rules for conversation management"
+
+# Default settings
+defaults:
+  initial_state: INITIAL
+  max_attempts_before_escalation: 3
+  reset_on_gratitude: true
+  escalate_on_extreme_frustration: true
+
+# Transition rules - evaluated in priority order
+# Each rule defines: when condition matches -> transition to target state
+rules:
+  # Priority 1: Critical - User explicitly requests human
+  - name: explicit_escalation_request
+    priority: 1
+    description: "User explicitly asked for operator/human support"
+    condition:
+      field: escalation_requested
+      operator: equals
+      value: true
+    target_state: ESCALATION_REQUESTED
+    actions:
+      - type: log
+        message: "User requested human support"
+
+  # Priority 2: Gratitude - Issue resolved
+  - name: gratitude_resolution
+    priority: 2
+    description: "User expressed thanks, likely resolved"
+    condition:
+      field: is_gratitude
+      operator: equals
+      value: true
+    target_state: RESOLVED
+    actions:
+      - type: reset_attempt_count
+      - type: log
+        message: "Issue resolved via gratitude signal"
+
+  # Priority 3: High frustration - Switch to empathy mode
+  - name: frustration_detected
+    priority: 3
+    description: "High frustration/negativity detected"
+    condition:
+      field: frustration_detected
+      operator: equals
+      value: true
+    target_state: EMPATHY_MODE
+    actions:
+      - type: log
+        message: "Frustration detected, switching to empathy mode"
+
+  # Priority 4: Extreme negative sentiment - Suggest escalation
+  - name: extreme_negative_sentiment
+    priority: 4
+    description: "Extreme negative sentiment over multiple messages"
+    condition:
+      field: sentiment
+      operator: equals
+      value: "extreme_negative"
+    target_state: ESCALATION_NEEDED
+    actions:
+      - type: log
+        message: "Extreme negativity, suggesting escalation"
+
+  # Priority 5: Repeated question - Increment attempt counter
+  - name: repeated_question
+    priority: 5
+    description: "User is repeating a question (possibly dissatisfied)"
+    condition:
+      field: repeated_question
+      operator: equals
+      value: true
+    target_state: ANSWER_PROVIDED
+    actions:
+      - type: increment_attempts
+      - type: log
+        message: "Repeated question detected"
+
+  # Priority 6: Topic shift - Reset context
+  - name: topic_shift
+    priority: 6
+    description: "User shifted to a new topic"
+    condition:
+      field: topic_shift
+      operator: equals
+      value: true
+    target_state: INITIAL
+    actions:
+      - type: reset_attempt_count
+      - type: log
+        message: "Topic shift detected, resetting context"
+
+  # Priority 10: Default question flow
+  - name: standard_question
+    priority: 10
+    description: "Standard question flow"
+    condition:
+      field: is_question
+      operator: equals
+      value: true
+    target_state: ANSWER_PROVIDED
+    actions: []
+
+# Dynamic rules - evaluated after static rules
+dynamic_rules:
+  # Max attempts exceeded -> Escalation
+  - name: max_attempts_exceeded
+    description: "Too many attempts, suggest handoff"
+    condition:
+      type: attempts_exceeded
+      threshold_from_config: max_attempts_before_escalation
+    target_state: ESCALATION_NEEDED
+    requires_current_state: ANSWER_PROVIDED
+
+# State-specific behaviors for prompt routing
+state_behaviors:
+  INITIAL:
+    tone: professional
+    action: auto_reply
+    prompt_hint: "standard"
+
+  ANSWER_PROVIDED:
+    tone: helpful
+    action: auto_reply
+    prompt_hint: "follow_up"
+
+  RESOLVED:
+    tone: warm
+    action: auto_reply
+    prompt_hint: "closing"
+
+  EMPATHY_MODE:
+    tone: empathetic
+    action: auto_reply
+    prompt_hint: "empathy"
+
+  CLARIFY:
+    tone: curious
+    action: auto_reply
+    prompt_hint: "clarification"
+
+  ESCALATION_NEEDED:
+    tone: supportive
+    action: suggest_handoff
+    prompt_hint: "handoff_suggestion"
+
+  ESCALATION_REQUESTED:
+    tone: understanding
+    action: handoff
+    prompt_hint: "handoff_confirmation"
+
+  AWAITING_CLARIFICATION:
+    tone: patient
+    action: auto_reply
+    prompt_hint: "waiting"

@@ -38,7 +38,36 @@ except ImportError:
     multihop_node = None
 
 
+# --- NODE NAMING ---
+# All node names must match their folder names for config loading to work correctly.
+# Mapping of node names (matching folder names) to their implementations
 
+NODE_FUNCTIONS = {
+    "check_cache": check_cache_node,
+    "easy_classification": fasttext_classify_node,  # Folder: easy_classification/
+    "classify": classify_node,
+    "metadata_filtering": metadata_filter_node,     # Folder: metadata_filtering/
+    "expand_query": query_expansion_node,
+    "retrieve": retrieve_node,
+    "hybrid_search": hybrid_search_node,
+    "reranking": rerank_node,                       # Folder: reranking/
+    "multihop": multihop_node,
+    "routing": route_node,                          # Folder: routing/
+    "generation": generate_node,                    # Folder: generation/
+    "store_in_cache": store_in_cache_node,
+    "session_starter": load_session_node,
+    "aggregation": aggregate_node,                  # Folder: aggregation/
+    "dialog_analysis": dialog_analysis_node,
+    "state_machine": state_machine_node,
+    "prompt_routing": route_prompt_node,
+    "lexical_search": lexical_node,
+    "fusion": fusion_node,
+    "archive_session": archive_session_node,
+}
+
+# Add multihop node if available
+if MULTIHOP_AVAILABLE:
+    NODE_FUNCTIONS["multihop"] = multihop_node
 
 
 def cache_hit_logic(state: State):
@@ -56,37 +85,8 @@ def router_logic(state: State):
     Conditional edge logic for final generation.
     """
     if state.get("action") == "auto_reply":
-        return "generate"
+        return "generation"
     return END
-
-
-# Mapping of node names to their implementations
-NODE_FUNCTIONS = {
-    "check_cache": check_cache_node,
-    "fasttext_classify": fasttext_classify_node,
-    "classify": classify_node,
-    "metadata_filter": metadata_filter_node,
-    "expand_query": query_expansion_node,
-    "retrieve": retrieve_node,
-    "hybrid_search": hybrid_search_node,
-    "rerank": rerank_node,
-    "multihop": multihop_node,
-    "route": route_node,
-    "generate": generate_node,
-    "store_in_cache": store_in_cache_node,
-    "session_starter": load_session_node,
-    "aggregate": aggregate_node,
-    "dialog_analysis": dialog_analysis_node,
-    "state_machine": state_machine_node,
-    "prompt_routing": route_prompt_node,
-    "lexical_search": lexical_node,
-    "fusion": fusion_node,
-    "archive_session": archive_session_node,
-}
-
-# Add multihop node if available
-if MULTIHOP_AVAILABLE:
-    NODE_FUNCTIONS["multihop"] = multihop_node
 
 
 # Build graph
@@ -157,29 +157,29 @@ if pipeline_nodes:
         next_node = pipeline_nodes[i+1]
 
         # Special logic for routing if it's in the middle
-        if current_node == "route":
-            if "generate" in pipeline_nodes:
+        if current_node == "routing":
+            if "generation" in pipeline_nodes:
                 # If prompt routing is enabled, route to it first
-                target = "prompt_routing" if "prompt_routing" in active_node_names else "generate"
+                target = "prompt_routing" if "prompt_routing" in active_node_names else "generation"
                 target_exit = "archive_session" if "archive_session" in active_node_names else ("store_in_cache" if cache_enabled else END)
                 
                 workflow.add_conditional_edges(
-                    "route",
+                    "routing",
                     router_logic,
                     {
-                        "generate": target,
+                        "generation": target,
                         END: target_exit
                     }
                 )
             else:
                 target_exit = "archive_session" if "archive_session" in active_node_names else ("store_in_cache" if cache_enabled else END)
-                workflow.add_edge("route", target_exit)
+                workflow.add_edge("routing", target_exit)
         else:
             workflow.add_edge(current_node, next_node)
             
     # Handle End of Pipeline
     last_node = pipeline_nodes[-1]
-    if last_node != "route":
+    if last_node != "routing":
         if "archive_session" in active_node_names:
             workflow.add_edge(last_node, "archive_session")
         elif cache_enabled:

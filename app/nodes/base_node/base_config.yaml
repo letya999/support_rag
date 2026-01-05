@@ -1,11 +1,18 @@
 # Base configuration template for all nodes
 node:
-  name: base_node
+  name: <folder_name>  # Совпадает с именем папки
   enabled: true
 
+# Числовые и булевые параметры
 parameters:
+  <param1>: <number/bool>
   # Common parameters for all nodes
   timeout_ms: 5000
   retry_count: 3
+  #...
 
+# Текстовые настройки и словари
 config:
+  <key1>: <string>
+  <nested_object>:
+    ...
