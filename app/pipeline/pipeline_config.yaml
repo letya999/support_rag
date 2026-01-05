@@ -19,11 +19,15 @@ pipeline:
   enabled: true
 - name: check_cache
   enabled: true
+- name: language_detection
+  enabled: true
 - name: dialog_analysis
   enabled: true
 - name: state_machine
   enabled: true
 - name: aggregation
+  enabled: true
+- name: query_translation
   enabled: true
 - name: easy_classification
   enabled: true
@@ -55,10 +59,14 @@ pipeline:
   enabled: true
 - name: store_in_cache
   enabled: true
+- name: input_guardrails
+  enabled: false
+- name: output_guardrails
+  enabled: false
 details:
   global:
     parameters:
-      default_language: ru
+      default_language: en
       confidence_threshold: 0.3
       debug_mode: false
       persist_to_postgres: true
@@ -158,6 +166,66 @@ details:
     config:
       fusion_method: rrf
       collection_name: documents
+  input_guardrails:
+    parameters:
+      protection_level: standard
+      action_mode: block
+      prompt_injection_threshold: 0.5
+      toxicity_threshold: 0.7
+      ban_topics_threshold: 0.6
+      max_input_tokens: 2048
+      allowed_languages:
+      - ru
+      - en
+      scanners:
+        prompt_injection: true
+        toxicity: true
+        ban_topics: true
+        secrets: true
+        language: true
+        token_limit: true
+        regex_patterns: true
+    config:
+      banned_topics:
+      - politics
+      - religion
+      - adult_content
+      - violence
+      - illegal_activities
+      regex_patterns:
+      - pattern: (?i)(show|display|print|reveal|tell me).{0,20}(system prompt|instructions|rules)
+        description: System prompt extraction attempt
+      - pattern: (?i)(you are now|act as|pretend to be|roleplay as).{0,30}(admin|root|developer|DAN)
+        description: Role manipulation attempt
+      - pattern: (?i)(ignore|forget|disregard).{0,20}(previous|above|prior).{0,20}(instructions|rules|prompt)
+        description: Instruction override attempt
+      - pattern: (?i)(show|get|retrieve|access).{0,30}(other user|another user|all
+          users|user list)
+        description: Unauthorized data access attempt
+      rejection_messages:
+        ru: Извините, я не могу обработать этот запрос. Пожалуйста, переформулируйте
+          ваш вопрос, чтобы он соответствовал теме технической поддержки.
+        en: I'm sorry, I cannot process this request. Please rephrase your question
+          to be relevant to technical support.
+        default: I cannot process this request. Please try again with a different
+          question.
+      logging:
+        log_blocked_requests: true
+        log_sanitized_requests: true
+        include_original_text: false
+        log_to_langfuse: true
+  language_detection:
+    parameters:
+      fallback_language: ru
+      confidence_threshold: 0.5
+      use_fallback_heuristic: true
+    config:
+      supported_languages:
+      - en
+      - ru
+      - fr
+      - de
+      - es
   metadata_filtering:
     parameters:
       use_category_filter: true
@@ -186,6 +254,47 @@ details:
         - how
         - why
         - compare
+  output_guardrails:
+    parameters:
+      protection_level: standard
+      action_mode: block
+      toxicity_threshold: 0.7
+      relevance_threshold: 0.5
+      hallucination_threshold: 0.6
+      scanners:
+        toxicity: true
+        relevance: true
+        data_leakage: true
+        refusal_detection: false
+        factual_consistency: false
+    config:
+      data_leakage_patterns:
+      - pattern: \b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b
+      - description: Email address in response
+      - pattern: \+7\s?\(?\d{3}\)?\s?\d{3}[-\s]?\d{2}[-\s]?\d{2}
+      - description: Russian phone number
+      - pattern: (sk-|ghp_|Bearer\s+)[a-zA-Z0-9_\-\.]{20,}
+      - description: API key or token in response
+      - pattern: \b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b
+      - description: Potential credit card number
+      hallucination_indicators:
+      - я не уверен
+      - возможно
+      - вероятно
+      - по моим данным
+      - насколько мне известно
+      - I'm not sure
+      - probably
+      - I think
+      fallback_responses:
+        ru: Извините, я не могу предоставить этот ответ. Позвольте переформулировать.
+        en: I apologize, but I cannot provide that response. Let me rephrase.
+        default: I cannot provide this response.
+      logging:
+        log_blocked_responses: true
+        log_sanitized_responses: true
+        include_original_response: false
+        log_to_langfuse: true
   prompt_routing:
     parameters:
       max_history_messages: 5
@@ -213,6 +322,11 @@ details:
         supportive: Окажи поддержку и упомяни возможность связаться с оператором.
         understanding: Подтверди, что переключишь пользователя на живого оператора.
         patient: Терпеливо жди и предлагай дополнительную помощь.
+  query_translation:
+    parameters:
+      min_detection_confidence: 0.4
+    config:
+      document_language: en
   reranking:
     parameters:
       confidence_threshold: 0.3

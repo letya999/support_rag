@@ -1,0 +1,80 @@
+node:
+  name: input_guardrails
+  enabled: false
+
+parameters:
+  # Protection level: "basic", "standard", "advanced"
+  # basic: ~10ms latency, regex-based
+  # standard: ~50ms latency, lightweight ML models (recommended)
+  # advanced: ~200ms latency, full ML models
+  protection_level: "standard"
+  
+  # Action on threat detection: "block", "log", "sanitize"
+  # block: reject request with safe message
+  # log: log event but continue processing
+  # sanitize: remove malicious parts and continue
+  action_mode: "block"
+  
+  # Thresholds (0.0 - 1.0, higher = stricter)
+  prompt_injection_threshold: 0.5
+  toxicity_threshold: 0.7
+  ban_topics_threshold: 0.6
+  
+  # Token limits
+  max_input_tokens: 2048
+  
+  # Language validation
+  allowed_languages:
+    - "ru"
+    - "en"
+  
+  # Enable/disable specific scanners
+  scanners:
+    prompt_injection: true
+    toxicity: true
+    ban_topics: true
+    secrets: true
+    language: true
+    token_limit: true
+    regex_patterns: true
+
+config:
+  # Banned topics (semantic matching)
+  banned_topics:
+    - "politics"
+    - "religion"
+    - "adult_content"
+    - "violence"
+    - "illegal_activities"
+  
+  # Custom regex patterns to block
+  # These are support-bot specific patterns
+  regex_patterns:
+    # Attempts to extract system prompt
+    - pattern: "(?i)(show|display|print|reveal|tell me).{0,20}(system prompt|instructions|rules)"
+      description: "System prompt extraction attempt"
+    
+    # Attempts to change role
+    - pattern: "(?i)(you are now|act as|pretend to be|roleplay as).{0,30}(admin|root|developer|DAN)"
+      description: "Role manipulation attempt"
+    
+    # Attempts to ignore instructions
+    - pattern: "(?i)(ignore|forget|disregard).{0,20}(previous|above|prior).{0,20}(instructions|rules|prompt)"
+      description: "Instruction override attempt"
+    
+    # Attempts to access other users' data
+    - pattern: "(?i)(show|get|retrieve|access).{0,30}(other user|another user|all users|user list)"
+      description: "Unauthorized data access attempt"
+  
+  # Safe rejection messages (localized)
+  rejection_messages:
+    ru: "Извините, я не могу обработать этот запрос. Пожалуйста, переформулируйте ваш вопрос, чтобы он соответствовал теме технической поддержки."
+    en: "I'm sorry, I cannot process this request. Please rephrase your question to be relevant to technical support."
+    default: "I cannot process this request. Please try again with a different question."
+  
+  # Logging configuration
+  logging:
+    log_blocked_requests: true
+    log_sanitized_requests: true
+    include_original_text: false  # Set to false for privacy
+    log_to_langfuse: true

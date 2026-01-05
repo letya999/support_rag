@@ -1,0 +1,16 @@
+node:
+  name: language_detection
+  enabled: true
+
+parameters:
+  fallback_language: "ru"
+  confidence_threshold: 0.5
+  use_fallback_heuristic: true
+
+config:
+  supported_languages:
+    - en
+    - ru
+    - fr
+    - de
+    - es

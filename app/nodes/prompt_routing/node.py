@@ -13,10 +13,13 @@ except ImportError:
     get_clean_history_for_prompt = None
     is_system_message = None
 from app.services.config_loader.loader import get_node_params
+from langchain_core.messages import HumanMessage, AIMessage, trim_messages, BaseMessage
+import inspect
 
 # Default config values
 DEFAULT_MAX_HISTORY_MESSAGES = 5
 DEFAULT_MAX_MESSAGE_LENGTH = 300
+MAX_HISTORY_TOKENS = 500
 
 def _get_params() -> Dict[str, Any]:
     """Get node parameters and config from centralized config."""
@@ -37,13 +40,13 @@ class PromptRoutingNode(BaseNode):
     # Default tone modifiers (fallback if config is missing)
     DEFAULT_TONE_MODIFIERS = {
         "professional": "",
-        "helpful": "Будь дружелюбным и готовым помочь.",
-        "warm": "Отвечай тепло и с благодарностью.",
-        "empathetic": "Прояви эмпатию и понимание. Пользователь может быть расстроен.",
-        "curious": "Задавай уточняющие вопросы вежливо и конструктивно.",
-        "supportive": "Окажи поддержку и упомяни возможность связаться с оператором.",
-        "understanding": "Подтверди, что переключишь пользователя на живого оператора.",
-        "patient": "Терпеливо жди и предлагай дополнительную помощь."
+        "helpful": "Be friendly and willing to help.",
+        "warm": "Respond warmly and with appreciation.",
+        "empathetic": "Show empathy and understanding. The user may be upset.",
+        "curious": "Ask clarifying questions politely and constructively.",
+        "supportive": "Provide support and mention the option to speak with a human operator.",
+        "understanding": "Acknowledge that you will connect the user to a human operator.",
+        "patient": "Wait patiently and offer additional assistance."
     }
     
     def __init__(self, name: Optional[str] = None):
@@ -62,6 +65,7 @@ class PromptRoutingNode(BaseNode):
                 "ESCALATION_NEEDED": self._load_prompt("prompt_instruction_escalation_needed.txt"),
                 "ESCALATION_REQUESTED": self._load_prompt("prompt_instruction_escalation_requested.txt"),
                 "EMPATHY_MODE": self._load_prompt("prompt_instruction_empathy.txt"),
+                "SAFETY_VIOLATION": self._load_prompt("prompt_instruction_safety_violation.txt"),
                 "CLARIFY": self._load_prompt("prompt_instruction_clarify.txt"),
                 "DEFAULT": self._load_prompt("prompt_instruction_default.txt")
             }
@@ -85,6 +89,58 @@ class PromptRoutingNode(BaseNode):
         modifiers = self._get_tone_modifiers()
         return modifiers.get(tone, "")
 
+    def _count_tokens(self, messages: List[BaseMessage]) -> int:
+        """Simple token counter based on characters."""
+        total = 0
+        for m in messages:
+            if isinstance(m.content, str):
+                total += len(m.content) // 4
+        return total
+
+    def _prepare_history(self, history: list[dict], max_tokens: int = MAX_HISTORY_TOKENS) -> str:
+        """Prepare history with trimming using langchain_core."""
+        if not history:
+            return ""
+
+        # Convert to LangChain messages
+        messages = []
+        for m in history:
+            role = m.get("role")
+            content = m.get("content", "")
+            if role == "user":
+                messages.append(HumanMessage(content=content))
+            elif role == "assistant" or role == "system":
+                # Treat system messages as AI messages for history context or skip
+                # Assuming assistant for context
+                messages.append(AIMessage(content=content))
+        
+        # Trim messages
+        try:
+            trimmed = trim_messages(
+                messages,
+                max_tokens=max_tokens,
+                strategy="last",
+                token_counter=self._count_tokens,
+                include_system=False,
+                start_on="human"
+            )
+        except Exception:
+             # Fallback if trim fails or not configured
+             trimmed = messages[-5:]
+
+        return self._format_messages(trimmed)
+
+    def _format_messages(self, messages: List[BaseMessage]) -> str:
+        """Format LangChain messages to string."""
+        lines = []
+        for msg in messages:
+            role = "USER" if isinstance(msg, HumanMessage) else "ASSISTANT"
+            content = msg.content
+            if len(content) > DEFAULT_MAX_MESSAGE_LENGTH:
+                 content = content[:DEFAULT_MAX_MESSAGE_LENGTH] + "..."
+            lines.append(f"{role}: {content}")
+        return "\n".join(lines)
+
     @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -93,11 +149,27 @@ class PromptRoutingNode(BaseNode):
         Uses conversation_history (correct format) instead of session_history.
         """
         params = _get_params()
-        max_history = params.get("max_history_messages", DEFAULT_MAX_HISTORY_MESSAGES)
+        
+        # Resolve lazy session history if needed (though we prefer conversation_history)
+        # Note: Priority is conversation_history (current flow), then session_history (archived)
+        # Check if we need to load session_history fallback
+        session_history = state.get("session_history")
+        if not session_history and "_session_history_loader" in state:
+            loader = state["_session_history_loader"]
+            if callable(loader):
+                try:
+                    coro_or_val = loader()
+                    if inspect.isawaitable(coro_or_val):
+                        session_history = await coro_or_val
+                    else:
+                        session_history = coro_or_val
+                except Exception as e:
+                    print(f"Failed to lazy load session history: {e}")
+        
         include_profile = params.get("include_user_profile", True)
         include_entities = params.get("include_entities", True)
-        filter_system = params.get("filter_system_messages", True)
         use_tone_modifiers = params.get("use_tone_modifiers", True)
+        max_history_tokens = params.get("max_history_tokens", MAX_HISTORY_TOKENS)
         
         dialog_state = state.get("dialog_state", "INITIAL")
         state_behavior = state.get("state_behavior", {})
@@ -110,8 +182,15 @@ class PromptRoutingNode(BaseNode):
         if use_tone_modifiers and state_behavior:
             tone_modifier = self._get_tone_modifier(state_behavior)
         
-        # Get clean history using proper source
-        history_str = _get_formatted_history(state, max_history, filter_system)
+        # Get clean history
+        # Priority: conversation_history > session_history
+        conv_history = state.get("conversation_history", [])
+        if not conv_history and session_history:
+            # Adapt session_history to dict format if needed
+             # Assuming session_history is strictly List[Dict]
+             conv_history = session_history
+        
+        history_str = self._prepare_history(conv_history, max_tokens=max_history_tokens)
         
         # Format additional context
         entities_str = _format_entities(state.get("extracted_entities", {})) if include_entities else ""
@@ -127,100 +206,33 @@ class PromptRoutingNode(BaseNode):
         system_prompt += f"{instruction}\n\n"
         
         if profile_str:
-            system_prompt += f"--- Информация о пользователе ---\n{profile_str}\n\n"
+            system_prompt += f"--- User Profile ---\n{profile_str}\n\n"
             
         if entities_str:
-            system_prompt += f"--- Извлеченные данные ---\n{entities_str}\n\n"
+            system_prompt += f"--- Extracted Data ---\n{entities_str}\n\n"
         
         if history_str:
-            system_prompt += f"--- История диалога ---\n{history_str}\n\n"
+            system_prompt += f"--- Conversation History ---\n{history_str}\n\n"
+
+        # Localization Directive - always enforce detected language
+        lang = state.get("detected_language", "ru")
+        lang_map = {
+            "en": "English",
+            "ru": "Russian (русский)",
+            "es": "Spanish (español)",
+            "de": "German (Deutsch)",
+            "fr": "French (français)",
+            "it": "Italian (italiano)",
+            "pt": "Portuguese (português)",
+            "uk": "Ukrainian (українська)"
+        }
+        lang_name = lang_map.get(lang, f"the user's language ({lang})")
+        system_prompt += f"\n\nIMPORTANT: You MUST respond in {lang_name} language."
 
         return {
             "system_prompt": system_prompt,
             "prompt_hint": state_behavior.get("prompt_hint", "standard")
         }
-
-
-def _get_formatted_history(state: Dict[str, Any], max_messages: int, filter_system: bool) -> str:
-    """
-    Get formatted conversation history from the correct source.
-    
-    Priority:
-    1. conversation_history (proper {role, content} format)
-    2. session_history (fallback with summaries)
-    """
-    # Try to use history filter utility
-    if get_clean_history_for_prompt:
-        clean_history = get_clean_history_for_prompt(state, max_messages)
-        if clean_history:
-            return _format_message_list(clean_history)
-    
-    # Fallback: Direct parsing
-    # 1. Try conversation_history first (correct format)
-    conv_history = state.get("conversation_history", [])
-    if conv_history:
-        return _format_conversation_history(conv_history, max_messages, filter_system)
-    
-    # 2. Fallback to session_history summaries
-    session_history = state.get("session_history", [])
-    if session_history:
-        return _format_session_summaries(session_history, max_messages)
-    
-    return ""
-
-
-def _format_conversation_history(
-    history: List[Dict[str, Any]], 
-    max_messages: int,
-    filter_system: bool
-) -> str:
-    """Format conversation_history which has {role, content} structure."""
-    if not history:
-        return ""
-    
-    # Filter system messages if requested
-    if filter_system and is_system_message:
-        filtered = [
-            msg for msg in history 
-            if not (msg.get("role") == "assistant" and is_system_message(msg.get("content", "")))
-        ]
-    else:
-        filtered = history
-    
-    # Take last N messages
-    recent = filtered[-max_messages:] if len(filtered) > max_messages else filtered
-    
-    return _format_message_list(recent)
-
-
-def _format_message_list(messages: List[Dict[str, Any]]) -> str:
-    """Format a list of messages to string."""
-    lines = []
-    for msg in messages:
-        role = msg.get("role", "unknown")
-        content = msg.get("content", "")
-        # Truncate long messages
-        if len(content) > DEFAULT_MAX_MESSAGE_LENGTH:
-            content = content[:DEFAULT_MAX_MESSAGE_LENGTH] + "..."
-        lines.append(f"{role.upper()}: {content}")
-    return "\n".join(lines)
-
-
-def _format_session_summaries(sessions: List[Dict[str, Any]], max_sessions: int) -> str:
-    """Format session_history which has {session_id, outcome, summary} structure."""
-    if not sessions:
-        return ""
-    
-    # Take last N sessions
-    recent = sessions[-max_sessions:] if len(sessions) > max_sessions else sessions
-    
-    lines = []
-    for i, session in enumerate(recent, 1):
-        summary = session.get("summary", "")
-        if summary:
-            lines.append(f"[Сессия {i}] {summary}")
-    
-    return "\n".join(lines)
 
 
 def _format_entities(entities: Dict[str, Any]) -> str:

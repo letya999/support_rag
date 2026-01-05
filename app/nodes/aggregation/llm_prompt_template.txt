@@ -1,8 +1,8 @@
-На основе истории диалога и текущего вопроса, сформулируй полный вопрос.
+Based on the conversation history and the current question, formulate a complete, self-contained question that captures the full context.
 
-История:
+Conversation History:
 {history}
 
-Текущий вопрос: {question}
+Current Question: {question}
 
-Полный вопрос:
+Complete Question (respond in the same language as the user's current question):

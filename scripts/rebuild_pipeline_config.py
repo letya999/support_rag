@@ -130,10 +130,13 @@ def generate_full_config():
     # 3. Build Details Section
     details = {}
     
-    # Global Parameters (Defaults)
+    # Global Parameters - extract from shared configs where possible
+    # Get default_language from languages.yaml if available
+    default_language = shared_configs.get("languages", {}).get("response", {}).get("default_language", "ru")
+    
     details["global"] = {
         "parameters": {
-            "default_language": "ru",
+            "default_language": default_language,
             "confidence_threshold": 0.3,
             "debug_mode": False,
             "persist_to_postgres": True,

@@ -116,15 +116,15 @@ def get_node_params(node_name: str, pipeline_config: Optional[dict] = None) -> d
     if node_details:
         # Merge parameters and config into flat dict
         result = {}
-        result.update(node_details.get("parameters", {}))
-        result.update(node_details.get("config", {}))
+        result.update(node_details.get("parameters") or {})
+        result.update(node_details.get("config") or {})
         return result
     
     # Fallback to node's own config - merge both parameters and config
     node_config = load_node_config(node_name)
     result = {}
-    result.update(node_config.get("parameters", {}))
-    result.update(node_config.get("config", {}))
+    result.update(node_config.get("parameters") or {})
+    result.update(node_config.get("config") or {})
     return result
 
 
@@ -135,7 +135,7 @@ def get_node_detail(node_name: str, section: str = "parameters") -> dict:
     """
     pipeline_config = load_pipeline_config()
     node_details = pipeline_config.get("details", {}).get(node_name, {})
-    return node_details.get(section, {})
+    return node_details.get(section) or {}
 
 
 def get_global_param(param_name: str, default: Any = None) -> Any:

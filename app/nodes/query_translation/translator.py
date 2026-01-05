@@ -64,6 +64,9 @@ class QueryTranslator:
         Translates query to target language if it's different.
         """
         current_lang = self.detect_language(query)
+        # Handle cases where language codes might differ slightly (e.g. "ru" vs "ru-RU")
+        # For this simple implementation, we assume simple 2-letter codes.
+        
         if current_lang == target_lang:
             return query
         

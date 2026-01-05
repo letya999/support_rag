@@ -14,9 +14,13 @@ class HybridSearchNode(BaseNode):
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Logic for hybrid search.
+        Uses translated_query from query_translation node for unified search.
         """
-        question = state.get("aggregated_query") or state.get("question", "")
+        # Use translated_query if available (from query_translation node)
+        # Falls back to aggregated_query or question
+        question = state.get("translated_query") or state.get("aggregated_query") or state.get("question", "")
         queries = state.get("queries", [question])
+        detected_language = state.get("detected_language")  # Get from language_detection node
         
         # Get category filter from metadata_filter node
         category_filter = state.get("matched_category") if state.get("filter_used") else None
@@ -24,7 +28,15 @@ class HybridSearchNode(BaseNode):
         params = get_node_params("hybrid_search")
         top_k = params.get("final_top_k", 10)
         
-        tasks = [search_hybrid(q, top_k=top_k, category_filter=category_filter) for q in queries]
+        tasks = [
+            search_hybrid(
+                q, 
+                top_k=top_k, 
+                category_filter=category_filter,
+                detected_language=detected_language
+            ) 
+            for q in queries
+        ]
         all_results_lists = await asyncio.gather(*tasks)
         
         # Deduplicate and Flatten
@@ -51,19 +63,34 @@ class HybridSearchNode(BaseNode):
         }
 
 @observe(as_type="span")
-async def search_hybrid(query: str, top_k: int = 10, category_filter: Optional[str] = None) -> List[SearchResult]:
+async def search_hybrid(
+    query: str, 
+    top_k: int = 10, 
+    category_filter: Optional[str] = None,
+    detected_language: Optional[str] = None
+) -> List[SearchResult]:
     """
     Perform hybrid search by combining vector and lexical search.
-    Logic function independent of LangGraph state.
+    
+    Args:
+        query: Search query
+        top_k: Number of results to return
+        category_filter: Optional category filter
+        detected_language: Language detected by language_detection node (for lexical search translation)
     """
-    # 2. Run both searches in parallel
-    # Define vector search chain (embedding -> search)
+    # Run both searches in parallel
+    # Vector search uses multilingual embeddings (no translation needed)
+    # Lexical search uses translation based on detected_language
     async def run_vector_search():
         embedding = await get_embedding(query)
         return await search_documents(embedding, top_k=top_k * 2, category_filter=category_filter)
 
     vector_task = run_vector_search()
-    lexical_task = lexical_search_node(query, top_k=top_k * 2)
+    lexical_task = lexical_search_node(
+        query, 
+        top_k=top_k * 2,
+        detected_language=detected_language
+    )
     
     vector_results, lexical_results = await asyncio.gather(vector_task, lexical_task)
     

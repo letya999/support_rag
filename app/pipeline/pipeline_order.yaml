@@ -5,9 +5,11 @@
 pipeline_order:
   - session_starter
   - check_cache
+  - language_detection
   - dialog_analysis
   - state_machine
   - aggregation
+  - query_translation  # Translate query to document language for unified search
   - easy_classification
   - classify
   - metadata_filtering

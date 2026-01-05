@@ -6,34 +6,31 @@ from app.storage.connection import get_db_connection
 from app.storage.models import SearchResult
 
 @observe(as_type="span")
-async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
+async def lexical_search_db(
+    query: str, 
+    top_k: int = 3,
+    detected_language: str = None,
+    document_language: str = "ru"
+) -> List[SearchResult]:
     """
-    Search for documents using PostgreSQL full-text search (Multi-language).
-    Translates query if necessary to match document languages.
-    """
-    from app.nodes.lexical_search.translator import translator
+    Search for documents using PostgreSQL full-text search.
     
-    # Prepare queries for each language index
-    # If it's RU, we need an EN version for fts_en
-    # If it's RU, we need an EN version for fts_en
-    # If it's EN, we need a RU version for fts_ru
-    try:
-        t_start_trans = time.perf_counter()
-        query_lang = translator.detect_language(query)
-        
-        query_en = query
-        query_ru = query
-        
-        if query_lang == "ru":
-            query_en = translator.translate_ru_to_en(query)
-        elif query_lang == "en":
-            query_ru = translator.translate_en_to_ru(query)
-        print(f"🔄 Translation took {time.perf_counter() - t_start_trans:.4f}s")
-    except Exception as e:
-        print(f"⚠️ Query translation failed: {e}")
-        query_en = query
-        query_ru = query
-
+    Note: Query should already be translated to document_language 
+    by query_translation node before reaching this function.
+    
+    Args:
+        query: User's search query (already translated)
+        top_k: Number of results to return
+        detected_language: Language detected by language_detection node (optional, for logging)
+        document_language: Primary language of documents in the database (default: 'ru')
+    """
+    from app.services.config_loader.loader import get_global_param
+    
+    # Get document language from config if not provided
+    if document_language == "ru":
+        document_language = get_global_param("default_language", "ru")
+    
+    print(f"🔍 Lexical search for: '{query}' (document_language={document_language})")
     
     # Helper to construct OR-based tsquery string
     def clean_query_for_tsquery(text: str) -> str:
@@ -46,12 +43,17 @@ async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
         # Join with | for OR logic
         return " | ".join(words)
 
-    en_tsquery_str = clean_query_for_tsquery(query_en)
-    ru_tsquery_str = clean_query_for_tsquery(query_ru)
+    # Determine which tsquery config to use based on document language
+    if document_language == "ru":
+        tsquery_config = "russian"
+    else:
+        tsquery_config = "english"
+    
+    tsquery_str = clean_query_for_tsquery(query)
     
     # Fallback if empty
-    if not en_tsquery_str: en_tsquery_str = "EMPTY_QUERY"
-    if not ru_tsquery_str: ru_tsquery_str = "EMPTY_QUERY"
+    if not tsquery_str: 
+        tsquery_str = "EMPTY_QUERY"
 
     results = []
     
@@ -60,7 +62,6 @@ async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
         async with conn.cursor() as cur:
             try:
                 # Optimized query using search_vector (GIN indexed)
-                # We combine English and Russian queries with OR (||)
                 await cur.execute(
                     """
                     SELECT 
@@ -68,12 +69,12 @@ async def lexical_search_db(query: str, top_k: int = 3) -> List[SearchResult]:
                         ts_rank_cd(search_vector, query) AS score, 
                         metadata
                     FROM documents, 
-                         (SELECT (to_tsquery('english', %s) || to_tsquery('russian', %s)) AS query) AS q
+                         (SELECT to_tsquery(%s, %s) AS query) AS q
                     WHERE search_vector @@ query
                     ORDER BY score DESC
                     LIMIT %s;
                     """,
-                    (en_tsquery_str, ru_tsquery_str, top_k)
+                    (tsquery_config, tsquery_str, top_k)
                 )
                 rows = await cur.fetchall()
             except Exception as e:

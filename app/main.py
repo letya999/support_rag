@@ -12,7 +12,7 @@ from app.nodes.easy_classification.semantic_classifier import SemanticClassifica
 from app.integrations.embeddings import get_embedding
 from app.integrations.embeddings import get_embedding
 from app.storage.connection import init_db_pool, close_db_pool
-from app.nodes.lexical_search.translator import translator
+from app.nodes.query_translation.translator import translator
 
 
 # Startup/shutdown events

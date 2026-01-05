@@ -1,4 +1,4 @@
-Контекст:
+Context:
 {docs}
 
-Вопрос: {question}
+Question: {question}

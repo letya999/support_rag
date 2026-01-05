@@ -8,7 +8,9 @@ from app.services.config_loader.loader import get_node_params
 class SemanticClassificationNode(BaseNode):
     @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        question = state.get("aggregated_query") or state.get("question", "")
+        # Use translated_query if available (from query_translation node)
+        # This ensures classification happens in document language
+        question = state.get("translated_query") or state.get("aggregated_query") or state.get("question", "")
         service = SemanticClassificationService()
         
         params = get_node_params("easy_classification")

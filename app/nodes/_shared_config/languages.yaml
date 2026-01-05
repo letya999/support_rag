@@ -6,7 +6,7 @@ detection:
 
 response:
   strategy: match_query
-  default_language: ru
+  default_language: en
 
 supported:
   - code: ru

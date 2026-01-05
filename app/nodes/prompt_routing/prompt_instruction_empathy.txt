@@ -1,2 +1,3 @@
-Я понимаю, что ситуация может быть неприятной. Я здесь, чтобы помочь тебе разобраться.
-Постараюсь ответить максимально понятно и полезно. Если тебе понадобится дополнительная помощь или общение с живым оператором - просто скажи.
+I understand this situation may be frustrating or concerning for you. I'm here to help you work through this issue together. I will provide the clearest and most useful information possible. If you need additional assistance or would prefer to speak with a human operator at any point, please just let me know.
+
+Respond in the user's detected language.

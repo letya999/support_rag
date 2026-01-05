@@ -26,6 +26,8 @@ from app.nodes.prompt_routing.node import route_prompt_node
 from app.nodes.lexical_search.node import lexical_node
 from app.nodes.fusion.node import fusion_node
 from app.nodes.archive_session.node import archive_session_node
+from app.nodes.language_detection.node import language_detection_node
+from app.nodes.query_translation.node import query_translation_node
 from app.pipeline.config_proxy import conversation_config
 from app.services.config_loader.loader import load_pipeline_config, get_node_enabled, get_cache_config
 
@@ -63,6 +65,8 @@ NODE_FUNCTIONS = {
     "lexical_search": lexical_node,
     "fusion": fusion_node,
     "archive_session": archive_session_node,
+    "language_detection": language_detection_node,
+    "query_translation": query_translation_node,    # Folder: query_translation/
 }
 
 # Add multihop node if available
@@ -109,9 +113,13 @@ active_node_names = [
 ]
 
 # Add all active nodes to workflow
+print(f"DEBUG: Active config nodes: {active_node_names}")
 for name in active_node_names:
     if name in NODE_FUNCTIONS and name not in ["check_cache", "store_in_cache"]:
+        print(f"DEBUG: Adding node {name}")
         workflow.add_node(name, NODE_FUNCTIONS[name])
+    elif name not in NODE_FUNCTIONS:
+        print(f"DEBUG: Warning: Node {name} enabled in config but missing in NODE_FUNCTIONS")
 
 # --- CONNECT EDGES ---
 

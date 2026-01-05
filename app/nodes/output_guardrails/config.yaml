@@ -1,0 +1,66 @@
+node:
+  name: output_guardrails
+  enabled: false
+
+parameters:
+  # Protection level: "basic", "standard", "advanced"
+  protection_level: "standard"
+  
+  # Action on threat detection: "block", "log", "sanitize"
+  action_mode: "block"
+  
+  # Thresholds
+  toxicity_threshold: 0.7
+  relevance_threshold: 0.5
+  hallucination_threshold: 0.6
+  
+  # Scanners enable/disable
+  scanners:
+    toxicity: true
+    relevance: true
+    data_leakage: true
+    refusal_detection: false  # Set to true to detect unhelpful refusals
+    factual_consistency: false  # Requires context, expensive
+
+config:
+  # Patterns indicating data leakage
+  data_leakage_patterns:
+    # Email addresses
+    - pattern: '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    - description: "Email address in response"
+    
+    # Phone numbers (Russian format)
+    - pattern: '\+7\s?\(?\d{3}\)?\s?\d{3}[-\s]?\d{2}[-\s]?\d{2}'
+    - description: "Russian phone number"
+    
+    # API keys / tokens
+    - pattern: '(sk-|ghp_|Bearer\s+)[a-zA-Z0-9_\-\.]{20,}'
+    - description: "API key or token in response"
+    
+    # Credit card numbers (simple pattern)
+    - pattern: '\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'
+    - description: "Potential credit card number"
+  
+  # Keywords indicating potential hallucination
+  hallucination_indicators:
+    - "я не уверен"
+    - "возможно"
+    - "вероятно"
+    - "по моим данным"
+    - "насколько мне известно"
+    - "I'm not sure"
+    - "probably"
+    - "I think"
+  
+  # Fallback responses when output is blocked
+  fallback_responses:
+    ru: "Извините, я не могу предоставить этот ответ. Позвольте переформулировать."
+    en: "I apologize, but I cannot provide that response. Let me rephrase."
+    default: "I cannot provide this response."
+  
+  # Logging
+  logging:
+    log_blocked_responses: true
+    log_sanitized_responses: true
+    include_original_response: false  # Privacy concern
+    log_to_langfuse: true

@@ -11,9 +11,15 @@ class LexicalSearchNode(BaseNode):
         Logic for lexical search.
         """
         question = state.get("aggregated_query") or state.get("question", "")
+        detected_language = state.get("detected_language")  # Get from language_detection node
+        
         # For simplicity, we assume single query here. 
         # If we need multiple queries, we can expand it later.
-        results = await lexical_search_db(question, top_k=10)
+        results = await lexical_search_db(
+            question, 
+            top_k=10,
+            detected_language=detected_language
+        )
         
         docs = [r.content for r in results]
         scores = [r.score for r in results]
@@ -25,11 +31,24 @@ class LexicalSearchNode(BaseNode):
         }
 
 @observe(as_type="span")
-async def lexical_search_node(query: str, top_k: int = 10) -> List[SearchResult]:
+async def lexical_search_node(
+    query: str, 
+    top_k: int = 10,
+    detected_language: str = None
+) -> List[SearchResult]:
     """
     Execute lexical search (BM25/FTS).
+    
+    Args:
+        query: Search query
+        top_k: Number of results to return
+        detected_language: Optional language code from language_detection node
     """
-    return await lexical_search_db(query, top_k=top_k)
+    return await lexical_search_db(
+        query, 
+        top_k=top_k,
+        detected_language=detected_language
+    )
 
 # For backward compatibility and graph integration
 lexical_node = LexicalSearchNode()

@@ -1,3 +1,6 @@
-Ответь на основе контекста пользователю кратко на русском: {docs}
+Based on the provided context, answer the user's question concisely and accurately.
+Respond in the same language as the user's question.
 
-Вопрос: {question}
+Context: {docs}
+
+Question: {question}

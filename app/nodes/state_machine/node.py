@@ -5,8 +5,10 @@ from app.services.config_loader.loader import get_node_params
 from app.nodes.state_machine.rules_engine import get_rules_engine, RulesEngine
 from app.nodes.state_machine.states_config import (
     TRANSITION_RULES, STATE_CONFIG, 
-    INITIAL, ANSWER_PROVIDED, ESCALATION_NEEDED, ESCALATION_REQUESTED
+    INITIAL, ANSWER_PROVIDED, ESCALATION_NEEDED, ESCALATION_REQUESTED,
+    SAFETY_VIOLATION, EMPATHY_MODE
 )
+
 
 
 class StateMachineNode(BaseNode):
@@ -37,15 +39,19 @@ class StateMachineNode(BaseNode):
         attempt_count = state.get("attempt_count") or 0
         escalation_decision = state.get("escalation_decision", "auto_reply")
         
+        # Phase 5 inputs
+        safety_violation = state.get("safety_violation", False)
+        sentiment = state.get("sentiment", {})
+        
         # Use Rules Engine if available
         if self._rules_engine._loaded:
             return await self._execute_with_rules_engine(
-                analysis, current_state, attempt_count, escalation_decision
+                analysis, current_state, attempt_count, escalation_decision, safety_violation, sentiment
             )
         else:
             # Fallback to legacy Python-based logic
             return await self._execute_legacy(
-                analysis, current_state, attempt_count, escalation_decision
+                analysis, current_state, attempt_count, escalation_decision, safety_violation, sentiment
             )
     
     async def _execute_with_rules_engine(
@@ -53,10 +59,21 @@ class StateMachineNode(BaseNode):
         analysis: Dict[str, Any],
         current_state: str,
         attempt_count: int,
-        escalation_decision: str
+        escalation_decision: str,
+        safety_violation: bool,
+        sentiment: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute using declarative Rules Engine."""
         
+        # 0. Phase 5: Safety Check (Highest Priority)
+        if safety_violation:
+            return {
+                "dialog_state": SAFETY_VIOLATION,
+                "attempt_count": attempt_count,
+                "state_behavior": self._rules_engine.get_state_behavior(SAFETY_VIOLATION),
+                "transition_source": "safety_violation"
+            }
+
         new_state = current_state
         new_attempt_count = attempt_count
         rule_matched = None
@@ -86,7 +103,17 @@ class StateMachineNode(BaseNode):
             new_state = result.new_state
             rule_matched = result.rule_name
         
-        # 3. Get state behavior for prompt routing
+        # 3. Phase 5: Empathy Check (Post-processing)
+        # If the determined state is a standard answer state, check if we need to enforce empathy
+        if new_state in [ANSWER_PROVIDED, INITIAL] and sentiment.get("label") == "negative":
+             return {
+                "dialog_state": EMPATHY_MODE,
+                "attempt_count": new_attempt_count,
+                "state_behavior": self._rules_engine.get_state_behavior(EMPATHY_MODE),
+                "transition_source": "sentiment_empathy"
+            }
+
+        # 4. Get state behavior for prompt routing
         state_behavior = self._rules_engine.get_state_behavior(new_state)
         
         return {
@@ -101,12 +128,21 @@ class StateMachineNode(BaseNode):
         analysis: Dict[str, Any],
         current_state: str,
         attempt_count: int,
-        escalation_decision: str
+        escalation_decision: str,
+        safety_violation: bool,
+        sentiment: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Legacy execution using Python-based rules.
         Fallback when rules.yaml is not available.
         """
+        # 0. Safety Check
+        if safety_violation:
+            return {
+                "dialog_state": SAFETY_VIOLATION,
+                "attempt_count": attempt_count
+            }
+
         new_state = current_state
         
         # 1. Critical Override
@@ -149,6 +185,10 @@ class StateMachineNode(BaseNode):
         # 3. Dynamic logic
         if new_state == ANSWER_PROVIDED and attempt_count > max_attempts:
             new_state = ESCALATION_NEEDED
+            
+        # 4. Phase 5: Empathy Check
+        if new_state in [ANSWER_PROVIDED, INITIAL] and sentiment.get("label") == "negative":
+             new_state = EMPATHY_MODE
 
         return {
             "dialog_state": new_state,

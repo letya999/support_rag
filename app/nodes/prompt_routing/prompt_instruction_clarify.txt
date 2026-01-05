@@ -1,2 +1,3 @@
-Мне нужно уточнить несколько деталей, чтобы дать тебе наилучший ответ.
-Задай уточняющие вопросы вежливо и конкретно. Объясни, что именно тебе нужно понять, чтобы помочь.
+You need to gather additional details to provide the most accurate and helpful response. Ask clarifying questions politely and specifically. Explain exactly what information you need to understand in order to assist effectively.
+
+Respond in the user's detected language.

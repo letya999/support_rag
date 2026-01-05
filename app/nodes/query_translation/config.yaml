@@ -1,0 +1,12 @@
+node:
+  name: query_translation
+  enabled: true
+
+parameters:
+  # Порог уверенности для активации перевода (опционально)
+  min_detection_confidence: 0.4
+  
+config:
+  # Язык документов по умолчанию берется из global.parameters.default_language
+  # можно переопределить здесь если нужно:
+  document_language: "en"

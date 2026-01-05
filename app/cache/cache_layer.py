@@ -384,25 +384,45 @@ class CacheManager:
                 "error": str(e)
             }
 
+from app.settings import settings
+from app.services.config_loader.loader import get_cache_config
 
-# Global cache instance
-_cache_instance: Optional[CacheManager] = None
+_cache_instance = None
 
-
-async def get_cache_manager(redis_url: str = "redis://localhost:6379/0") -> CacheManager:
+async def get_cache_manager(
+    redis_url: Optional[str] = None,
+    max_entries: Optional[int] = None,
+    ttl_seconds: Optional[int] = None,
+    enable_stats: Optional[bool] = None
+) -> CacheManager:
     """
     Get or create the global cache manager instance.
+    Loads configuration from pipeline_config.yaml (via get_cache_config) or settings if arguments are not provided.
 
     Args:
-        redis_url: Redis connection URL
+        redis_url: Redis connection URL (optional override)
+        max_entries: Maximum cache entries (optional override)
+        ttl_seconds: Time-to-live in seconds (optional override)
+        enable_stats: Enable statistics (optional override)
 
     Returns:
         Initialized CacheManager
-
-    Example:
-        cache = await get_cache_manager()
     """
     global _cache_instance
     if _cache_instance is None:
-        _cache_instance = await CacheManager.create(redis_url=redis_url)
+        # Load defaults from config if not provided
+        cache_config = get_cache_config()
+        
+        # Resolve values: Argument -> Config -> Settings/Default
+        final_redis_url = redis_url or cache_config.get("redis_url") or settings.REDIS_URL
+        final_max_entries = max_entries if max_entries is not None else cache_config.get("max_entries", 1000)
+        final_ttl_seconds = ttl_seconds if ttl_seconds is not None else cache_config.get("ttl_seconds", 86400)
+        final_enable_stats = enable_stats if enable_stats is not None else cache_config.get("enable_stats", True)
+
+        _cache_instance = await CacheManager.create(
+            redis_url=final_redis_url,
+            max_entries=final_max_entries,
+            ttl_seconds=final_ttl_seconds,
+            enable_stats=final_enable_stats
+        )
     return _cache_instance
