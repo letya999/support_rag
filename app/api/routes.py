@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, HTTPException, Depends
+from fastapi import APIRouter, Query, HTTPException, Depends, UploadFile, File
 from urllib.parse import unquote
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
@@ -412,3 +412,230 @@ async def confirm_upload(request: dict):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error ingesting documents: {str(e)}")
+
+
+# =============================================================================
+# Metadata Generation Endpoints
+# =============================================================================
+
+@router.post("/documents/metadata-generation/analyze", response_model=dict)
+@observe()
+async def analyze_qa_metadata(file: UploadFile = None):
+    """
+    Analyze Q&A JSON file and generate metadata (categories, intents, handoff).
+
+    Uses hybrid approach:
+    1. Fast embedding-based classification (no training)
+    2. LLM validation for low-confidence predictions
+    3. Rule-based handoff detection
+
+    Returns analysis with results ready for user review.
+    """
+    import json
+    import uuid
+    from app.services.metadata_generation import HybridMetadataAnalyzer
+    from app.cache.cache_layer import get_cache_manager
+
+    if not file:
+        raise HTTPException(status_code=400, detail="No file provided")
+
+    try:
+        # Read and validate JSON
+        content = await file.read()
+        qa_pairs = json.loads(content.decode("utf-8"))
+
+        if not isinstance(qa_pairs, list):
+            raise ValueError("JSON must be an array of Q&A pairs")
+
+        if len(qa_pairs) == 0:
+            raise ValueError("Q&A pairs array is empty")
+
+        if len(qa_pairs) > 10000:
+            raise ValueError("Too many Q&A pairs (max 10,000)")
+
+        # Validate structure
+        for idx, pair in enumerate(qa_pairs):
+            if not isinstance(pair, dict):
+                raise ValueError(f"Item {idx} is not an object")
+            if "question" not in pair or "answer" not in pair:
+                raise ValueError(f"Item {idx} missing 'question' or 'answer' field")
+
+        # Generate analysis ID
+        analysis_id = str(uuid.uuid4())
+
+        # Run analysis
+        print(f"[API] Starting metadata analysis for {len(qa_pairs)} Q&A pairs (ID: {analysis_id})")
+
+        analyzer = HybridMetadataAnalyzer()
+        await analyzer.initialize()
+
+        result = await analyzer.analyze_batch(qa_pairs, analysis_id)
+
+        # Cache the result
+        cache = await get_cache_manager()
+        await cache.set(
+            f"metadata_analysis:{analysis_id}",
+            json.dumps(result.model_dump(), default=str),
+            ttl=3600  # 1 hour
+        )
+
+        print(f"[API] Analysis complete. Embedding: {result.statistics['embedding_percentage']:.1f}%, LLM: {result.statistics['llm_percentage']:.1f}%")
+
+        return {
+            "status": "success",
+            "analysis_id": analysis_id,
+            "total_items": result.total_pairs,
+            "high_confidence": result.high_confidence_count,
+            "low_confidence": result.low_confidence_count,
+            "llm_validated": result.llm_validated_count,
+            "statistics": result.statistics,
+            "qa_pairs": [
+                {
+                    "qa_index": qa.qa_index,
+                    "question": qa.question,
+                    "answer": qa.answer[:200] + "..." if len(qa.answer) > 200 else qa.answer,
+                    "metadata": qa.metadata.model_dump()
+                }
+                for qa in result.qa_with_metadata
+            ]
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error analyzing metadata: {str(e)}")
+
+
+@router.post("/documents/metadata-generation/review", response_model=dict)
+@observe()
+async def review_qa_metadata(request: dict):
+    """
+    Review and apply user corrections to generated metadata.
+
+    Accepts corrections like:
+    - Category reassignments
+    - Intent corrections
+    - Handoff flag changes
+
+    Returns validation status.
+    """
+    import json
+    from app.cache.cache_layer import get_cache_manager
+
+    analysis_id = request.get("analysis_id")
+    corrections = request.get("corrections", [])
+
+    if not analysis_id:
+        raise HTTPException(status_code=400, detail="analysis_id is required")
+
+    try:
+        # Load cached analysis
+        cache = await get_cache_manager()
+        cached_result = await cache.get(f"metadata_analysis:{analysis_id}")
+
+        if not cached_result:
+            raise HTTPException(status_code=404, detail="Analysis not found or expired")
+
+        result_data = json.loads(cached_result)
+
+        # Apply corrections
+        for correction in corrections:
+            qa_idx = correction.get("qa_index")
+
+            if qa_idx is None or qa_idx >= len(result_data.get("qa_pairs", [])):
+                continue
+
+            qa_item = result_data["qa_pairs"][qa_idx]
+
+            # Update metadata
+            if "category" in correction:
+                qa_item["metadata"]["category"] = correction["category"]
+
+            if "intent" in correction:
+                qa_item["metadata"]["intent"] = correction["intent"]
+
+            if "requires_handoff" in correction:
+                qa_item["metadata"]["requires_handoff"] = correction["requires_handoff"]
+
+        # Update cache
+        await cache.set(
+            f"metadata_analysis:{analysis_id}",
+            json.dumps(result_data),
+            ttl=3600
+        )
+
+        return {
+            "status": "validated",
+            "analysis_id": analysis_id,
+            "corrections_applied": len(corrections),
+            "total_items": len(result_data.get("qa_pairs", [])),
+            "ready_for_ingestion": True
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reviewing metadata: {str(e)}")
+
+
+@router.post("/documents/metadata-generation/confirm", response_model=dict)
+@observe()
+async def confirm_qa_metadata(request: dict):
+    """
+    Confirm and ingest Q&A pairs with generated metadata into database.
+
+    Saves all Q&A pairs with their metadata to PostgreSQL and updates
+    the intents registry.
+    """
+    import json
+    from app.cache.cache_layer import get_cache_manager
+    from app.services.document_loaders import ProcessedQAPair
+    from app.services.ingestion import DocumentIngestionService
+
+    analysis_id = request.get("analysis_id")
+
+    if not analysis_id:
+        raise HTTPException(status_code=400, detail="analysis_id is required")
+
+    try:
+        # Load cached analysis
+        cache = await get_cache_manager()
+        cached_result = await cache.get(f"metadata_analysis:{analysis_id}")
+
+        if not cached_result:
+            raise HTTPException(status_code=404, detail="Analysis not found or expired")
+
+        result_data = json.loads(cached_result)
+
+        # Prepare pairs for ingestion
+        pairs_to_ingest = []
+        for qa_item in result_data.get("qa_pairs", []):
+            pair = ProcessedQAPair(
+                question=qa_item["question"],
+                answer=qa_item["answer"],
+                metadata=qa_item["metadata"]
+            )
+            pairs_to_ingest.append(pair)
+
+        # Ingest to database
+        print(f"[API] Ingesting {len(pairs_to_ingest)} Q&A pairs with metadata...")
+
+        ingestion_service = DocumentIngestionService()
+        result = await ingestion_service.ingest_pairs(pairs_to_ingest)
+
+        # Clear the cache
+        await cache.delete(f"metadata_analysis:{analysis_id}")
+
+        print(f"[API] Successfully ingested {result['ingested_count']} Q&A pairs")
+
+        return {
+            "status": "success",
+            "ingested_count": result["ingested_count"],
+            "analysis_id": analysis_id,
+            "message": f"Successfully ingested {result['ingested_count']} Q&A pairs with metadata"
+        }
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error confirming metadata: {str(e)}")
