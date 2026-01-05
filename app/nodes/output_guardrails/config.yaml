@@ -27,19 +27,19 @@ config:
   data_leakage_patterns:
     # Email addresses
     - pattern: '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-    - description: "Email address in response"
+      description: "Email address in response"
     
     # Phone numbers (Russian format)
     - pattern: '\+7\s?\(?\d{3}\)?\s?\d{3}[-\s]?\d{2}[-\s]?\d{2}'
-    - description: "Russian phone number"
+      description: "Russian phone number"
     
     # API keys / tokens
     - pattern: '(sk-|ghp_|Bearer\s+)[a-zA-Z0-9_\-\.]{20,}'
-    - description: "API key or token in response"
+      description: "API key or token in response"
     
     # Credit card numbers (simple pattern)
     - pattern: '\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'
-    - description: "Potential credit card number"
+      description: "Potential credit card number"
   
   # Keywords indicating potential hallucination
   hallucination_indicators:

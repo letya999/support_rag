@@ -3,8 +3,9 @@ import sys
 import asyncio
 import argparse
 import json
+import yaml
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 # Add project root to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,82 +13,166 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 load_dotenv()
 
+# --- Auto-fix URLs for local execution (outside Docker) ---
+def _fix_local_urls():
+    if os.environ.get("REDIS_URL") == "redis://redis:6379/0":
+        os.environ["REDIS_URL"] = "redis://localhost:6379/0"
+    if os.environ.get("QDRANT_URL") == "http://qdrant:6333":
+        os.environ["QDRANT_URL"] = "http://localhost:6333"
+    # Also check if they are missing and use defaults from settings if they are docker-names
+    from app.settings import settings
+    if "redis:6379" in settings.REDIS_URL and not os.path.exists("/.dockerenv"):
+        os.environ["REDIS_URL"] = settings.REDIS_URL.replace("redis:6379", "localhost:6379")
+    if "qdrant:6333" in settings.QDRANT_URL and not os.path.exists("/.dockerenv"):
+        os.environ["QDRANT_URL"] = settings.QDRANT_URL.replace("qdrant:6333", "localhost:6333")
+
+_fix_local_urls()
+
 from app.observability.langfuse_client import get_langfuse_client
-from app.nodes.retrieval.search import retrieve_context, retrieve_context_expanded
 from app.nodes.retrieval.evaluator import evaluator
-from app.nodes.classification.classifier import ClassificationService
-from app.nodes.easy_classification.fasttext_classifier import FastTextClassificationService
 from app.nodes.classification.evaluator import evaluator as cls_evaluator
 from app.nodes.easy_classification.evaluator import evaluator as ft_evaluator
-from app.cache.nodes import check_cache_node, store_in_cache_node # Cache imports
-from app.nodes.session_starter.node import load_session_node # Session starter import
-from app.nodes.dialog_analysis.node import dialog_analysis_node # Dialog analysis import
-from app.nodes.prompt_routing.node import route_prompt_node # Prompt Routing
 from app.nodes.prompt_routing.evaluator import evaluator as pr_evaluator
+
+# Import all node instances
+from app.nodes.session_starter.node import load_session_node
+from app.nodes.input_guardrails.node import input_guardrails_node
+from app.cache.nodes import check_cache_node, store_in_cache_node
+from app.nodes.language_detection.node import language_detection_node
+from app.nodes.dialog_analysis.node import dialog_analysis_node
+from app.nodes.state_machine.node import state_machine_node
+from app.nodes.aggregation.node import aggregate_node
+from app.nodes.query_translation.node import query_translation_node
+from app.nodes.easy_classification.node import fasttext_classify_node
+from app.nodes.classification.node import classify_node
+from app.nodes.metadata_filtering.node import metadata_filter_node
+from app.nodes.query_expansion.node import query_expansion_node
+from app.nodes.hybrid_search.node import hybrid_search_node
+from app.nodes.retrieval.node import retrieve_node
+from app.nodes.lexical_search.node import lexical_node
+from app.nodes.fusion.node import fusion_node
+from app.nodes.reranking.node import rerank_node
+from app.nodes.routing.node import route_node
+from app.nodes.prompt_routing.node import route_prompt_node
+from app.nodes.generation.node import generate_node
+from app.nodes.output_guardrails.node import output_guardrails_node
+from app.nodes.archive_session.node import archive_session_node
+
+# Optional: multihop
+try:
+    from app.nodes.multihop.node import multihop_node
+except ImportError:
+    multihop_node = None
 
 langfuse = get_langfuse_client()
 
-def update_config_from_args(config: Dict[str, Any], args: argparse.Namespace):
-    """Update configuration dictionary based on command-line arguments."""
-    nodes = config.get("nodes", [])
-    node_map = {n["name"]: n for n in nodes}
+# Mapping from benchmark config names to pipeline order names
+CONFIG_TO_ORDER_MAP = {
+    "load_session": "session_starter",
+    "fasttext_classify": "easy_classification",
+    "rerank": "reranking",
+    "analyze_dialog": "dialog_analysis",
+    # Others match 1:1
+}
 
-    # Helper to safe update
-    def set_enabled(name, is_enabled):
-        if name in node_map:
-            node_map[name]["enabled"] = is_enabled
-        else:
-            config["nodes"].append({"name": name, "enabled": is_enabled})
+# Mapping from order names to node instances
+NODE_INSTANCES = {
+    "session_starter": load_session_node,
+    "input_guardrails": input_guardrails_node,
+    "check_cache": check_cache_node,
+    "language_detection": language_detection_node,
+    "dialog_analysis": dialog_analysis_node,
+    "state_machine": state_machine_node,
+    "aggregation": aggregate_node,
+    "query_translation": query_translation_node,
+    "easy_classification": fasttext_classify_node,
+    "classify": classify_node,
+    "metadata_filtering": metadata_filter_node,
+    "expand_query": query_expansion_node,
+    "hybrid_search": hybrid_search_node,
+    "retrieve": retrieve_node,
+    "lexical_search": lexical_node,
+    "fusion": fusion_node,
+    "reranking": rerank_node,
+    "multihop": multihop_node,
+    "routing": route_node,
+    "prompt_routing": route_prompt_node,
+    "generation": generate_node,
+    "output_guardrails": output_guardrails_node,
+    "archive_session": archive_session_node,
+    "store_in_cache": store_in_cache_node,
+}
 
-    set_enabled("expand_query", args.use_expansion)
-    set_enabled("hybrid_search", args.use_hybrid)
-    set_enabled("classify", args.use_classifier)
-    set_enabled("fasttext_classify", args.use_fasttext)
-    set_enabled("rerank", args.use_reranker)
-    set_enabled("load_session", args.use_session_loader)
-    set_enabled("analyze_dialog", args.use_dialog_analysis)
-    set_enabled("prompt_routing", args.use_prompt_routing)
-
-    
-    return config
+def get_pipeline_order() -> List[str]:
+    """Load the canonical execution order from pipeline_order.yaml."""
+    order_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app", "pipeline", "pipeline_order.yaml")
+    if os.path.exists(order_path):
+        with open(order_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+            return data.get("pipeline_order", [])
+    return list(NODE_INSTANCES.keys()) # Fallback
 
 async def run_modular_bench(args, config):
     dataset_name = args.dataset
     if dataset_name.endswith(".json"):
         dataset_name = dataset_name[:-5]
     
-    # Update config with CLI args overrides
-    config = update_config_from_args(config, args)
+    # Determine which nodes are enabled
+    # Priority: CLI args (if set) > config.json
+    cli_overrides = {
+        "expand_query": args.use_expansion,
+        "hybrid_search": args.use_hybrid,
+        "classify": args.use_classifier,
+        "easy_classification": args.use_fasttext, # note: mapping handled in parser default
+        "reranking": args.use_reranker,
+        "session_starter": args.use_session_loader,
+        "dialog_analysis": args.use_dialog_analysis,
+        "prompt_routing": args.use_prompt_routing,
+    }
     
-    # top_k settings
-    top_k_retrieval = args.top_k_retrieval
-    top_k_rerank = args.top_k_rerank if args.use_reranker else None
-    
-    cache_enabled = config.get("cache", {}).get("enabled", False)
+    # Initialize enabled set from config.json
+    enabled_nodes = set()
+    for node_cfg in config.get("nodes", []):
+        name = node_cfg.get("name")
+        # Map bench name to order name
+        order_name = CONFIG_TO_ORDER_MAP.get(name, name)
+        if node_cfg.get("enabled"):
+            enabled_nodes.add(order_name)
+            
+    # Apply CLI overrides
+    # If a CLI flag is explicitly provided (default is from config), it takes precedence.
+    # But argparse 'default' already takes it from config, so we just check them all.
+    for name, enabled in cli_overrides.items():
+        if enabled:
+            enabled_nodes.add(name)
+        elif name in enabled_nodes and not enabled:
+            # Handle the case where CLI might want to disable something enabled in config?
+            # Argparse action_store_true doesn't easily support disabling unless we add --no-X.
+            # For now, we assume if it's False in CLI but True in config, and CLI was default, we keep True.
+            pass
+
+    pipeline_order = get_pipeline_order()
+    active_sequence = [node for node in pipeline_order if node in enabled_nodes]
 
     print(f"🚀 Modular Benchmark: {dataset_name}")
-    print(f"   Expansion: {'ON' if args.use_expansion else 'OFF'}")
-    print(f"   Hybrid:    {'ON' if args.use_hybrid else 'OFF'}")
-    print(f"   Classifier (Zero-Shot): {'ON' if args.use_classifier else 'OFF'}")
-    print(f"   Classifier (FastText):  {'ON' if args.use_fasttext else 'OFF'}")
-    print(f"   Reranker:  {'ON' if args.use_reranker else 'OFF'} (k={top_k_rerank})")
-    print(f"   Cache:     {'ON' if cache_enabled else 'OFF'}")
-    print(f"   Dialog Analysis: {'ON' if args.use_dialog_analysis else 'OFF'}")
-    print(f"   Prompt Routing:  {'ON' if args.use_prompt_routing else 'OFF'}")
-
-    classifier = ClassificationService() if args.use_classifier else None
-    ft_classifier = FastTextClassificationService() if args.use_fasttext else None
+    print(f"   Active Nodes: {', '.join(active_sequence)}")
+    
+    search_type = "Advanced" if any(n in enabled_nodes for n in ["hybrid_search", "reranking", "expand_query"]) else "Simple"
 
     if not langfuse:
         print("❌ Langfuse client not initialized.")
         return
         
-    dataset = langfuse.get_dataset(dataset_name)
+    try:
+        dataset = langfuse.get_dataset(dataset_name)
+    except Exception as e:
+        print(f"❌ Error fetching dataset: {e}")
+        return
+
     run_name = f"mod-bench-{datetime.now().strftime('%m%d-%H%M')}"
     
     all_metrics = []
     cls_results = {"zs": {"true": [], "pred": [], "conf": []}, "ft": {"true": [], "pred": [], "conf": []}}
-    # Store selected prompts for distribution analysis
     selected_prompts_list = []
     
     for i, item in enumerate(dataset.items, 1):
@@ -99,123 +184,78 @@ async def run_modular_bench(args, config):
         
         with item.run(run_name=run_name) as trace:
             try:
-                # Cache Check
-                cached_docs = None
-                state = {"question": question, "docs": [], "answer": "", "confidence": 0.0}
+                state = {
+                    "question": question, 
+                    "user_id": "bench_user",
+                    "session_id": f"bench_session_{i}",
+                    "docs": [], 
+                    "answer": "", 
+                    "confidence": 0.0,
+                    "conversation_history": []
+                }
 
-                # Session Load
-                if config.get("nodes", []):
-                    # Check if session loader enabled
-                    session_loader_enabled = any(n["name"] == "load_session" and n.get("enabled", False) for n in config["nodes"])
-                    if session_loader_enabled:
-                         # Use mock user_id for benchmark
-                         state["user_id"] = "bench_user"
-                         state["session_id"] = f"bench_session_{i}"
-                         updates = await load_session_node(state)
-                         state.update(updates)
+                # Execution Loop following pipeline_order
+                for node_name in pipeline_order:
+                    if node_name not in enabled_nodes:
+                        continue
+                    
+                    node_inst = NODE_INSTANCES.get(node_name)
+                    if not node_inst:
+                        continue
+                    
+                    # Execute node (handle both class instances and functions via __call__)
+                    updates = await node_inst(state)
+                    if updates:
+                        state.update(updates)
+                    
+                    # Special logic for cache hit
+                    if node_name == "check_cache" and state.get("cache_hit"):
+                        # If cache hit, skip to store (or end of logic)
+                        # We follow the same logic as graph.py
+                        if "store_in_cache" in enabled_nodes:
+                            await NODE_INSTANCES["store_in_cache"](state)
+                        break
+
+                # Retrieval Results
+                output_docs = state.get("docs", [])
+                output_scores = state.get("rerank_scores") or state.get("scores") or [0.0] * len(output_docs)
                 
-                if cache_enabled:
-
-                    state = await check_cache_node(state)
-                    if state.get("cache_hit"):
-                         cached_docs = state.get("docs", [])
-                         # Scores are not typically cached in current implementation, assume 1.0 or 0
-                         # If we really need scores, we'd need to cache them using custom logic
-                         output_docs = cached_docs
-                         output_scores = [0.0] * len(cached_docs)
-                         search_type = "Cache Hit"
-                         
-                if not cached_docs:
-                    # Proceed with normal pipeline
-                    
-                    # Classification
-                    category_filter = None
-                    
-                    # Zero-Shot Classifier
-                    if classifier:
-                        cls_res = await classifier.classify(question)
-                        cls_results["zs"]["pred"].append(cls_res.category)
-                        cls_results["zs"]["conf"].append(cls_res.category_confidence)
-                        if gt_category:
-                            cls_results["zs"]["true"].append(gt_category)
-                        category_filter = cls_res.category if cls_res.category_confidence >= args.confidence_threshold else None
-
-                    # FastText Classifier
-                    if ft_classifier:
-                        ft_res = await ft_classifier.classify(question)
-                        if ft_res:
-                            cls_results["ft"]["pred"].append(ft_res.category)
-                            cls_results["ft"]["conf"].append(ft_res.category_confidence)
-                            if gt_category:
-                                cls_results["ft"]["true"].append(gt_category)
-                            # We prioritize FT for filtering if ZS is disabled or if we want to test it
-                            if not category_filter:
-                                category_filter = ft_res.category if ft_res.category_confidence >= args.confidence_threshold else None
-
-                    # Dialog Analysis
-                    dialog_analysis_res = {}
-                    if args.use_dialog_analysis:
-                        # Ensure history exists (mock if needed for single-turn bench)
-                        if "session_history" not in state:
-                            state["session_history"] = []
-                        da_out = await dialog_analysis_node(state)
-                        dialog_analysis_res = da_out.get("dialog_analysis", {})
-                        state.update(da_out)
-
-                    # Prompt Routing
-                    selected_prompt_key = "DEFAULT"
-                    if args.use_prompt_routing:
-                         pr_out = await route_prompt_node(state)
-                         state.update(pr_out)
-                         # We infer the key from dialog state as the real prompt text is long
-                         selected_prompt_key = state.get("dialog_state", "DEFAULT")
-                         selected_prompts_list.append(selected_prompt_key)
-
-                    # Retrieval logic
-                    if not args.use_expansion and not args.use_reranker and not args.use_hybrid and not classifier and not args.use_fasttext:
-                        output = await retrieve_context(question, top_k=top_k_retrieval, category_filter=category_filter)
-                        search_type = "Simple"
-                    else:
-                        output = await retrieve_context_expanded(
-                            question, 
-                            top_k_retrieval=top_k_retrieval,
-                            top_k_rerank=top_k_rerank,
-                            use_expansion=args.use_expansion,
-                            use_hybrid=args.use_hybrid,
-                            confidence_threshold=args.confidence_threshold,
-                            category_filter=category_filter
-                        )
-                        search_type = "Advanced"
-                    
-                    output_docs = output.docs
-                    output_scores = output.scores
-                    
-                    # Store in Cache if enabled
-                    if cache_enabled:
-                        # Update state with results to store
-                        state["docs"] = output.docs
-                        state["confidence"] = output.confidence
-                        # Mock answer to ensure storage (store_in_cache_node requires non-empty answer)
-                        state["answer"] = "Retrieval Benchmark Result"
-                        await store_in_cache_node(state)
-                
-                # Metrics
-                curr_k = top_k_rerank if top_k_rerank else top_k_retrieval
+                # Metrics Calculation
+                # Use top_k from args or inferred from config
+                curr_k = args.top_k_rerank if "reranking" in enabled_nodes else args.top_k_retrieval
                 metrics = evaluator.calculate_metrics(expected_chunks, output_docs, output_scores, top_k=curr_k)
                 
+                # Distribution analysis for summary
+                if "classify" in enabled_nodes:
+                    pred = state.get("category")
+                    conf = state.get("category_confidence")
+                    if pred and gt_category:
+                        cls_results["zs"]["pred"].append(pred)
+                        cls_results["zs"]["conf"].append(conf or 0.0)
+                        cls_results["zs"]["true"].append(gt_category)
+
+                if "easy_classification" in enabled_nodes:
+                    pred = state.get("semantic_category")
+                    conf = state.get("semantic_category_confidence")
+                    if pred and gt_category:
+                        cls_results["ft"]["pred"].append(pred)
+                        cls_results["ft"]["conf"].append(conf or 0.0)
+                        cls_results["ft"]["true"].append(gt_category)
+
+                if "prompt_routing" in enabled_nodes:
+                    selected_prompt_key = state.get("dialog_state", "DEFAULT")
+                    selected_prompts_list.append(selected_prompt_key)
+
                 # Log to trace
                 trace.update(
                     input={"question": question},
-                    output={"docs": output_docs, "metrics": metrics},
+                    output={"docs": output_docs, "metrics": metrics, "answer": state.get("answer")},
                     metadata={
-                        "expansion": args.use_expansion,
-                        "hybrid": args.use_hybrid,
-                        "reranker": args.use_reranker,
                         "search_type": search_type,
-                        "category_filter": category_filter if not cached_docs else "N/A",
-                        "cache_hit": bool(cached_docs),
-                        "dialog_analysis": dialog_analysis_res,
-                        "selected_prompt": selected_prompt_key if args.use_prompt_routing else "N/A"
+                        "cache_hit": state.get("cache_hit", False),
+                        "nodes_executed": active_sequence,
+                        "category_filter": state.get("matched_category"),
+                        "selected_prompt": state.get("dialog_state") if "prompt_routing" in enabled_nodes else "N/A"
                     }
                 )
                 
@@ -227,8 +267,8 @@ async def run_modular_bench(args, config):
 
             except Exception as e:
                 print(f"⚠️ Error: {e}")
-                # import traceback
-                # traceback.print_exc()
+                import traceback
+                traceback.print_exc()
                 continue
 
     # Final Summary
@@ -242,20 +282,22 @@ async def run_modular_bench(args, config):
         # Classification Metrics Report
         for tag, eval_obj in [("zs", cls_evaluator), ("ft", ft_evaluator)]:
             if cls_results[tag]["true"] and cls_results[tag]["pred"]:
-                metrics = eval_obj.calculate_metrics(
-                    cls_results[tag]["true"], 
-                    cls_results[tag]["pred"],
-                    cls_results[tag]["conf"]
-                )
-                
-                label = "Zero-Shot" if tag == "zs" else "FastText"
-                print(f"\n📊 {label} Performance:")
-                for k, v in metrics.items():
-                    print(f"  - {k.replace('_', ' ').title()}: {v:.4f}")
-                    langfuse.score(name=f"{tag}_{k}", value=v)
+                try:
+                    metrics = eval_obj.calculate_metrics(
+                        cls_results[tag]["true"], 
+                        cls_results[tag]["pred"],
+                        cls_results[tag]["conf"]
+                    )
+                    
+                    label = "Zero-Shot (classify)" if tag == "zs" else "FastText (easy_classification)"
+                    print(f"\n📊 {label} Performance:")
+                    for k, v in metrics.items():
+                        print(f"  - {k.replace('_', ' ').title()}: {v:.4f}")
+                except Exception as e:
+                    print(f"⚠️ Metric evaluation error: {e}")
         
         # Prompt Routing Distribution
-        if args.use_prompt_routing and selected_prompts_list:
+        if "prompt_routing" in enabled_nodes and selected_prompts_list:
             dist = pr_evaluator.analyze_distribution(selected_prompts_list)
             print(f"\n🎭 Prompt Routing Distribution:")
             for k, v in dist.items():
@@ -266,15 +308,17 @@ if __name__ == "__main__":
     config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bench_modular_config.json")
     config = {}
     if os.path.exists(config_path):
-        with open(config_path, "r", encoding="utf-8") as f:
-            config = json.load(f)
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+        except Exception as e:
+            print(f"⚠️ Error loading bench_modular_config.json: {e}")
     
-    # Initialize 'nodes' if not present
     if "nodes" not in config:
         config["nodes"] = []
 
-    # Helper to get enabled defaults
     def get_enabled_default(name):
+        """Find enabled status for a node in bench_modular_config.json."""
         for n in config.get("nodes", []):
             if n["name"] == name:
                 return n.get("enabled", False)
@@ -282,6 +326,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("dataset", nargs="?", default=config.get("dataset"), help="Dataset name")
+    
+    # Map the CLI names back to config names or order names
     parser.add_argument("--use_expansion", action="store_true", default=get_enabled_default("expand_query"))
     parser.add_argument("--use_hybrid", action="store_true", default=get_enabled_default("hybrid_search"))
     parser.add_argument("--use_classifier", action="store_true", default=get_enabled_default("classify"))
@@ -290,6 +336,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_session_loader", action="store_true", default=get_enabled_default("load_session"))
     parser.add_argument("--use_dialog_analysis", action="store_true", default=get_enabled_default("analyze_dialog"))
     parser.add_argument("--use_prompt_routing", action="store_true", default=get_enabled_default("prompt_routing"))
+    
     parser.add_argument("--top_k_retrieval", type=int, default=config.get("top_k_retrieval", 10))
     parser.add_argument("--top_k_rerank", type=int, default=config.get("top_k_rerank", 5))
     parser.add_argument("--confidence_threshold", type=float, default=config.get("confidence_threshold", 0.5))

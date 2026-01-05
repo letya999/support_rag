@@ -28,6 +28,8 @@ from app.nodes.fusion.node import fusion_node
 from app.nodes.archive_session.node import archive_session_node
 from app.nodes.language_detection.node import language_detection_node
 from app.nodes.query_translation.node import query_translation_node
+from app.nodes.input_guardrails.node import input_guardrails_node
+from app.nodes.output_guardrails.node import output_guardrails_node
 from app.pipeline.config_proxy import conversation_config
 from app.services.config_loader.loader import load_pipeline_config, get_node_enabled, get_cache_config
 
@@ -67,6 +69,8 @@ NODE_FUNCTIONS = {
     "archive_session": archive_session_node,
     "language_detection": language_detection_node,
     "query_translation": query_translation_node,    # Folder: query_translation/
+    "input_guardrails": input_guardrails_node,
+    "output_guardrails": output_guardrails_node,
 }
 
 # Add multihop node if available

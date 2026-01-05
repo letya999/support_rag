@@ -2,32 +2,100 @@
     "dataset": "ground_truth_dataset",
     "nodes": [
         {
-            "name": "expand_query",
-            "enabled": false
-        },
-        {
-            "name": "load_session",
+            "name": "session_starter",
             "enabled": true
         },
         {
-            "name": "hybrid_search",
+            "name": "input_guardrails",
+            "enabled": false
+        },
+        {
+            "name": "check_cache",
             "enabled": true
         },
         {
-            "name": "rerank",
-            "enabled": false
+            "name": "language_detection",
+            "enabled": true
+        },
+        {
+            "name": "dialog_analysis",
+            "enabled": true
+        },
+        {
+            "name": "state_machine",
+            "enabled": true
+        },
+        {
+            "name": "aggregation",
+            "enabled": true
+        },
+        {
+            "name": "query_translation",
+            "enabled": true
+        },
+        {
+            "name": "easy_classification",
+            "enabled": true
         },
         {
             "name": "classify",
             "enabled": false
         },
         {
-            "name": "fasttext_classify",
+            "name": "metadata_filtering",
             "enabled": true
         },
         {
-            "name": "prompt_routing",
+            "name": "expand_query",
+            "enabled": false
+        },
+        {
+            "name": "hybrid_search",
             "enabled": true
+        },
+        {
+            "name": "retrieve",
+            "enabled": false
+        },
+        {
+            "name": "lexical_search",
+            "enabled": false
+        },
+        {
+            "name": "fusion",
+            "enabled": false
+        },
+        {
+            "name": "reranking",
+            "enabled": true
+        },
+        {
+            "name": "multihop",
+            "enabled": true
+        },
+        {
+            "name": "routing",
+            "enabled": false
+        },
+        {
+            "name": "prompt_routing",
+            "enabled": false
+        },
+        {
+            "name": "generation",
+            "enabled": false
+        },
+        {
+            "name": "output_guardrails",
+            "enabled": false
+        },
+        {
+            "name": "archive_session",
+            "enabled": false
+        },
+        {
+            "name": "store_in_cache",
+            "enabled": false
         }
     ],
     "top_k_retrieval": 10,

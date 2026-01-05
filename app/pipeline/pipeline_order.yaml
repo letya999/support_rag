@@ -4,6 +4,7 @@
 
 pipeline_order:
   - session_starter
+  - input_guardrails
   - check_cache
   - language_detection
   - dialog_analysis
@@ -23,5 +24,6 @@ pipeline_order:
   - routing
   - prompt_routing
   - generation
+  - output_guardrails
   - archive_session
   - store_in_cache

@@ -17,6 +17,8 @@
 pipeline:
 - name: session_starter
   enabled: true
+- name: input_guardrails
+  enabled: false
 - name: check_cache
   enabled: true
 - name: language_detection
@@ -55,14 +57,12 @@ pipeline:
   enabled: true
 - name: generation
   enabled: true
+- name: output_guardrails
+  enabled: false
 - name: archive_session
   enabled: true
 - name: store_in_cache
   enabled: true
-- name: input_guardrails
-  enabled: false
-- name: output_guardrails
-  enabled: false
 details:
   global:
     parameters:
@@ -270,13 +270,13 @@ details:
     config:
       data_leakage_patterns:
       - pattern: \b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b
-      - description: Email address in response
+        description: Email address in response
       - pattern: \+7\s?\(?\d{3}\)?\s?\d{3}[-\s]?\d{2}[-\s]?\d{2}
-      - description: Russian phone number
+        description: Russian phone number
       - pattern: (sk-|ghp_|Bearer\s+)[a-zA-Z0-9_\-\.]{20,}
-      - description: API key or token in response
+        description: API key or token in response
       - pattern: \b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b
-      - description: Potential credit card number
+        description: Potential credit card number
       hallucination_indicators:
       - я не уверен
       - возможно

@@ -138,6 +138,13 @@ def get_node_detail(node_name: str, section: str = "parameters") -> dict:
     return node_details.get(section) or {}
 
 
+def get_node_config(node_name: str) -> dict:
+    """
+    Get only the 'config' section for a node.
+    """
+    return get_node_detail(node_name, "config")
+
+
 def get_global_param(param_name: str, default: Any = None) -> Any:
     """Get global parameter from pipeline_config.yaml details.global."""
     pipeline_config = load_pipeline_config()
