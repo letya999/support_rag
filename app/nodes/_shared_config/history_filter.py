@@ -72,8 +72,12 @@ def filter_conversation_history(
     
     filtered = []
     for msg in history:
-        role = msg.get("role", "")
-        content = msg.get("content", "")
+        if isinstance(msg, dict):
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+        else:
+            role = getattr(msg, "type", "unknown")
+            content = getattr(msg, "content", "")
         
         # Skip assistant messages if not included
         if not include_assistant and role == "assistant":

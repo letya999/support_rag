@@ -50,10 +50,15 @@ async def llm_aggregation_node(state: State) -> Dict[str, Any]:
     relevant_history = history_objs[-max_msgs:]
     
     # Format history as "Role: Content"
-    formatted_history = [
-        f"{msg.get('role', 'unknown')}: {msg.get('content', '')}" 
-        for msg in relevant_history
-    ]
+    formatted_history = []
+    for msg in relevant_history:
+        if isinstance(msg, dict):
+            role = msg.get("role", "unknown")
+            content = msg.get("content", "")
+        else:
+            role = getattr(msg, "type", "unknown")
+            content = getattr(msg, "content", "")
+        formatted_history.append(f"{role}: {content}")
     
     aggregator = LLMAggregator()
     aggregated_query = await aggregator.aggregate(formatted_history, question)

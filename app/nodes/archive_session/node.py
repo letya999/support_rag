@@ -50,8 +50,14 @@ def _generate_summary(state: Dict[str, Any], answer: str) -> str:
     
     # Add past history
     for msg in history:
-        role = msg.get("role", "unknown").capitalize()
-        content = msg.get("content", "")
+        if isinstance(msg, dict):
+            role = msg.get("role", "unknown")
+            content = msg.get("content", "")
+        else:
+            role = getattr(msg, "type", "unknown")
+            content = getattr(msg, "content", "")
+            
+        role = role.capitalize()
         if role == "Assistant":  # Filter system messages from history if needed, though history usually has final answers
              if _is_system_message(content):
                  continue
@@ -63,7 +69,16 @@ def _generate_summary(state: Dict[str, Any], answer: str) -> str:
     
     # Check if the last message in history is the current question to avoid duplication
     current_question = state.get("question", "")
-    if not history or history[-1].get("content") != current_question:
+    
+    last_msg_content = ""
+    if history:
+        last_msg = history[-1]
+        if isinstance(last_msg, dict):
+            last_msg_content = last_msg.get("content", "")
+        else:
+            last_msg_content = getattr(last_msg, "content", "")
+            
+    if not history or last_msg_content != current_question:
         lines.append(f"User: {current_question}")
     
     # Add current answer

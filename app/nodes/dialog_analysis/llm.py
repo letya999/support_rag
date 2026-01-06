@@ -36,8 +36,14 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
     
     history_text = ""
     for msg in recent_history:
-        role = msg.get("role", "unknown")
-        content = msg.get("content", "")
+        if isinstance(msg, dict):
+            role = msg.get("role", "unknown")
+            content = msg.get("content", "")
+        else:
+            # Handle object-based messages (e.g. LangChain HumanMessage/AIMessage)
+            role = getattr(msg, "type", "unknown")
+            content = getattr(msg, "content", "")
+            
         history_text += f"{role.upper()}: {content}\n"
 
     import os

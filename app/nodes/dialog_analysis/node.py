@@ -67,8 +67,15 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
     if params.get("detect_repeated_questions", True):
         last_user_msg = None
         for msg in reversed(history):
-            if msg.get("role") == "user":
-                last_user_msg = msg.get("content", "").lower()
+            if isinstance(msg, dict):
+                role = msg.get("role")
+                content = msg.get("content", "").lower()
+            else:
+                role = getattr(msg, "type", "unknown")
+                content = getattr(msg, "content", "").lower()
+
+            if role == "user":
+                last_user_msg = content
                 break
                 
         if last_user_msg:

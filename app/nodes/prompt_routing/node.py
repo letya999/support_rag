@@ -97,7 +97,7 @@ class PromptRoutingNode(BaseNode):
                 total += len(m.content) // 4
         return total
 
-    def _prepare_history(self, history: list[dict], max_tokens: int = MAX_HISTORY_TOKENS) -> str:
+    def _prepare_history(self, history: List[Any], max_tokens: int = MAX_HISTORY_TOKENS) -> str:
         """Prepare history with trimming using langchain_core."""
         if not history:
             return ""
@@ -105,14 +105,19 @@ class PromptRoutingNode(BaseNode):
         # Convert to LangChain messages
         messages = []
         for m in history:
-            role = m.get("role")
-            content = m.get("content", "")
-            if role == "user":
-                messages.append(HumanMessage(content=content))
-            elif role == "assistant" or role == "system":
-                # Treat system messages as AI messages for history context or skip
-                # Assuming assistant for context
-                messages.append(AIMessage(content=content))
+            if isinstance(m, BaseMessage):
+                messages.append(m)
+                continue
+
+            if isinstance(m, dict):
+                role = m.get("role")
+                content = m.get("content", "")
+                if role == "user":
+                    messages.append(HumanMessage(content=content))
+                elif role == "assistant" or role == "system":
+                    # Treat system messages as AI messages for history context or skip
+                    # Assuming assistant for context
+                    messages.append(AIMessage(content=content))
         
         # Trim messages
         try:

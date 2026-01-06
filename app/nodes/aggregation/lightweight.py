@@ -53,11 +53,19 @@ def lightweight_aggregation_node(state: State) -> Dict[str, Any]:
     
     # 1. Filter User Messages
     max_msgs = conversation_config.aggregation_max_messages
-    user_msgs = [
-        msg.get("content", "") 
-        for msg in history 
-        if msg.get("role") == "user"
-    ][-max_msgs:]
+    user_msgs = []
+    for msg in history:
+        if isinstance(msg, dict):
+            role = msg.get("role")
+            content = msg.get("content", "")
+        else:
+            role = getattr(msg, "type", "unknown")
+            content = getattr(msg, "content", "")
+            
+        if role == "user":
+            user_msgs.append(content)
+            
+    user_msgs = user_msgs[-max_msgs:]
     
     # Add current question if not already in history (it might be or might not, depends on when we add it)
     # Usually history comes from DB/Session, logic assumes 'question' is the *new* input.
