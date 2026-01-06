@@ -76,6 +76,7 @@ class InputGuardrailsNode(BaseNode):
         # Initialize scanner service (Lazy load)
         self.scanner = None
         
+    @observe(name="warmup_models")
     async def warmup(self):
         """Initialize the scanner service (Load models)"""
         # Force reset singleton to pick up new config

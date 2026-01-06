@@ -68,14 +68,20 @@ class SessionStarterNode(BaseNode):
         active_session = await self._ensure_redis_session(user_id, session_id)
         
         if active_session:
-            # Restore state context
-            updates["dialog_state"] = active_session.dialog_state
+            # Restore ONLY persistent context (counters and entities)
+            # dialog_state is managed by dialog_analysis and state_machine for EACH new request
+            # to avoid carrying over stale states like SAFETY_VIOLATION from previous interactions
+            
             updates["attempt_count"] = active_session.attempt_count
             
-            # Restore other context if needed
             if active_session.extracted_entities:
                 updates["extracted_entities"] = active_session.extracted_entities
-
+            
+            # Store session metadata for debugging and context (not operational state)
+            updates["_session_metadata"] = {
+                "previous_dialog_state": active_session.dialog_state,
+                "session_created_at": getattr(active_session, "created_at", None),
+            }
 
         return updates
 
