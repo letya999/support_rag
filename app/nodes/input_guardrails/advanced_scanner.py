@@ -164,6 +164,7 @@ class AdvancedGuardrailsService:
         )
 
 
+
 # Singleton instance
 _advanced_service: Optional[AdvancedGuardrailsService] = None
 
@@ -197,3 +198,13 @@ def get_advanced_guardrails_service(
             max_tokens=max_tokens
         )
     return _advanced_service
+
+
+def reset_advanced_service():
+    """
+    Force reset the singleton instance.
+    
+    This is useful when configuration changes and we need to reload models.
+    """
+    global _advanced_service
+    _advanced_service = None

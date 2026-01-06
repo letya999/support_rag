@@ -6,7 +6,7 @@ from app.nodes.state_machine.rules_engine import get_rules_engine, RulesEngine
 from app.nodes.state_machine.states_config import (
     TRANSITION_RULES, STATE_CONFIG, 
     INITIAL, ANSWER_PROVIDED, ESCALATION_NEEDED, ESCALATION_REQUESTED,
-    SAFETY_VIOLATION, EMPATHY_MODE
+    SAFETY_VIOLATION, EMPATHY_MODE, BLOCKED
 )
 
 
@@ -42,16 +42,17 @@ class StateMachineNode(BaseNode):
         # Phase 5 inputs
         safety_violation = state.get("safety_violation", False)
         sentiment = state.get("sentiment", {})
+        guardrails_blocked = state.get("guardrails_blocked", False)
         
         # Use Rules Engine if available
         if self._rules_engine._loaded:
             return await self._execute_with_rules_engine(
-                analysis, current_state, attempt_count, escalation_decision, safety_violation, sentiment
+                analysis, current_state, attempt_count, escalation_decision, safety_violation, sentiment, guardrails_blocked
             )
         else:
             # Fallback to legacy Python-based logic
             return await self._execute_legacy(
-                analysis, current_state, attempt_count, escalation_decision, safety_violation, sentiment
+                analysis, current_state, attempt_count, escalation_decision, safety_violation, sentiment, guardrails_blocked
             )
     
     async def _execute_with_rules_engine(
@@ -61,11 +62,24 @@ class StateMachineNode(BaseNode):
         attempt_count: int,
         escalation_decision: str,
         safety_violation: bool,
-        sentiment: Dict[str, Any]
+        sentiment: Dict[str, Any],
+        guardrails_blocked: bool
     ) -> Dict[str, Any]:
         """Execute using declarative Rules Engine."""
         
-        # 0. Phase 5: Safety Check (Highest Priority)
+        # 0. Blocked Check (Highest Priority)
+        if guardrails_blocked:
+             return {
+                "dialog_state": BLOCKED,
+                "attempt_count": attempt_count,
+                 # "block" action implies we stop here or ensure routing doesn't go to generation.
+                 # We set action_recommendation to "block" which routing understands as "end here".
+                "action_recommendation": "block",
+                "escalation_reason": "guardrails_block",
+                "transition_source": "guardrails"
+            }
+
+        # 0.1. Phase 5: Safety Check (Second Highest Priority)
         if safety_violation:
             state_behavior = self._rules_engine.get_state_behavior(SAFETY_VIOLATION)
             return {
@@ -162,12 +176,21 @@ class StateMachineNode(BaseNode):
         attempt_count: int,
         escalation_decision: str,
         safety_violation: bool,
-        sentiment: Dict[str, Any]
+        sentiment: Dict[str, Any],
+        guardrails_blocked: bool
     ) -> Dict[str, Any]:
         """
         Legacy execution using Python-based rules.
         Fallback when rules.yaml is not available.
         """
+        if guardrails_blocked:
+             return {
+                "dialog_state": BLOCKED,
+                "attempt_count": attempt_count,
+                "action_recommendation": "block",
+                "escalation_reason": "guardrails_block"
+            }
+
         # 0. Safety Check
         if safety_violation:
             return {

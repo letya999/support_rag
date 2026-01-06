@@ -12,7 +12,9 @@ from app.nodes.easy_classification.semantic_classifier import SemanticClassifica
 from app.integrations.embeddings import get_embedding
 from app.integrations.embeddings import get_embedding
 from app.storage.connection import init_db_pool, close_db_pool
+from app.storage.connection import init_db_pool, close_db_pool
 from app.nodes.query_translation.translator import translator
+from app.nodes.input_guardrails.node import input_guardrails_node
 
 
 # Startup/shutdown events
@@ -63,6 +65,10 @@ async def lifespan(app: FastAPI):
             # 4. Translator
             await loop.run_in_executor(None, translator.warmup)
             print("✅ Translator Warmed Up")
+
+            # 5. Guardrails
+            await input_guardrails_node.warmup()
+            print("✅ Guardrails Warmed Up")
 
         except Exception as e:
             print(f"⚠️ Warmup failed: {e}")

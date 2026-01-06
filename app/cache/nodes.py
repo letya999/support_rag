@@ -177,11 +177,12 @@ async def check_cache_node(state: State) -> State:
         if result and result.points:
             top_match = result.points[0]
             score = top_match.score
+            payload = top_match.payload
             
             if score >= threshold:
-                payload = top_match.payload
                 state["cache_hit"] = True
                 state["answer"] = payload.get("answer")
+            
             state["confidence"] = score
             state["docs"] = payload.get("doc_ids", [])
             state["cache_reason"] = f"semantic_match ({score:.2f})"

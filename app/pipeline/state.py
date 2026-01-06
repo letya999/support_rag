@@ -29,6 +29,14 @@ class State(TypedDict):
     user_id: Annotated[Optional[str], overwrite]
     session_id: Annotated[Optional[str], overwrite]
     
+    # Input Guardrails
+    guardrails_passed: Annotated[Optional[bool], overwrite]
+    guardrails_blocked: Annotated[Optional[bool], overwrite]
+    guardrails_warning: Annotated[Optional[bool], overwrite]
+    guardrails_sanitized: Annotated[Optional[bool], overwrite]
+    guardrails_risk_score: Annotated[Optional[float], overwrite]
+    guardrails_triggered: Annotated[Optional[List[str]], overwrite]
+    
     # Lazy loaders
     user_profile: Annotated[Optional[Dict[str, Any]], overwrite]
     session_history: Annotated[Optional[List[Dict[str, Any]]], overwrite]

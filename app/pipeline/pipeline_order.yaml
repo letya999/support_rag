@@ -1,11 +1,14 @@
 # Pipeline Node Execution Order
 # This file defines the standard sequence of nodes in the RAG pipeline
 # Modify this file to change the order of nodes in the generated pipeline_config.yaml
+# 
+# SECURITY NOTE: input_guardrails MUST execute BEFORE check_cache
+# to prevent malicious content from bypassing safety via cached responses
 
 pipeline_order:
   - session_starter
-  - input_guardrails
-  - check_cache
+  - input_guardrails  # Blocks dangerous content BEFORE cache check
+  - check_cache       # Only checked for safe content
   - language_detection
   - dialog_analysis
   - aggregation

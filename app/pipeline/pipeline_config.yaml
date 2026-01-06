@@ -193,6 +193,30 @@ details:
       - violence
       - illegal_activities
       regex_patterns:
+      - pattern: (?i)(убивать|убить|убью|убьём|убей|убей\w*|зарежу|зарезать|застрелить|задушить|расстрелять)
+        description: Violence/killing threat (RU)
+      - pattern: (?i)(готов|хочу|буду|собираюсь).{0,30}(убивать|убить|бить|насиловать|мучить|пытать)
+        description: Intent to harm (RU)
+      - pattern: (?i)(ненавижу|ненависть).{0,30}(христиан|мусульман|евреев|людей|геев|женщин|мужчин|\w+цев|\w+ов)
+        description: Hate speech (RU)
+      - pattern: (?i)(kill|murder|shoot|stab|strangle|torture|rape).{0,20}(you|them|people|everyone)
+        description: Violence/killing threat (EN)
+      - pattern: (?i)(want to|going to|will|gonna).{0,20}(kill|murder|hurt|harm|attack)
+        description: Intent to harm (EN)
+      - pattern: (?i)(hate|despise|loathe).{0,30}(christians|muslims|jews|blacks|whites|gays|women|men)
+        description: Hate speech (EN)
+      - pattern: (?i)(не от|от|для|только).{0,15}(черн(ых|ым|ой|ому)|белых|азиат|мигрант|приезж)
+        description: Racial discrimination (RU)
+      - pattern: (?i)(no|not from|only for|exclude).{0,20}(black|white|asian|immigrant|foreign)
+        description: Racial discrimination (EN)
+      - pattern: (?i)(чурк|хач|нигер|ниггер|жид|негр)
+        description: Racial slur (RU)
+      - pattern: (?i)(nigger|chink|spic|kike|wetback)
+        description: Racial slur (EN)
+      - pattern: (?i)(death|die|dead).{0,20}(threat|wish|hope)
+        description: Death threat indication
+      - pattern: (?i)(бомб|взорвать|взрыв|теракт|террорист|bomb|explode|terrorism|terrorist)
+        description: Terrorism-related content
       - pattern: (?i)(show|display|print|reveal|tell me).{0,20}(system prompt|instructions|rules)
         description: System prompt extraction attempt
       - pattern: (?i)(you are now|act as|pretend to be|roleplay as).{0,30}(admin|root|developer|DAN)
@@ -202,6 +226,51 @@ details:
       - pattern: (?i)(show|get|retrieve|access).{0,30}(other user|another user|all
           users|user list)
         description: Unauthorized data access attempt
+      - pattern: (?i)(\bблять\b|\bбля\b|\bхуй\b|\bпизд|\bебать|\bсука\b|\bпидор)
+        description: Profanity detected (RU)
+      - pattern: (?i)(ты|вы|бот|оператор|менеджер|сотрудник).{0,20}(тупой|дебил|идиот|дурак|кретин|баран|козел|урод|мразь|ублюдок|придурок)
+        description: Staff insult (RU)
+      - pattern: (?i)(you|bot|operator|agent|support).{0,20}(stupid|idiot|moron|dumb|retard|useless
+          piece)
+        description: Staff insult (EN)
+      - pattern: (?i)(найду|узнаю|приду).{0,30}(тебя|адрес|где работаешь|офис)
+        description: Personal threat to staff (RU)
+      - pattern: (?i)(will find|gonna find|coming for).{0,20}(you|your address|your
+          office)
+        description: Personal threat to staff (EN)
+      - pattern: (?i)(напишу|расскажу|опубликую|выложу).{0,30}(отзыв|жалобу|в соцсет|в
+          инстаграм|в твиттер|всем расскажу)
+        description: Reputation threat (RU)
+      - pattern: (?i)(will post|gonna post|will tell|gonna tell|will review).{0,30}(everyone|social
+          media|instagram|twitter|facebook)
+        description: Reputation threat (EN)
+      - pattern: (?i)(мошенники|воры|обманщики|лохотрон|развод|кидалово|скам)
+        description: Brand defamation (RU)
+      - pattern: (?i)(scam|scammers|thieves|fraud|con artists|ripoff)
+        description: Brand defamation (EN)
+      - pattern: (?i)(ты никто|ты ничтожество|ты раб|ты слуга|знай свое место|на кого
+          ты работаешь)
+        description: Degrading language (RU)
+      - pattern: (?i)(you are nothing|you are worthless|know your place|you are just
+          a|who do you think you are)
+        description: Degrading language (EN)
+      - pattern: (?i)(даун|аутист|шизик|дебил|олигофрен|инвалид).{0,10}(бот|поддержка|компания)?
+        description: Ableist slur (RU)
+      - pattern: (?i)(из-за вас|по вашей вине|ваша ответственность).{0,30}(умру|покончу|повешусь|убью
+          себя)
+        description: Emotional manipulation/self-harm threat
+      - pattern: (?i)(я из|звоню из|представляю).{0,20}(полиции|прокуратуры|фсб|налоговой|роспотребнадзор|суда)
+        description: Authority impersonation (RU)
+      - pattern: (?i)(I am from|calling from|representing).{0,20}(police|fbi|irs|government|court|attorney)
+        description: Authority impersonation (EN)
+      - pattern: (?i)(срочно|немедленно|прямо сейчас).{0,30}(иначе|а то|или).{0,30}(подам
+          в суд|напишу жалобу|обращусь)
+        description: Urgency manipulation (RU)
+      - pattern: (?i)(если не|пока не).{0,30}(опубликую|расскажу|сообщу|напишу везде)
+        description: Blackmail attempt (RU)
+      - pattern: (?i)(unless you|if you don't).{0,30}(will post|will tell|will report|going
+          public)
+        description: Blackmail attempt (EN)
       rejection_messages:
         ru: Извините, я не могу обработать этот запрос. Пожалуйста, переформулируйте
           ваш вопрос, чтобы он соответствовал теме технической поддержки.

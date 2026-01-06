@@ -61,6 +61,14 @@ class RoutingNode(BaseNode):
         escalation_triggered = False
         escalation_message = None
         
+        if action_recommendation == "block":
+            print(f"🚫 Request blocked by guardrails/state machine")
+            return {
+                "action": "block",
+                "routing_reason": escalation_reason,
+                "answer": state.get("answer") # Pass through existing answer (rejection message)
+            }
+
         if action_recommendation == "handoff":
             escalation_triggered = True
             

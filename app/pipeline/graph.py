@@ -108,6 +108,10 @@ def should_fast_escalate(state: State):
         "fast_escalate" - пропустить поиск, сразу в state_machine
         "continue" - обычный поток через aggregation → search → state_machine
     """
+    # Guardrails blocked - pass to state_machine immediately
+    if state.get("guardrails_blocked", False):
+         return "fast_escalate"
+
     # Критическая эскалация - сразу в state_machine без поиска
     if state.get("safety_violation", False):
         print("⚡ Fast escalation: safety_violation detected")
@@ -117,9 +121,8 @@ def should_fast_escalate(state: State):
         print("⚡ Fast escalation: user requested operator")
         return "fast_escalate"
     
-    # Обычный поток
+    # Default: continue normal pipeline flow
     return "continue"
-
 
 
 # Build graph
@@ -154,29 +157,72 @@ for name in active_node_names:
 
 start_node = START
 
+# --- SECURITY: input_guardrails MUST run BEFORE cache check ---
+# This prevents malicious content from bypassing safety checks via cache hits
+
+input_guardrails_enabled = "input_guardrails" in active_node_names
+
 # 1. Load Session (Optional)
 if "session_starter" in active_node_names:
     workflow.add_edge(START, "session_starter")
-    if cache_enabled:
+    # After session: guardrails first, then cache
+    if input_guardrails_enabled:
+        workflow.add_edge("session_starter", "input_guardrails")
+        start_node = "input_guardrails"
+    elif cache_enabled:
         workflow.add_edge("session_starter", "check_cache")
         start_node = "check_cache"
     else:
         start_node = "session_starter"
+elif input_guardrails_enabled:
+    workflow.add_edge(START, "input_guardrails")
+    start_node = "input_guardrails"
 elif cache_enabled:
     workflow.add_edge(START, "check_cache")
     start_node = "check_cache"
 
 # Filter nodes that are part of the main pipeline
+# IMPORTANT: input_guardrails is now handled separately (before cache)
 pipeline_nodes = [
     n for n in active_node_names 
-    if n not in ["session_starter", "check_cache", "store_in_cache", "archive_session"]
+    if n not in ["session_starter", "check_cache", "store_in_cache", "archive_session", "input_guardrails"]
 ]
 
 if pipeline_nodes:
     first_pipeline_node = pipeline_nodes[0]
     
-    # Connect Start/Cache to Pipeline
-    if cache_enabled:
+    # Connect input_guardrails → cache (if not blocked) or state_machine (if blocked)
+    if input_guardrails_enabled:
+        if cache_enabled:
+            workflow.add_conditional_edges(
+                "input_guardrails",
+                lambda state: "blocked" if state.get("guardrails_blocked") else "continue",
+                {
+                    "blocked": "state_machine" if "state_machine" in active_node_names else first_pipeline_node,
+                    "continue": "check_cache"
+                }
+            )
+            # Cache logic remains the same
+            workflow.add_conditional_edges(
+                "check_cache",
+                cache_hit_logic,
+                {
+                    "store_in_cache": "store_in_cache",
+                    "miss": first_pipeline_node
+                }
+            )
+        else:
+            # No cache, guardrails goes to first pipeline node or state_machine if blocked
+            workflow.add_conditional_edges(
+                "input_guardrails",
+                lambda state: "blocked" if state.get("guardrails_blocked") else "continue",
+                {
+                    "blocked": "state_machine" if "state_machine" in active_node_names else first_pipeline_node,
+                    "continue": first_pipeline_node
+                }
+            )
+    elif cache_enabled:
+        # No guardrails, just cache
         workflow.add_conditional_edges(
             "check_cache",
             cache_hit_logic,
@@ -193,6 +239,9 @@ if pipeline_nodes:
         current_node = pipeline_nodes[i]
         next_node = pipeline_nodes[i+1]
 
+        # NOTE: input_guardrails is now handled BEFORE cache check (see above)
+        # so we don't need special handling here anymore
+        
         # Special logic: Early exit после dialog_analysis
         if current_node == "dialog_analysis" and "state_machine" in active_node_names:
             # Находим следующий узел после dialog_analysis (обычно aggregation или state_machine)
