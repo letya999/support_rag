@@ -91,7 +91,7 @@ details:
       max_context_length: 200
     config:
       mode: lightweight
-      llm_model: gpt-4o-mini
+      llm_model: gpt-5-nano
       lightweight:
         template: '[Контекст: {last_assistant_response}] Вопрос: {current_question}'
         fallback_template: '{current_question}'
@@ -109,6 +109,9 @@ details:
       negative_sentiment_threshold: -0.3
       detect_repeated_questions: true
       inference_timeout_ms: 3000
+      llm:
+        model: gpt-4o-mini
+        temperature: 0.0
     config:
       mode: llm
       keywords:
@@ -168,19 +171,19 @@ details:
       collection_name: documents
   input_guardrails:
     parameters:
-      protection_level: standard
-      action_mode: block
+      protection_level: basic
+      action_mode: log
       prompt_injection_threshold: 0.5
-      toxicity_threshold: 0.7
-      ban_topics_threshold: 0.6
+      toxicity_threshold: 0.95
+      ban_topics_threshold: 0.95
       max_input_tokens: 2048
       allowed_languages:
       - ru
       - en
       scanners:
         prompt_injection: true
-        toxicity: true
-        ban_topics: true
+        toxicity: false
+        ban_topics: false
         secrets: true
         language: true
         token_limit: true

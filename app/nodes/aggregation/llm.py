@@ -5,13 +5,22 @@ from app.integrations.llm import get_llm
 from app.pipeline.state import State
 from app.observability.tracing import observe
 from app.pipeline.config_proxy import conversation_config
+from app.services.config_loader.loader import get_node_config, get_node_params
 
 from app.nodes.base_node import BaseNode
 
 class LLMAggregator(BaseNode):
     def __init__(self):
         super().__init__()
-        self.llm = get_llm(temperature=0.0) # Low temperature for precision
+        
+        # Load config for model selection
+        config = get_node_config("aggregation")
+        params = get_node_params("aggregation")
+        
+        model = config.get("llm_model", "gpt-5-nano")
+        temperature = params.get("llm_temperature", 0.0)
+        
+        self.llm = get_llm(model=model, temperature=temperature)
         self.output_parser = StrOutputParser()
         
         # Load prompt using base class utility

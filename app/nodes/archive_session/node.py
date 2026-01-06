@@ -7,6 +7,8 @@ Filters system messages before saving to keep history clean.
 from typing import Dict, Any
 from app.nodes.base_node import BaseNode
 from app.nodes.persistence import PersistenceManager
+from app.cache.session_manager import SessionManager
+from app.cache.cache_layer import get_cache_manager
 from app.observability.tracing import observe
 
 
@@ -120,6 +122,25 @@ class ArchiveSessionNode(BaseNode):
                     )
             except Exception as e:
                 print(f"⚠️ Error archiving session: {e}")
+
+        # 3. Update Active Session State (Redis)
+        try:
+            cache_manager = await get_cache_manager()
+            if cache_manager.redis_client:
+                session_manager = SessionManager(cache_manager.redis_client)
+                state_updates = {
+                    "dialog_state": state.get("dialog_state", "INITIAL"),
+                    "attempt_count": state.get("attempt_count", 0),
+                    "last_answer_confidence": state.get("confidence", 0)
+                }
+                
+                # Update extracted entities if present
+                if state.get("extracted_entities"):
+                    state_updates["extracted_entities"] = state.get("extracted_entities")
+                    
+                await session_manager.update_state(session_id, state_updates)
+        except Exception as e:
+            print(f"⚠️ Error updating Redis session: {e}")
 
         return {"session_archived": True}
 

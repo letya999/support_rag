@@ -65,8 +65,18 @@ class SessionStarterNode(BaseNode):
         # updates["session_history"] = ... (REMOVED)
 
         # 3. Manage Active Session (Redis)
-        # This is for creating the session if not exists
-        await self._ensure_redis_session(user_id, session_id)
+        # Load state from active session to ensure continuity
+        active_session = await self._ensure_redis_session(user_id, session_id)
+        
+        if active_session:
+            # Restore state context
+            updates["dialog_state"] = active_session.dialog_state
+            updates["attempt_count"] = active_session.attempt_count
+            
+            # Restore other context if needed
+            if active_session.extracted_entities:
+                updates["extracted_entities"] = active_session.extracted_entities
+
 
         return updates
 
@@ -90,7 +100,7 @@ class SessionStarterNode(BaseNode):
         # Actually better to return an async lambda
         return PersistenceManager.get_recent_sessions(user_id)
 
-    async def _ensure_redis_session(self, user_id: str, session_id: str):
+    async def _ensure_redis_session(self, user_id: str, session_id: str) -> Optional[Any]:
         try:
             cache_manager = await get_cache_manager()
             if cache_manager.redis_client:
@@ -98,9 +108,12 @@ class SessionStarterNode(BaseNode):
                 current_session = await session_manager.get_session(user_id, session_id)
                 
                 if not current_session and session_id:
-                    await session_manager.create_session(user_id, session_id)
+                    current_session = await session_manager.create_session(user_id, session_id)
+                
+                return current_session
         except Exception as e:
             print(f"⚠️ Error with Redis session: {e}")
+            return None
 
 # For backward compatibility
 load_session_node = SessionStarterNode()

@@ -14,7 +14,7 @@ parameters:
 # Текстовые настройки и словари
 config:
   mode: lightweight
-  llm_model: gpt-4o-mini
+  llm_model: gpt-5-nano
   
   # Промпт для LLM загружается из llm_prompt_template.txt
   

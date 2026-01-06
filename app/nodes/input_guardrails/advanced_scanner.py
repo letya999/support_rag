@@ -51,6 +51,8 @@ class AdvancedGuardrailsService:
     Protection levels:
     - standard: lightweight models (~50ms)
     - advanced: full models (~200ms)
+    
+    Features lazy loading: models are initialized only on first use.
     """
     
     def __init__(
@@ -69,39 +71,60 @@ class AdvancedGuardrailsService:
                 "Install with: pip install llm-guard"
             )
         
+        # Store config for lazy loading
         self.protection_level = protection_level
+        self.prompt_injection_threshold = prompt_injection_threshold
+        self.toxicity_threshold = toxicity_threshold
+        self.ban_topics_threshold = ban_topics_threshold
+        self.banned_topics = banned_topics
+        self.allowed_languages = allowed_languages
+        self.max_tokens = max_tokens
+        
+        # Scanners will be initialized on first use (lazy loading)
+        self.scanners = None
+        self._initialized = False
+    
+    def _ensure_scanners_loaded(self):
+        """
+        Lazy initialization: load scanners only when first needed.
+        This prevents blocking startup with heavy model loading.
+        """
+        if self._initialized:
+            return
+            
+        print(f"🔄 Lazy-loading guardrails models (level: {self.protection_level})...")
         self.scanners = []
         
         # 1. Prompt Injection Scanner
-        use_onnx = protection_level == "advanced"
+        use_onnx = self.protection_level == "advanced"
         self.scanners.append(
             PromptInjection(
-                threshold=prompt_injection_threshold,
+                threshold=self.prompt_injection_threshold,
                 use_onnx=use_onnx
             )
         )
         
         # 2. Toxicity Scanner
-        if protection_level == "advanced":
+        if self.protection_level == "advanced":
             # Use full transformer model
             self.scanners.append(
                 Toxicity(
-                    threshold=toxicity_threshold,
+                    threshold=self.toxicity_threshold,
                     model_name="unitary/toxic-bert"
                 )
             )
         else:
             # Use lightweight model
             self.scanners.append(
-                Toxicity(threshold=toxicity_threshold)
+                Toxicity(threshold=self.toxicity_threshold)
             )
         
         # 3. Ban Topics (semantic matching)
-        if banned_topics:
+        if self.banned_topics:
             self.scanners.append(
                 BanTopics(
-                    topics=banned_topics,
-                    threshold=ban_topics_threshold
+                    topics=self.banned_topics,
+                    threshold=self.ban_topics_threshold
                 )
             )
         
@@ -109,15 +132,15 @@ class AdvancedGuardrailsService:
         self.scanners.append(Secrets())
         
         # 5. Language Validation
-        if allowed_languages:
+        if self.allowed_languages:
             self.scanners.append(
-                LLMGuardLanguage(valid_languages=allowed_languages)
+                LLMGuardLanguage(valid_languages=self.allowed_languages)
             )
         
         # 6. Token Limit
         self.scanners.append(
             TokenLimit(
-                limit=max_tokens,
+                limit=self.max_tokens,
                 encoding_name="cl100k_base"  # GPT-3.5/4 encoding
             )
         )
@@ -125,15 +148,21 @@ class AdvancedGuardrailsService:
         # 7. PII Anonymization (optional)
         # Uncomment to enable PII detection
         # self.scanners.append(Anonymize())
+        
+        self._initialized = True
+        print("✅ Guardrails models loaded")
     
     async def scan(self, text: str) -> AdvancedScanResult:
         """
-        Run all scanners on the input text.
+        Run all scanners on the input text in parallel (batch processing).
         
         Returns aggregated result with risk score and triggered scanners.
         """
-        # Run LLM Guard scanners
-        # Note: scan_prompt is synchronous, so we run it in executor
+        # Ensure scanners are loaded (lazy loading on first call)
+        self._ensure_scanners_loaded()
+        
+        # Run LLM Guard scanners in executor (they're synchronous)
+        # We batch-execute all scanners together via scan_prompt
         loop = asyncio.get_event_loop()
         sanitized_prompt, results_valid, results_score = await loop.run_in_executor(
             None,

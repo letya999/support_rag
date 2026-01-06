@@ -3,6 +3,7 @@ import json
 from app.pipeline.state import State
 from app.observability.tracing import observe
 from app.integrations.llm import get_llm
+from app.services.config_loader.loader import get_node_params
 from app.nodes.state_machine.states_config import (
     SIGNAL_GRATITUDE, SIGNAL_ESCALATION_REQ, SIGNAL_QUESTION, 
     SIGNAL_REPEATED, SIGNAL_FRUSTRATION
@@ -11,14 +12,23 @@ from app.nodes.state_machine.states_config import (
 @observe(as_type="span")
 async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
     """
-    Analyzes the dialog history using LLM with Chain of Thought for:
+    Analyzes the dialog history using LLM with optimized prompt for:
     - User intent and signals (gratitude, repeated questions).
-    - Emotion and Sentiment (Phase 5).
-    - Safety and Jailbreak (Phase 5).
-    - Escalation Decision (Phase 6).
+    - Emotion and Sentiment.
+    - Safety and Policy Violations.
+    - Escalation Decision.
+    
+    Uses configurable model and temperature from config.yaml.
     """
     history = state.get("session_history", []) or []
     current_question = state.get("question", "")
+    
+    # Load config
+    params = get_node_params("dialog_analysis")
+    llm_config = params.get("llm", {})
+    model = llm_config.get("model", "gpt-4o-mini")
+    temperature = llm_config.get("temperature", 0.0)
+    
     # Prepare messages for context (last 5 messages)
     recent_history = history[-5:] if history else []
     
@@ -47,8 +57,8 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
 
 
     try:
-        # Using standard LLM integration
-        llm = get_llm(temperature=0.0, json_mode=True)
+        # Using configured model and temperature
+        llm = get_llm(model=model, temperature=temperature, json_mode=True)
         response = await llm.ainvoke([{"role": "user", "content": prompt}])
         
         # Parse JSON
@@ -74,8 +84,7 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
                 SIGNAL_ESCALATION_REQ: escalation_req,
                 SIGNAL_QUESTION: signals.get(SIGNAL_QUESTION, True),
                 SIGNAL_REPEATED: signals.get(SIGNAL_REPEATED, False),
-                SIGNAL_FRUSTRATION: sentiment.get("label") in ["frustrated", "angry"],
-                "chain_of_thought": analysis_data.get("chain_of_thought", "")
+                SIGNAL_FRUSTRATION: sentiment.get("label") in ["frustrated", "angry"]
             },
             # Phase 5 & 6 State Extensions
             "sentiment": sentiment,

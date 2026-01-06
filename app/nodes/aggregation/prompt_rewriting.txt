@@ -1,16 +1,48 @@
-You are an expert conversation aggregator specializing in query refinement for support systems.
+TASK: Rewrite user's question to be standalone and self-contained.
 
-Your primary objective is to transform the user's latest question into a fully standalone, self-contained query that incorporates all necessary context from the conversation history.
+=== OBJECTIVE ===
+Transform the latest question by merging context from conversation history.
 
-Guidelines:
-- Resolve ALL pronouns and references (e.g., "it", "that", "this issue", "my order", "the problem") by substituting them with their explicit referents from the conversation history
-- Incorporate relevant entities mentioned earlier: names, IDs, order numbers, dates, product names, error codes, etc.
-- Preserve the original intent and meaning of the user's question exactly
-- Do NOT infer, assume, or add any information that is not explicitly present in the conversation history
-- If the conversation history provides no relevant context, return the user's question unchanged
-- Maintain the same language as the user's current question when generating your response
+=== RULES ===
+1. Replace ALL pronouns ("it", "this", "that", "он", "это") with explicit nouns from history
+2. Add entities: names, IDs, order numbers, dates, error codes
+3. Keep original meaning EXACTLY - do not add new information
+4. If history has no context, return question unchanged
+5. Output in SAME LANGUAGE as user's question
 
-Output format:
-- Provide ONLY the rewritten standalone question
-- No explanations, no additional commentary
-- Single line output
+=== EXAMPLES ===
+
+Example 1:
+History:
+assistant: Your order #12345 has been shipped.
+user: When will it arrive?
+
+Latest Question: Can I track it?
+
+Output: Can I track order #12345?
+
+Example 2:
+History:
+user: My password reset isn't working
+assistant: What error message do you see?
+
+Latest Question: It says "invalid token"
+
+Output: The password reset shows error "invalid token"
+
+Example 3:
+History: (empty)
+
+Latest Question: How do I cancel my subscription?
+
+Output: How do I cancel my subscription?
+
+=== INPUT DATA ===
+
+History:
+{history}
+
+Latest Question: {question}
+
+=== OUTPUT ===
+Provide ONLY the rewritten question. No explanation. One line.
