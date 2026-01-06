@@ -20,39 +20,36 @@ class GenerationNode(BaseNode):
         escalation_message = state.get("escalation_message")
         if escalation_message:
             return {"answer": escalation_message}
-        
-        question = state.get("aggregated_query") or state.get("question")
-        docs = state.get("docs", [])
+            
+        # Use pre-built prompts from prompt_routing
         system_prompt = state.get("system_prompt")
+        human_prompt = state.get("human_prompt")
         
-        answer = await self._generate_answer(question, docs, system_prompt)
+        if not human_prompt:
+            # Fallback: build from docs + question
+            question = state.get("aggregated_query") or state.get("question")
+            docs = state.get("docs", [])
+            docs_str = "\n\n".join(docs)
+            human_prompt = f"Context:\n{docs_str}\n\nQuestion: {question}"
         
-        return {"answer": answer}
-
-    async def _generate_answer(self, question: str, docs: List[str], system_prompt: str = None) -> str:
-        docs_str = "\n\n".join(docs)
-        llm = get_llm()
-        
+        # Build chain
         if system_prompt:
-            # Escape curly braces in system_prompt as it may contain data artifacts (like dicts) 
-            # that LangChain would otherwise try to interpolate as variables.
-            escaped_system_prompt = system_prompt.replace("{", "{{").replace("}", "}}")
+            # Escape curly braces in system_prompt as it may contain data artifacts
+            escaped = system_prompt.replace("{", "{{").replace("}", "}}")
             chain = ChatPromptTemplate.from_messages([
-                ("system", escaped_system_prompt),
-                ("human", self.dynamic_human_prompt)
-            ]) | llm
-            inputs = {"docs": docs_str, "question": question}
+                ("system", escaped),
+                ("human", "{human_prompt}")
+            ]) | get_llm()
         else:
-            chain = self.qa_prompt | llm
-            inputs = {"docs": docs_str, "question": question}
+            chain = self.qa_prompt | get_llm()
         
         langfuse_handler = get_langfuse_callback_handler()
         
         response = await chain.ainvoke(
-            inputs,
+            {"human_prompt": human_prompt},
             config={"callbacks": [langfuse_handler]}
         )
-        return response.content
+        return {"answer": response.content}
 
 # For backward compatibility
 generate_node = GenerationNode()

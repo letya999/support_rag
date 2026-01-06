@@ -30,9 +30,9 @@ class SessionStarterNode(BaseNode):
         # Note: If reducers are used (add_messages), this might need adjustment to avoid duplication
         # For now, we assume overwrite behavior or fresh state
         
-        # PLAN UPDATE: Load conversation_history ALWAYS from DB (client-agnostic)
         try:
             # 1. Load conversation_history from DB (current session)
+            # We strictly enforce DB as the single source of truth for history
             raw_history_db = await PersistenceManager.get_session_messages(
                 session_id=session_id,
                 limit=20
@@ -43,25 +43,9 @@ class SessionStarterNode(BaseNode):
                 updates["conversation_history"] = clean_history
                 print(f"✅ session_starter: Loaded {len(clean_history)} messages from DB")
             else:
-                # Fallback to request history if DB empty (e.g. first message not saved yet? actually no, starter runs before archive)
-                # Actually starter runs FIRST. So DB should be empty for new session.
-                # But for existing session, DB has history.
-                # If DB is empty, maybe use request history? 
-                # The plan says: "session_starter: LOADS conversation_history from DB... Works with ANY client... Single source of truth"
-                # If we rely ONLY on DB, and DB is empty (first msg), we return empty history. Correct.
-                
-                # However, if we want to be safe during migration/dev, we can check request too?
-                # The Plan says: "1. Load conversation_history from DB... 2. Lazy load session_history"
-                # It doesn't mention falling back to request history in the final code block, but does in metadata description.
-                # Let's stick to the code block in the plan:
-                # "raw_history = await PersistenceManager.get_session_messages..."
-                # if raw_history: ... else: updates["conversation_history"] = []
-                
-                # But wait, step 12 file says: "Try state.get... Fallback Load from messages".
-                # Step 13 "ARCHITECTURE_CORRECTED" says: "session_starter ALWAYS loads from DB... NO dependency on request payload".
-                # I will follow ARCHITECTURE_CORRECTED (Step 13) as it claims to be "CORRECTED".
+                # No history in DB means new session or empty state
                 updates["conversation_history"] = []
-                print(f"ℹ️ session_starter: No messages found in DB (new session or migration).")
+                print(f"ℹ️ session_starter: No messages found in DB (new session).")
 
         except Exception as e:
             print(f"⚠️ Failed to load conversation history from DB: {e}")

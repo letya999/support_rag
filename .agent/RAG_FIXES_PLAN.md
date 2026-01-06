@@ -198,7 +198,7 @@ async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
 
 ---
 
-### Task 3: Escalations to Database
+### Task 3: Escalations to Database ✅ DONE
 
 **File:** `app/nodes/persistence/persistence_manager.py`
 
@@ -239,7 +239,7 @@ if state.get("escalation_triggered"):
 
 ---
 
-### Task 4: Create New Database Schema
+### Task 4: Create New Database Schema ✅ DONE
 
 **File:** `scripts/migrate-005-messages-table.sql`
 
@@ -294,7 +294,7 @@ docker exec -i postgres psql -U user -d ragdb < scripts/migrate-005-messages-tab
 
 ---
 
-### Task 5: Update Archive Session Logic
+### Task 5: Update Archive Session Logic ✅ DONE
 
 **File:** `app/nodes/archive_session/node.py`
 

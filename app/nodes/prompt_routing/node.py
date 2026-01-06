@@ -228,8 +228,15 @@ class PromptRoutingNode(BaseNode):
         lang_name = lang_map.get(lang, f"the user's language ({lang})")
         system_prompt += f"\n\nIMPORTANT: You MUST respond in {lang_name} language."
 
+        # Build human prompt with docs
+        question = state.get("aggregated_query") or state.get("question")
+        docs = state.get("docs", [])
+        docs_str = "\n\n".join(docs)
+        human_prompt = f"Context:\n{docs_str}\n\nQuestion: {question}"
+
         return {
             "system_prompt": system_prompt,
+            "human_prompt": human_prompt,  # NEW
             "prompt_hint": state_behavior.get("prompt_hint", "standard")
         }
 
