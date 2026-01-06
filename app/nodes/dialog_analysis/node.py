@@ -33,6 +33,7 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
     keywords = params.get("keywords", {})
     
     history = state.get("conversation_history") or state.get("session_history", []) or []
+    print(f"🔍 dialog_analysis (regex): Got {len(history)} history messages")
     current_question = state.get("question", "").lower()
     
     # Defaults

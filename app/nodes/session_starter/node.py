@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Optional
 from app.nodes.base_node import BaseNode
-from app.nodes.persistence import PersistenceManager
+from app.storage.persistence import PersistenceManager
 from app.cache.session_manager import SessionManager
 from app.cache.cache_layer import get_cache_manager
 from app.observability.tracing import observe
@@ -29,39 +29,59 @@ class SessionStarterNode(BaseNode):
         # 0. Clean Input History (Remove system error artifacts)
         # Note: If reducers are used (add_messages), this might need adjustment to avoid duplication
         # For now, we assume overwrite behavior or fresh state
-        raw_history = state.get("conversation_history", [])
-        if raw_history:
-            clean_history = filter_conversation_history(raw_history)
-            
-            if len(clean_history) != len(raw_history):
+        
+        # PLAN UPDATE: Load conversation_history ALWAYS from DB (client-agnostic)
+        try:
+            # 1. Load conversation_history from DB (current session)
+            raw_history_db = await PersistenceManager.get_session_messages(
+                session_id=session_id,
+                limit=20
+            )
+
+            if raw_history_db:
+                clean_history = filter_conversation_history(raw_history_db)
                 updates["conversation_history"] = clean_history
-        
-        # 1. Load User Profile (Lazy or Eager based on config)
-        # In this implementation we prep the loader or load based on flag
-        # For Phase 3.2 we default to lazy via loader or direct if needed immediately?
-        # Roadmap says: Load user_profile ONLY IF NEEDED (params check)
-        
-        # Safe access to params
+                print(f"✅ session_starter: Loaded {len(clean_history)} messages from DB")
+            else:
+                # Fallback to request history if DB empty (e.g. first message not saved yet? actually no, starter runs before archive)
+                # Actually starter runs FIRST. So DB should be empty for new session.
+                # But for existing session, DB has history.
+                # If DB is empty, maybe use request history? 
+                # The plan says: "session_starter: LOADS conversation_history from DB... Works with ANY client... Single source of truth"
+                # If we rely ONLY on DB, and DB is empty (first msg), we return empty history. Correct.
+                
+                # However, if we want to be safe during migration/dev, we can check request too?
+                # The Plan says: "1. Load conversation_history from DB... 2. Lazy load session_history"
+                # It doesn't mention falling back to request history in the final code block, but does in metadata description.
+                # Let's stick to the code block in the plan:
+                # "raw_history = await PersistenceManager.get_session_messages..."
+                # if raw_history: ... else: updates["conversation_history"] = []
+                
+                # But wait, step 12 file says: "Try state.get... Fallback Load from messages".
+                # Step 13 "ARCHITECTURE_CORRECTED" says: "session_starter ALWAYS loads from DB... NO dependency on request payload".
+                # I will follow ARCHITECTURE_CORRECTED (Step 13) as it claims to be "CORRECTED".
+                updates["conversation_history"] = []
+                print(f"ℹ️ session_starter: No messages found in DB (new session or migration).")
+
+        except Exception as e:
+            print(f"⚠️ Failed to load conversation history from DB: {e}")
+            updates["conversation_history"] = []
+
+        # 2. Load User Profile (Lazy or Eager based on config)
+        # ...
         params = getattr(self, "params", {})
         load_profile = params.get("load_user_profile", True)
         
         if load_profile:
-             # If we want to support lazy loading properly, the consumer node needs to call the loader.
-             # But existing consumers expect "user_profile" data.
-             # Roadmap suggests: just load it here if flag is True. 
-             # "Загружаем user_profile только если нужен"
              try:
                 updates["user_profile"] = await self._load_user_profile(user_id)
              except Exception as e:
                 print(f"⚠️ Error loading profile: {e}")
                 updates["user_profile"] = {"error": str(e)}
 
-        # 2. Lazy Load Session History
+        # 3. Lazy Load Session History (Previous sessions)
         # We pass a callable that PromptRouting can use
         updates["_session_history_loader"] = lambda: self._load_session_history_sync(user_id, session_id)
-        
-        # We DO NOT load session_history eagerly anymore to save time
-        # updates["session_history"] = ... (REMOVED)
 
         # 3. Manage Active Session (Redis)
         # Load state from active session to ensure continuity
@@ -103,7 +123,8 @@ class SessionStarterNode(BaseNode):
         # We will store the coroutine FUNCTION.
         import asyncio
         # Actually better to return an async lambda
-        return PersistenceManager.get_recent_sessions(user_id)
+        # Actually better to return an async lambda
+        return PersistenceManager.get_user_recent_sessions(user_id)
 
     async def _ensure_redis_session(self, user_id: str, session_id: str) -> Optional[Any]:
         try:

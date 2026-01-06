@@ -22,6 +22,7 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
     """
     # Priority: conversation_history (active) > session_history (archived)
     history = state.get("conversation_history") or state.get("session_history", []) or []
+    print(f"🔍 dialog_analysis (LLM): Got {len(history)} history messages")
     current_question = state.get("question", "")
     
     # Load config

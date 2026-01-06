@@ -6,7 +6,7 @@ Filters system messages before saving to keep history clean.
 """
 from typing import Dict, Any
 from app.nodes.base_node import BaseNode
-from app.nodes.persistence import PersistenceManager
+from app.storage.persistence import PersistenceManager
 from app.cache.session_manager import SessionManager
 from app.cache.cache_layer import get_cache_manager
 from app.observability.tracing import observe
@@ -75,132 +75,95 @@ def _generate_summary(state: Dict[str, Any], answer: str) -> str:
 
 
 class ArchiveSessionNode(BaseNode):
+    def __init__(self):
+        super().__init__("archive_session")
+
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Finalize and archive session.
-        Filters system messages before saving to keep history clean.
-        """
-        params = _get_params()
-        filter_system = params.get("filter_system_messages", True)
-        save_to_postgres = params.get("save_to_postgres", True)
-        
+        """Save message and update session metadata."""
         user_id = state.get("user_id")
         session_id = state.get("session_id")
+        question = state.get("question", "")
+        answer = state.get("answer", "")
         
         if not user_id or not session_id:
             return {}
-
-        outcome = state.get("dialog_state", "active")
-        answer = state.get("answer", "")
         
-        # Filter system messages from answer if enabled
-        if filter_system:
-            answer = _filter_answer(answer)
-                # 1. Update User Profile if we have new info
         try:
-            profile_update = {
-                "last_answer_confidence": state.get("confidence", 0),
-                "last_interaction": True
-            }
+            # 1. Save user message
+            if question:
+                await PersistenceManager.save_message(
+                    session_id=session_id,
+                    user_id=user_id,
+                    role="user",
+                    content=question,
+                    metadata={
+                        "detected_language": state.get("detected_language"),
+                        "sentiment": state.get("sentiment")
+                    }
+                )
             
-            # Feature Request: Save extracted facts to memory
-            entities = state.get("extracted_entities", {})
-            if entities:
-                # We treat extracted entities as "memory facts" for now
-                profile_update.update(entities)
+            # 2. Save assistant response (filter system messages)
+            if answer and not _is_system_message(answer):
+                await PersistenceManager.save_message(
+                    session_id=session_id,
+                    user_id=user_id,
+                    role="assistant",
+                    content=answer,
+                    metadata={
+                        "confidence": state.get("confidence"),
+                        "matched_intent": state.get("matched_intent"),
+                        "docs_count": len(state.get("docs", []))
+                    }
+                )
             
-            await PersistenceManager.save_user_profile_update(user_id, profile_update)
-        except Exception as e:
-            print(f"⚠️ Error updating profile: {e}")
-
-        # 2. Archive Session
-        if save_to_postgres:
-            try:
-                metrics = {
-                    "confidence": state.get("confidence", 0),
-                    "retrieved_docs_count": len(state.get("docs", [])),
-                    "attempt_count": state.get("attempt_count", 0),
-                    "dialog_state": state.get("dialog_state", "INITIAL"),
-                    "routing_action": state.get("action", "unknown")
+            # 3. Update session metadata
+            status = "escalated" if state.get("escalation_triggered") else "active"
+            await PersistenceManager.update_session(
+                session_id=session_id,
+                user_id=user_id,
+                channel="telegram",  # TODO: get from state or config
+                status=status,
+                metadata={
+                    "last_confidence": state.get("confidence", 0),
+                    "attempt_count": state.get("attempt_count", 0)
                 }
-                
-                # Generate clean summary (filtered)
-                summary = _generate_summary(state, state.get("answer", ""))
-                
-                # We need a proper DB connection here as PersistenceManager helpers are atomic
-                # To do "SELECT then UPDATE" safely or efficiently we might need to extend PersistenceManager
-                # But for now, let's use the public helper method but currently it doesn't support merging logic inside SQL.
-                # We must implement the merge logic inside the node using raw SQL or update PersistenceManager.
-                # Let's use raw SQL here for the complex merge as previously attempted, 
-                # BUT we need to obtain a connection first.
-                
-                from app.storage.connection import get_db_connection
-                async with get_db_connection() as conn:
-                    async with conn.cursor() as cur:
-                         # Fetch existing metrics first to merge
-                        await cur.execute("SELECT metrics FROM sessions_archive WHERE session_id = %s", (session_id,))
-                        existing_row = await cur.fetchone()
-                        existing_metrics = existing_row[0] if existing_row and existing_row[0] else {}
-
-                        # Merge logic
-                        merged_metrics = {
-                            "confidence": metrics.get("confidence", 0), # Current confidence
-                            "min_confidence": min(existing_metrics.get("min_confidence", 100), metrics.get("confidence", 100)),
-                            "total_attempts": existing_metrics.get("total_attempts", 0) + 1,
-                            "retrieved_docs_count": metrics.get("retrieved_docs_count", 0),
-                            "dialog_state": metrics.get("dialog_state"),
-                            "routing_action": metrics.get("routing_action"),
-                            "interactions_count": existing_metrics.get("interactions_count", 0) + 1
-                        }
-                        
-                        # Duration placeholder (state doesn't track duration yet, pass 0 or None)
-                        duration_seconds = 0 
-                        
-                        await cur.execute(
-                            """
-                            INSERT INTO sessions_archive (session_id, user_id, outcome, summary, metrics, duration_seconds, end_time)
-                            VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                            ON CONFLICT (session_id) DO UPDATE SET
-                                outcome = EXCLUDED.outcome,
-                                summary = EXCLUDED.summary,
-                                metrics = %s,
-                                duration_seconds = EXCLUDED.duration_seconds,
-                                end_time = NOW()
-                            """,
-                            (session_id, user_id, outcome, summary, json.dumps(merged_metrics), duration_seconds, json.dumps(merged_metrics))
-                        )
-                
-                # 3. Save Searchable Summary (only if answer is meaningful)
-                if answer and not _is_system_message(answer):
-                    await PersistenceManager.save_session_summary(
-                        session_id=session_id,
-                        summary_text=summary,
-                        tags=list(state.get("extracted_entities", {}).keys())
-                    )
-            except Exception as e:
-                print(f"⚠️ Error archiving session: {e}")
-
-        # 3. Update Active Session State (Redis)
+            )
+            
+            # 4. Save escalation if triggered
+            if state.get("escalation_triggered"):
+                priority = "high" if state.get("safety_violation") else "normal"
+                await PersistenceManager.save_escalation(
+                    session_id=session_id,
+                    reason=state.get("escalation_reason", "unknown"),
+                    priority=priority
+                )
+            
+            # 5. Update user profile
+            if state.get("extracted_entities"):
+                await PersistenceManager.save_user_profile_update(
+                    user_id=user_id,
+                    memory_update=state.get("extracted_entities")
+                )
+            
+        except Exception as e:
+            print(f"⚠️ Error archiving session: {e}")
+            return {"session_archived": False, "error": str(e)}
+        
+        # 6. Update Redis session state (optional cache layer)
         try:
             cache_manager = await get_cache_manager()
             if cache_manager.redis_client:
                 session_manager = SessionManager(cache_manager.redis_client)
-                state_updates = {
-                    "dialog_state": state.get("dialog_state", "INITIAL"),
+                await session_manager.update_state(session_id, {
+                    "dialog_state": state.get("dialog_state"),
                     "attempt_count": state.get("attempt_count", 0),
-                    "last_answer_confidence": state.get("confidence", 0)
-                }
-                
-                # Update extracted entities if present
-                if state.get("extracted_entities"):
-                    state_updates["extracted_entities"] = state.get("extracted_entities")
-                    
-                await session_manager.update_state(session_id, state_updates)
+                     # Add extracted entities to Redis for continuity
+                    "extracted_entities": state.get("extracted_entities")
+                })
         except Exception as e:
-            print(f"⚠️ Error updating Redis session: {e}")
-
+            print(f"⚠️ Redis update failed (non-critical): {e}")
+        
         return {"session_archived": True}
-
-
+        
 # Singleton instance
 archive_session_node = ArchiveSessionNode()
