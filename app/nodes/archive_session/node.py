@@ -89,7 +89,20 @@ class ArchiveSessionNode(BaseNode):
             return {}
         
         try:
-            # 1. Save user message
+            # 1. Update session metadata (Ensure session exists first)
+            status = "escalated" if state.get("escalation_triggered") else "active"
+            await PersistenceManager.update_session(
+                session_id=session_id,
+                user_id=user_id,
+                channel="telegram",  # TODO: get from state or config
+                status=status,
+                metadata={
+                    "last_confidence": state.get("confidence", 0),
+                    "attempt_count": state.get("attempt_count", 0)
+                }
+            )
+
+            # 2. Save user message
             if question:
                 await PersistenceManager.save_message(
                     session_id=session_id,
@@ -102,7 +115,7 @@ class ArchiveSessionNode(BaseNode):
                     }
                 )
             
-            # 2. Save assistant response (filter system messages)
+            # 3. Save assistant response (filter system messages)
             if answer and not _is_system_message(answer):
                 await PersistenceManager.save_message(
                     session_id=session_id,
@@ -115,19 +128,6 @@ class ArchiveSessionNode(BaseNode):
                         "docs_count": len(state.get("docs", []))
                     }
                 )
-            
-            # 3. Update session metadata
-            status = "escalated" if state.get("escalation_triggered") else "active"
-            await PersistenceManager.update_session(
-                session_id=session_id,
-                user_id=user_id,
-                channel="telegram",  # TODO: get from state or config
-                status=status,
-                metadata={
-                    "last_confidence": state.get("confidence", 0),
-                    "attempt_count": state.get("attempt_count", 0)
-                }
-            )
             
             # 4. Save escalation if triggered
             if state.get("escalation_triggered"):

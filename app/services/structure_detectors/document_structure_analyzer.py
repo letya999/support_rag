@@ -108,18 +108,22 @@ class DocumentStructureAnalyzer:
         # Look for Q/A patterns in headers
         header = rows[0]
         column_mapping = DocumentStructureAnalyzer._map_qa_columns(header)
-
         if not column_mapping:
             return None
 
-        pair_count = len(rows) - 1  # Exclude header
+        has_question = "question" in column_mapping.values()
+        has_answer = "answer" in column_mapping.values()
+        
+        # Strict checking: Must have BOTH question and answer columns identified
+        if not (has_question and has_answer):
+             return None
 
         return {
             "format": "table",
-            "confidence": 0.85 if "question" in column_mapping.values() and "answer" in column_mapping.values() else 0.6,
+            "confidence": 0.95,
             "column_mapping": column_mapping,
-            "pair_count": pair_count,
-            "notes": [f"Found table with {pair_count} rows, {cols} columns"],
+            "pair_count": len(rows) - 1,
+            "notes": [f"Found explicit Q&A table with {len(rows)-1} rows"],
         }
 
     @staticmethod
@@ -134,12 +138,13 @@ class DocumentStructureAnalyzer:
         """
         text = document.raw_text
 
-        if not PatternMatcher.has_faq_style_format(text):
-            return None
-
         pairs = PatternMatcher.extract_faq_pairs(text)
 
-        if len(pairs) < 2:
+        if len(pairs) < 1:
+            # Fallback to heuristic extraction if no explicit prefixes found
+            pairs = PatternMatcher.extract_heuristic_pairs(text)
+
+        if len(pairs) < 1:
             return None
 
         return {
@@ -193,27 +198,37 @@ class DocumentStructureAnalyzer:
         """
         headings = [b for b in document.blocks if b.type == BlockType.HEADING]
 
-        if len(headings) < 2:
+        # Relaxed: Accept even 1 heading (for simple Q&A docs)
+        if len(headings) < 1:
             return None
 
-        # Check if headings contain questions
+        # Check if headings contain questions OR are just structural headings
         question_headings = 0
+        structural_headings = 0
+        
         for heading in headings:
             if isinstance(heading.content, str):
                 if PatternMatcher.has_question_indicator(heading.content):
                     question_headings += 1
+                elif heading.metadata.get("is_header"): # Explicitly detected by loader
+                    structural_headings += 1
 
-        confidence = question_headings / len(headings) if headings else 0
+        total_valid = question_headings + structural_headings
+        confidence = total_valid / len(headings) if headings else 0
 
-        if confidence < 0.3:  # Less than 30% of headings are questions
+        # Relaxed check: Accept if we have valid headings (even if not questions)
+        if confidence < 0.1:  # At least 10% valid headings
             return None
+
+        # Give higher confidence if we have explicit HEADING blocks from PDFLoader
+        base_confidence = 0.85 if structural_headings > 0 else 0.6
 
         return {
             "format": "sections",
-            "confidence": 0.6 + (confidence * 0.25),
-            "pair_count": question_headings,
+            "confidence": base_confidence + (confidence * 0.1),
+            "pair_count": total_valid,
             "notes": [
-                f"Detected section format with {question_headings}/{len(headings)} question headings"
+                f"Detected section format with {total_valid}/{len(headings)} valid headings"
             ],
         }
 
@@ -258,15 +273,15 @@ class DocumentStructureAnalyzer:
 
         for idx, col_name in enumerate(header_lower):
             if any(
-                kw in col_name for kw in ["question", "q.", "q:", "ask", "query"]
+                kw in col_name for kw in ["question", "q.", "q:", "ask", "query", "вопрос", "в:", "в."]
             ):
                 mapping[idx] = "question"
             elif any(
-                kw in col_name for kw in ["answer", "a.", "a:", "response", "reply"]
+                kw in col_name for kw in ["answer", "a.", "a:", "response", "reply", "ответ", "о:", "о."]
             ):
                 mapping[idx] = "answer"
             elif any(
-                kw in col_name for kw in ["category", "intent", "metadata", "notes"]
+                kw in col_name for kw in ["category", "intent", "metadata", "notes", "категория", "интент", "метаданные", "заметки"]
             ):
                 mapping[idx] = "metadata"
             else:

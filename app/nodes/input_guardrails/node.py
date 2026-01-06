@@ -76,7 +76,6 @@ class InputGuardrailsNode(BaseNode):
         # Initialize scanner service (Lazy load)
         self.scanner = None
         
-    @observe(name="warmup_models")
     async def warmup(self):
         """Initialize the scanner service (Load models)"""
         # Force reset singleton to pick up new config
@@ -112,6 +111,7 @@ class InputGuardrailsNode(BaseNode):
             )
         print("✅ Input Guardrails Ready")
     
+    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Scan user input for security threats.

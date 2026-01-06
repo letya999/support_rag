@@ -5,7 +5,11 @@ from .csv_loader import CSVLoader
 from .docx_loader import DOCXLoader
 from .loader_factory import LoaderFactory
 from .md_loader import MarkdownLoader
-from .models import Block, BlockType, DocumentContent, DocumentFormat, ProcessedQAPair, RawQAPair
+from .models import (
+    Block, BlockType, DocumentContent, DocumentFormat, 
+    ProcessedQAPair, RawQAPair, BatchResult, FileError,
+    DocumentStructure, ValidationResult
+)
 from .pdf_loader import PDFLoader
 
 __all__ = [
@@ -21,4 +25,8 @@ __all__ = [
     "DocumentFormat",
     "RawQAPair",
     "ProcessedQAPair",
+    "BatchResult",
+    "FileError",
+    "DocumentStructure",
+    "ValidationResult",
 ]

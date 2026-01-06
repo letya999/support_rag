@@ -37,8 +37,13 @@ class FAQExtractor(BaseQAExtractor):
 
         full_text = "\n".join(text_parts)
 
-        # Extract FAQ pairs
+        # 1. Try standard FAQ patterns (Q: ... A: ...)
         qa_pairs = self._extract_faq_pairs(full_text)
+        
+        # 2. Fallback to heuristic (Question? -> Text)
+        if not qa_pairs:
+            from app.services.structure_detectors import PatternMatcher
+            qa_pairs = PatternMatcher.extract_heuristic_pairs(full_text)
 
         for question, answer in qa_pairs:
             question_clean = self._clean_text(question)

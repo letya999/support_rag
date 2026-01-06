@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import asyncio
 import psycopg
 from qdrant_client import AsyncQdrantClient
-from app.config.settings import settings
+from app.settings import settings
 
 async def reset_db():
     print("Resetting Databases...")

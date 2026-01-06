@@ -7,7 +7,7 @@ from typing import List
 import psycopg
 from qdrant_client.http import models
 
-from app.config.settings import settings
+from app.settings import settings
 from app.integrations.embeddings_opensource import get_embeddings_batch
 from app.services.document_loaders import ProcessedQAPair
 from app.storage.qdrant_client import get_async_qdrant_client

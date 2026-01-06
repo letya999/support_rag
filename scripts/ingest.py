@@ -10,7 +10,7 @@ import asyncio
 import psycopg
 from qdrant_client.http import models
 from app.integrations.embeddings_opensource import get_embeddings_batch
-from app.config.settings import settings
+from app.settings import settings
 from app.storage.qdrant_client import get_async_qdrant_client
 
 def load_data(file_path):

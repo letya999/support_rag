@@ -46,9 +46,10 @@ class SectionQAExtractor(BaseQAExtractor):
             if not isinstance(heading_text, str):
                 continue
 
-            # Check if heading looks like a question
-            if not PatternMatcher.has_question_indicator(heading_text):
-                logger.debug(f"Heading doesn't look like question: {heading_text[:50]}")
+            # Trust the structural indicator (HEADING block) more than the text content.
+            # Even if it doesn't look like a question (e.g. "Profile Moderation"), it's likely a topic header.
+            if len(heading_text) > 300:
+                logger.debug(f"Heading too long, skipping: {heading_text[:50]}")
                 continue
 
             # Collect text blocks following this heading

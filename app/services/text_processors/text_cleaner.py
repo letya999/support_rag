@@ -106,7 +106,12 @@ class TextCleaner:
         """
         # Remove HTML tags
         text = re.sub(r"<[^>]+>", "", text)
-
+        # Remove multiple spaces
+        text = re.sub(r"\s+", " ", text).strip()
+        
+        # Fix spaces before punctuation (common in PDF extraction)
+        text = re.sub(r"\s+([,.!?;:])", r"\1", text)
+        
         return text
 
     @staticmethod
