@@ -111,7 +111,6 @@ class InputGuardrailsNode(BaseNode):
             )
         print("✅ Input Guardrails Ready")
     
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Scan user input for security threats.

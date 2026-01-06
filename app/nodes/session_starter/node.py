@@ -14,7 +14,6 @@ class SessionStarterNode(BaseNode):
         params = get_node_params("session_starter")
         self.params = params if params is not None else {}
 
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Session loading logic with lazy loading optimizations.

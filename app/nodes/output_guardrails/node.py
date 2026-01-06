@@ -58,7 +58,6 @@ class OutputGuardrailsNode(BaseNode):
             hallucination_threshold=self.hallucination_threshold
         )
     
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Validate LLM response before sending to user.

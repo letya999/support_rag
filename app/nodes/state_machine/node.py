@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 from app.nodes.base_node import BaseNode
 from app.observability.tracing import observe
 from app.services.config_loader.loader import get_node_params
@@ -23,7 +23,6 @@ class StateMachineNode(BaseNode):
     def __init__(self):
         self._rules_engine: RulesEngine = get_rules_engine()
     
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Main State Machine logic.
@@ -43,29 +42,30 @@ class StateMachineNode(BaseNode):
         safety_violation = state.get("safety_violation", False)
         sentiment = state.get("sentiment", {})
         guardrails_blocked = state.get("guardrails_blocked", False)
+        docs = state.get("docs", [])
         
         # Use Rules Engine if available
         if self._rules_engine._loaded:
-            return await self._execute_with_rules_engine(
-                analysis, current_state, attempt_count, escalation_decision, safety_violation, sentiment, guardrails_blocked
-            )
+            return await self._execute_with_rules_engine(state)
         else:
             # Fallback to legacy Python-based logic
-            return await self._execute_legacy(
-                analysis, current_state, attempt_count, escalation_decision, safety_violation, sentiment, guardrails_blocked
-            )
+            return await self._execute_legacy(state)
     
     async def _execute_with_rules_engine(
         self,
-        analysis: Dict[str, Any],
-        current_state: str,
-        attempt_count: int,
-        escalation_decision: str,
-        safety_violation: bool,
-        sentiment: Dict[str, Any],
-        guardrails_blocked: bool
+        state: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute using declarative Rules Engine."""
+        
+        # Extract inputs from state
+        analysis = state.get("dialog_analysis", {})
+        current_state = state.get("dialog_state") or INITIAL
+        attempt_count = state.get("attempt_count") or 0
+        escalation_decision = state.get("escalation_decision", "auto_reply")
+        safety_violation = state.get("safety_violation", False)
+        sentiment = state.get("sentiment", {})
+        guardrails_blocked = state.get("guardrails_blocked", False)
+        docs = state.get("docs", [])
         
         # 0. Blocked Check (Highest Priority)
         if guardrails_blocked:
@@ -113,9 +113,38 @@ class StateMachineNode(BaseNode):
             }
         
         # Add confidence check to analysis signals
-        confidence = analysis.get("confidence", 1.0)
-        threshold = analysis.get("confidence_threshold", 0.3)
+        # Note: confidence is in state, not in analysis
+        confidence = state.get("confidence", 1.0)
+        threshold_raw = state.get("confidence_threshold", 0.3)
+        
+        # Handle "Infinity" string or other non-numeric values
+        try:
+            if isinstance(threshold_raw, str):
+                threshold = float(threshold_raw) if threshold_raw != "Infinity" else float('inf')
+            else:
+                threshold = float(threshold_raw)
+        except (ValueError, TypeError):
+            threshold = 0.3  # Default fallback
+            
         analysis["confidence_below_threshold"] = confidence < threshold
+
+        # Check for requires_handoff in docs metadata
+        # Note: docs is a list of strings (content only), so we need to check vector_results or best_doc_metadata
+        vector_results = state.get("vector_results", [])
+        best_doc_metadata = state.get("best_doc_metadata", {})
+        
+        if vector_results:
+            # Check all documents if vector_results is available
+            analysis["requires_handoff"] = any(
+                getattr(result, 'metadata', {}).get("requires_handoff", False) 
+                for result in vector_results
+            )
+        elif best_doc_metadata:
+            # Fall back to checking only the best document
+            analysis["requires_handoff"] = best_doc_metadata.get("requires_handoff", False)
+        else:
+            # No metadata available
+            analysis["requires_handoff"] = False
         
         # 2. Evaluate rules
         result, new_attempt_count = self._rules_engine.evaluate(
@@ -171,18 +200,21 @@ class StateMachineNode(BaseNode):
     
     async def _execute_legacy(
         self,
-        analysis: Dict[str, Any],
-        current_state: str,
-        attempt_count: int,
-        escalation_decision: str,
-        safety_violation: bool,
-        sentiment: Dict[str, Any],
-        guardrails_blocked: bool
+        state: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Legacy execution using Python-based rules.
         Fallback when rules.yaml is not available.
         """
+        # Extract inputs from state
+        analysis = state.get("dialog_analysis", {})
+        current_state = state.get("dialog_state") or INITIAL
+        attempt_count = state.get("attempt_count") or 0
+        escalation_decision = state.get("escalation_decision", "auto_reply")
+        safety_violation = state.get("safety_violation", False)
+        sentiment = state.get("sentiment", {})
+        guardrails_blocked = state.get("guardrails_blocked", False)
+        
         if guardrails_blocked:
              return {
                 "dialog_state": BLOCKED,
@@ -252,8 +284,19 @@ class StateMachineNode(BaseNode):
              new_state = EMPATHY_MODE
         
         # 5. Check confidence (added for completeness)
-        confidence = analysis.get("confidence", 1.0)
-        threshold = analysis.get("confidence_threshold", 0.3)
+        # Note: confidence is in state, not in analysis
+        confidence = state.get("confidence", 1.0)
+        threshold_raw = state.get("confidence_threshold", 0.3)
+        
+        # Handle "Infinity" string or other non-numeric values
+        try:
+            if isinstance(threshold_raw, str):
+                threshold = float(threshold_raw) if threshold_raw != "Infinity" else float('inf')
+            else:
+                threshold = float(threshold_raw)
+        except (ValueError, TypeError):
+            threshold = 0.3  # Default fallback
+            
         if confidence < threshold:
             new_state = ESCALATION_NEEDED
 

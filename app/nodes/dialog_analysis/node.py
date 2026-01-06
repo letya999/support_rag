@@ -13,7 +13,6 @@ from app.nodes.state_machine.states_config import (
 from app.nodes.dialog_analysis.rules.question_detector import is_question
 
 class DialogAnalysisNode(BaseNode):
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Dispatcher for dialog analysis.
@@ -33,7 +32,7 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
     # Get keywords from nested structure (new format) or flat structure (fallback)
     keywords = params.get("keywords", {})
     
-    history = state.get("session_history", []) or []
+    history = state.get("conversation_history") or state.get("session_history", []) or []
     current_question = state.get("question", "").lower()
     
     # Defaults

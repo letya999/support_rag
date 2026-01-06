@@ -3,7 +3,7 @@ import inspect
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 from app.pipeline.state import State
-from app.observability.tracing import observe
+from app.observability.tracing import observe, langfuse_context
 from app.services.config_loader.loader import get_global_param
 
 class BaseNode(ABC):
@@ -18,12 +18,12 @@ class BaseNode(ABC):
         self.retry_count = get_global_param("retry_count", 3)
 
     ## LangGraph entry point 
-    ## with typical langfuse observation annotation for tracing
-    # @observe(as_type="span")
-    async def __call__(self, state: State) -> Dict[str, Any]:
+    async def __call__(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         The entry point when the node is called by LangGraph.
         """
+        if langfuse_context:
+            langfuse_context.update_current_observation(name=self.name)
         return await self.execute(state)
 
     @abstractmethod

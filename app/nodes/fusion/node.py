@@ -4,7 +4,6 @@ from app.storage.models import SearchResult
 from app.observability.tracing import observe
 
 class FusionNode(BaseNode):
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Fusion logic.

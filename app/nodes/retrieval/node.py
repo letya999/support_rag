@@ -4,7 +4,6 @@ from app.nodes.retrieval.search import retrieve_context
 from app.observability.tracing import observe
 
 class RetrievalNode(BaseNode):
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Logic for simple retrieval.
@@ -22,7 +21,6 @@ class RetrievalNode(BaseNode):
         }
 
 class RetrievalExpandedNode(BaseNode):
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Logic for expanded retrieval (multiple queries).

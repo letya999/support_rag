@@ -1,3 +1,5 @@
-I understand this situation may be frustrating or concerning for you. I'm here to help you work through this issue together. I will provide the clearest and most useful information possible. If you need additional assistance or would prefer to speak with a human operator at any point, please just let me know.
+The user may be frustrated. Acknowledge their concern briefly without using the phrase "I understand".
+Focus immediately on resolving the technical issue.
+Maintain a professional but supportive tone.
 
 Respond in the user's detected language.

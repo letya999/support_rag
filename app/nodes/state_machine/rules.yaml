@@ -64,6 +64,19 @@ rules:
       - type: log
         message: "User requested human support"
 
+  # Priority 1.5: Critical - Knowledge Base requires handoff
+  - name: kb_requires_handoff
+    priority: 2
+    description: "Retrieved document explicitly requires handoff"
+    condition:
+      field: requires_handoff
+      operator: equals
+      value: true
+    target_state: ESCALATION_NEEDED
+    actions:
+      - type: log
+        message: "Knowledge base document requires handoff"
+
   # Priority 2: Gratitude - Issue resolved
   - name: gratitude_resolution
     priority: 2

@@ -7,7 +7,6 @@ from app.pipeline.state import State
 from app.observability.tracing import observe
 
 class AggregationNode(BaseNode):
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Dispatcher for aggregation.

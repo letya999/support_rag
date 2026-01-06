@@ -10,7 +10,6 @@ from app.integrations.embeddings import get_embedding
 from app.services.config_loader.loader import get_node_params
 
 class HybridSearchNode(BaseNode):
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Logic for hybrid search.

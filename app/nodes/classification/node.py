@@ -5,7 +5,6 @@ from app.nodes.classification.classifier import ClassificationService
 from app.observability.tracing import observe
 
 class ClassificationNode(BaseNode):
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         question = state.get("aggregated_query") or state.get("question", "")
         service = ClassificationService()

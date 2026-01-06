@@ -40,13 +40,13 @@ class PromptRoutingNode(BaseNode):
     # Default tone modifiers (fallback if config is missing)
     DEFAULT_TONE_MODIFIERS = {
         "professional": "",
-        "helpful": "Be friendly and willing to help.",
-        "warm": "Respond warmly and with appreciation.",
-        "empathetic": "Show empathy and understanding. The user may be upset.",
-        "curious": "Ask clarifying questions politely and constructively.",
-        "supportive": "Provide support and mention the option to speak with a human operator.",
-        "understanding": "Acknowledge that you will connect the user to a human operator.",
-        "patient": "Wait patiently and offer additional assistance."
+        "helpful": "Be direct and helpful.",
+        "warm": "Be polite.",
+        "empathetic": "Be supportive but concise.",
+        "curious": "Ask clarifying questions if needed.",
+        "supportive": "Offer support.",
+        "understanding": "Acknowledge the request.",
+        "patient": "Be patient."
     }
     
     def __init__(self, name: Optional[str] = None):
@@ -141,7 +141,6 @@ class PromptRoutingNode(BaseNode):
             lines.append(f"{role}: {content}")
         return "\n".join(lines)
 
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Selects and builds the system prompt based on dialog state.

@@ -17,7 +17,6 @@ class QueryTranslationNode(BaseNode):
     def __init__(self, name: str = "query_translation"):
         super().__init__(name)
     
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Translate query to document language if needed.

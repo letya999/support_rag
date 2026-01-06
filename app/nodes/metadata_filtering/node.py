@@ -7,7 +7,6 @@ class MetadataFilteringNode(BaseNode):
     def __init__(self):
         self.service = MetadataFilteringService(confidence_threshold=0.4)
 
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute metadata filtering logic using the service.

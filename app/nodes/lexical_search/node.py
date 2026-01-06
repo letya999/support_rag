@@ -5,7 +5,6 @@ from app.nodes.lexical_search.storage import lexical_search_db
 from app.nodes.base_node import BaseNode
 
 class LexicalSearchNode(BaseNode):
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Logic for lexical search.

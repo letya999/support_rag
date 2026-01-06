@@ -12,7 +12,6 @@ class GenerationNode(BaseNode):
         self.qa_prompt = ChatPromptTemplate.from_template(self._load_prompt("prompt_qa_simple.txt"))
         self.dynamic_human_prompt = self._load_prompt("prompt_qa_dynamic_human.txt")
 
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generation node logic.

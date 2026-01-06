@@ -12,7 +12,6 @@ except ImportError:
 class LanguageDetectionNode(BaseNode):
     """Определяет язык запроса пользователя."""
     
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """Execute language detection."""
         params = get_node_params("language_detection")

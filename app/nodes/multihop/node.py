@@ -34,7 +34,6 @@ def _get_params() -> Dict[str, Any]:
 
 
 class MultihopNode(BaseNode):
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Multi-hop reasoning logic.

@@ -4,7 +4,6 @@ from app.nodes.query_expansion.expander import QueryExpander
 from app.observability.tracing import observe
 
 class QueryExpansionNode(BaseNode):
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Query Expansion logic.

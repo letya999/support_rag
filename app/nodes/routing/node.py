@@ -30,7 +30,6 @@ def _get_config() -> Dict[str, Any]:
 
 
 class RoutingNode(BaseNode):
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Routing executor - выполняет решение State Machine.

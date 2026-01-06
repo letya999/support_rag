@@ -20,7 +20,8 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
     
     Uses configurable model and temperature from config.yaml.
     """
-    history = state.get("session_history", []) or []
+    # Priority: conversation_history (active) > session_history (archived)
+    history = state.get("conversation_history") or state.get("session_history", []) or []
     current_question = state.get("question", "")
     
     # Load config

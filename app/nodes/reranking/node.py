@@ -4,7 +4,6 @@ from app.nodes.reranking.ranker import get_reranker
 from app.observability.tracing import observe
 
 class RerankingNode(BaseNode):
-    @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Reranking logic.
