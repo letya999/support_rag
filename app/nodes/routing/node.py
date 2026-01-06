@@ -10,9 +10,6 @@ from app.settings import settings
 from app.nodes.routing.logic import decide_action, get_decision_reason
 from app.observability.tracing import observe
 
-# Default config values
-DEFAULT_MIN_CONFIDENCE = 0.3
-
 
 def _get_params() -> Dict[str, Any]:
     """Get node parameters from centralized config."""
@@ -23,67 +20,133 @@ def _get_params() -> Dict[str, Any]:
         return {}
 
 
+def _get_config() -> Dict[str, Any]:
+    """Get node config (text/dict settings) from centralized config."""
+    try:
+        from app.services.config_loader.loader import get_node_config
+        return get_node_config("routing")
+    except Exception:
+        return {}
+
+
 class RoutingNode(BaseNode):
     @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Routing logic with confidence handling.
-        Respects min_confidence, escalation_requested, and requires_handoff.
+        Routing executor - выполняет решение State Machine.
+        
+        State Machine принимает решение об эскалации и устанавливает action_recommendation.
+        Routing только формирует escalation_message и логирует.
         """
         params = _get_params()
-        min_confidence = params.get("min_confidence_auto_reply", DEFAULT_MIN_CONFIDENCE)
-        respect_escalation = params.get("respect_escalation_decision", True)
-        respect_handoff = params.get("respect_requires_handoff", True)
+        config = _get_config()
         
-        # Get signals from state
+        # ГЛАВНОЕ: Получаем решение от State Machine
+        action_recommendation = state.get("action_recommendation")
+        escalation_reason = state.get("escalation_reason")
+        
+        # Если нет рекомендации (старый flow), используем fallback логику
+        if not action_recommendation:
+            print("⚠️ No action_recommendation from state_machine, using fallback logic")
+            action_recommendation = self._fallback_decision(state, params)
+            escalation_reason = escalation_reason or "fallback_decision"
+        
+        # Метаданные для логирования
         metadata = state.get("best_doc_metadata", {})
         confidence = state.get("confidence", 0.0)
+        min_confidence = params.get("min_confidence_auto_reply", 0.3)
+        threshold = state.get("confidence_threshold", min_confidence)
         
-        # Determine threshold
-        threshold = state.get("confidence_threshold")
-        if threshold is None:
-            threshold = metadata.get("confidence_threshold", min_confidence)
+        # Формируем ответ
+        escalation_triggered = False
+        escalation_message = None
         
-        # Get escalation signal from dialog_analysis
-        escalation_requested = False
-        if respect_escalation:
-            escalation_requested = state.get("escalation_requested", False)
-        
-        # Get requires_handoff from document metadata
-        requires_handoff = False
-        if respect_handoff:
-            requires_handoff = metadata.get("requires_handoff", False)
-        
-        # Safety violation (if present)
-        safety_violation = state.get("safety_violation", False)
-        
-        # Make decision
-        action = decide_action(
-            confidence=confidence,
-            requires_handoff=requires_handoff,
-            threshold=threshold,
-            escalation_requested=escalation_requested,
-            safety_violation=safety_violation
-        )
-        
-        # Get decision details for logging
-        decision_info = get_decision_reason(
-            confidence=confidence,
-            requires_handoff=requires_handoff,
-            threshold=threshold,
-            escalation_requested=escalation_requested,
-            safety_violation=safety_violation
-        )
+        if action_recommendation == "handoff":
+            escalation_triggered = True
+            
+            # Получаем сообщение на языке пользователя
+            detected_language = state.get("detected_language", "en")
+            escalation_messages = config.get("escalation_messages", {})
+            escalation_message = escalation_messages.get(
+                detected_language,
+                escalation_messages.get("default", "Transferring to support specialist.")
+            )
+            
+            # Логирование эскалации
+            escalation_details = {
+                "reason": escalation_reason,
+                "confidence": confidence,
+                "threshold": threshold,
+                "escalation_requested": state.get("escalation_requested", False),
+                "safety_violation": state.get("safety_violation", False),
+                "language": detected_language,
+                "message": escalation_message,
+                "dialog_state": state.get("dialog_state")
+            }
+            
+            print(f"🚨 ESCALATION TRIGGERED")
+            print(f"   Reason: {escalation_reason}")
+            print(f"   Confidence: {confidence:.3f} (Threshold: {threshold:.3f})")
+            print(f"   Dialog State: {state.get('dialog_state')}")
+            print(f"   Message: {escalation_message}")
+            
+            # Логируем событие в Langfuse
+            try:
+                from langfuse import Langfuse
+                langfuse = Langfuse()
+                langfuse.event(
+                    name="escalation_triggered",
+                    input=escalation_details,
+                    metadata={
+                        "node": "routing",
+                        "action": "handoff",
+                        "source": "state_machine"
+                    }
+                )
+            except Exception as e:
+                # Fallback - @observe decorator будет логировать
+                print(f"   (Langfuse event logging failed: {e})")
         
         return {
-            "action": action,
+            "action": action_recommendation,
             "matched_intent": metadata.get("intent"),
             "matched_category": metadata.get("category"),
-            "routing_reason": decision_info.get("reason"),
+            "routing_reason": escalation_reason,
             "routing_confidence": confidence,
-            "routing_threshold": threshold
+            "routing_threshold": threshold,
+            "escalation_triggered": escalation_triggered,
+            "escalation_message": escalation_message,
+            "answer": escalation_message if escalation_triggered else None
         }
+    
+    def _fallback_decision(self, state: Dict[str, Any], params: Dict[str, Any]) -> str:
+        """
+        Fallback логика принятия решения если state_machine не предоставил рекомендацию.
+        Используется для обратной совместимости.
+        """
+        min_confidence = params.get("min_confidence_auto_reply", 0.3)
+        confidence = state.get("confidence", 0.0)
+        threshold = state.get("confidence_threshold", min_confidence)
+        
+        # Проверяем критические сигналы
+        if state.get("safety_violation", False):
+            return "handoff"
+        
+        if state.get("escalation_requested", False):
+            return "handoff"
+        
+        metadata = state.get("best_doc_metadata", {})
+        if metadata.get("requires_handoff", False):
+            return "handoff"
+        
+        if threshold > 0 and confidence < threshold:
+            return "handoff"
+        
+        return "auto_reply"
 
 
 # For backward compatibility
 route_node = RoutingNode()
+
+
+

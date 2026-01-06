@@ -97,6 +97,31 @@ def router_logic(state: State):
     return END
 
 
+def should_fast_escalate(state: State):
+    """
+    Early exit logic после dialog_analysis.
+    
+    Если есть критические сигналы (safety_violation или escalation_requested),
+    пропускаем поиск и сразу идем в state_machine для быстрой эскалации.
+    
+    Returns:
+        "fast_escalate" - пропустить поиск, сразу в state_machine
+        "continue" - обычный поток через aggregation → search → state_machine
+    """
+    # Критическая эскалация - сразу в state_machine без поиска
+    if state.get("safety_violation", False):
+        print("⚡ Fast escalation: safety_violation detected")
+        return "fast_escalate"
+    
+    if state.get("escalation_requested", False):
+        print("⚡ Fast escalation: user requested operator")
+        return "fast_escalate"
+    
+    # Обычный поток
+    return "continue"
+
+
+
 # Build graph
 workflow = StateGraph(State)
 
@@ -168,8 +193,22 @@ if pipeline_nodes:
         current_node = pipeline_nodes[i]
         next_node = pipeline_nodes[i+1]
 
+        # Special logic: Early exit после dialog_analysis
+        if current_node == "dialog_analysis" and "state_machine" in active_node_names:
+            # Находим следующий узел после dialog_analysis (обычно aggregation или state_machine)
+            normal_next_node = next_node
+            
+            # Добавляем conditional edge
+            workflow.add_conditional_edges(
+                "dialog_analysis",
+                should_fast_escalate,
+                {
+                    "fast_escalate": "state_machine",  # Быстрая эскалация
+                    "continue": normal_next_node        # Обычный поток
+                }
+            )
         # Special logic for routing if it's in the middle
-        if current_node == "routing":
+        elif current_node == "routing":
             if "generation" in pipeline_nodes:
                 # If prompt routing is enabled, route to it first
                 target = "prompt_routing" if "prompt_routing" in active_node_names else "generation"
@@ -186,8 +225,12 @@ if pipeline_nodes:
             else:
                 target_exit = "archive_session" if "archive_session" in active_node_names else ("store_in_cache" if cache_enabled else END)
                 workflow.add_edge("routing", target_exit)
+        # Special logic: state_machine должен идти в routing
+        elif current_node == "state_machine" and "routing" in active_node_names:
+            workflow.add_edge("state_machine", "routing")
         else:
             workflow.add_edge(current_node, next_node)
+
             
     # Handle End of Pipeline
     last_node = pipeline_nodes[-1]

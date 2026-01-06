@@ -67,10 +67,13 @@ class StateMachineNode(BaseNode):
         
         # 0. Phase 5: Safety Check (Highest Priority)
         if safety_violation:
+            state_behavior = self._rules_engine.get_state_behavior(SAFETY_VIOLATION)
             return {
                 "dialog_state": SAFETY_VIOLATION,
                 "attempt_count": attempt_count,
-                "state_behavior": self._rules_engine.get_state_behavior(SAFETY_VIOLATION),
+                "state_behavior": state_behavior,
+                "action_recommendation": state_behavior.get("action", "handoff"),
+                "escalation_reason": state_behavior.get("escalation_reason", "safety_violation"),
                 "transition_source": "safety_violation"
             }
 
@@ -85,12 +88,20 @@ class StateMachineNode(BaseNode):
             else:
                 new_state = ESCALATION_NEEDED
             
+            state_behavior = self._rules_engine.get_state_behavior(new_state)
             return {
                 "dialog_state": new_state,
                 "attempt_count": attempt_count,
-                "state_behavior": self._rules_engine.get_state_behavior(new_state),
+                "state_behavior": state_behavior,
+                "action_recommendation": state_behavior.get("action", "handoff"),
+                "escalation_reason": state_behavior.get("escalation_reason", "escalation_override"),
                 "transition_source": "escalation_override"
             }
+        
+        # Add confidence check to analysis signals
+        confidence = analysis.get("confidence", 1.0)
+        threshold = analysis.get("confidence_threshold", 0.3)
+        analysis["confidence_below_threshold"] = confidence < threshold
         
         # 2. Evaluate rules
         result, new_attempt_count = self._rules_engine.evaluate(
@@ -110,16 +121,37 @@ class StateMachineNode(BaseNode):
                 "dialog_state": EMPATHY_MODE,
                 "attempt_count": new_attempt_count,
                 "state_behavior": self._rules_engine.get_state_behavior(EMPATHY_MODE),
+                "action_recommendation": "auto_reply",
                 "transition_source": "sentiment_empathy"
             }
 
         # 4. Get state behavior for prompt routing
         state_behavior = self._rules_engine.get_state_behavior(new_state)
         
+        # 5. Extract action recommendation and escalation reason from state behavior
+        action_recommendation = state_behavior.get("action", "auto_reply")
+        escalation_reason = None
+        
+        if action_recommendation == "handoff":
+            # Get escalation reason from state behavior or determine from signals
+            escalation_reason = state_behavior.get("escalation_reason")
+            if not escalation_reason:
+                # Fallback logic
+                if safety_violation:
+                    escalation_reason = "safety_violation"
+                elif analysis.get("escalation_requested"):
+                    escalation_reason = "user_requested"
+                elif analysis.get("confidence_below_threshold"):
+                    escalation_reason = "low_confidence"
+                else:
+                    escalation_reason = "state_machine_decision"
+        
         return {
             "dialog_state": new_state,
             "attempt_count": new_attempt_count,
             "state_behavior": state_behavior,
+            "action_recommendation": action_recommendation,
+            "escalation_reason": escalation_reason,
             "transition_source": rule_matched or "no_match"
         }
     
@@ -140,7 +172,9 @@ class StateMachineNode(BaseNode):
         if safety_violation:
             return {
                 "dialog_state": SAFETY_VIOLATION,
-                "attempt_count": attempt_count
+                "attempt_count": attempt_count,
+                "action_recommendation": "handoff",
+                "escalation_reason": "safety_violation"
             }
 
         new_state = current_state
@@ -150,12 +184,16 @@ class StateMachineNode(BaseNode):
             if analysis.get("escalation_requested"):
                 return {
                     "dialog_state": ESCALATION_REQUESTED,
-                    "attempt_count": attempt_count
+                    "attempt_count": attempt_count,
+                    "action_recommendation": "handoff",
+                    "escalation_reason": "user_requested"
                 }
             else:
                 return {
                     "dialog_state": ESCALATION_NEEDED,
-                    "attempt_count": attempt_count
+                    "attempt_count": attempt_count,
+                    "action_recommendation": "handoff",
+                    "escalation_reason": "escalation_override"
                 }
 
         # 2. Rule-Based Match
@@ -189,10 +227,33 @@ class StateMachineNode(BaseNode):
         # 4. Phase 5: Empathy Check
         if new_state in [ANSWER_PROVIDED, INITIAL] and sentiment.get("label") == "negative":
              new_state = EMPATHY_MODE
+        
+        # 5. Check confidence (added for completeness)
+        confidence = analysis.get("confidence", 1.0)
+        threshold = analysis.get("confidence_threshold", 0.3)
+        if confidence < threshold:
+            new_state = ESCALATION_NEEDED
+
+        # Determine action recommendation based on state
+        action_recommendation = "auto_reply"
+        escalation_reason = None
+        
+        if new_state in [ESCALATION_REQUESTED, ESCALATION_NEEDED, SAFETY_VIOLATION]:
+            action_recommendation = "handoff"
+            if new_state == SAFETY_VIOLATION:
+                escalation_reason = "safety_violation"
+            elif new_state == ESCALATION_REQUESTED:
+                escalation_reason = "user_requested"
+            elif confidence < threshold:
+                escalation_reason = "low_confidence"
+            else:
+                escalation_reason = "repeated_failures"
 
         return {
             "dialog_state": new_state,
-            "attempt_count": attempt_count
+            "attempt_count": attempt_count,
+            "action_recommendation": action_recommendation,
+            "escalation_reason": escalation_reason
         }
     
     def get_state_behavior(self, state: str) -> Dict[str, Any]:

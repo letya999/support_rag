@@ -38,6 +38,19 @@ defaults:
 # Transition rules - evaluated in priority order
 # Each rule defines: when condition matches -> transition to target state
 rules:
+  # Priority 0: CRITICAL - Safety violation (highest priority)
+  - name: safety_violation_detected
+    priority: 0
+    description: "Security threat detected by guardrails"
+    condition:
+      field: safety_violation
+      operator: equals
+      value: true
+    target_state: SAFETY_VIOLATION
+    actions:
+      - type: log
+        message: "Safety violation detected - immediate escalation"
+
   # Priority 1: Critical - User explicitly requests human
   - name: explicit_escalation_request
     priority: 1
@@ -119,6 +132,19 @@ rules:
       - type: log
         message: "Topic shift detected, resetting context"
 
+  # Priority 9: Low confidence - Escalate
+  - name: low_confidence_escalation
+    priority: 9
+    description: "Confidence below threshold - cannot provide reliable answer"
+    condition:
+      field: confidence_below_threshold
+      operator: equals
+      value: true
+    target_state: ESCALATION_NEEDED
+    actions:
+      - type: log
+        message: "Low confidence detected - escalating to human"
+
   # Priority 10: Default question flow
   - name: standard_question
     priority: 10
@@ -170,15 +196,27 @@ state_behaviors:
 
   ESCALATION_NEEDED:
     tone: supportive
-    action: suggest_handoff
+    action: handoff
+    escalation_priority: 4
+    escalation_reason: "low_confidence_or_repeated_failures"
     prompt_hint: "handoff_suggestion"
 
   ESCALATION_REQUESTED:
     tone: understanding
     action: handoff
+    escalation_priority: 2
+    escalation_reason: "user_requested"
     prompt_hint: "handoff_confirmation"
+
+  SAFETY_VIOLATION:
+    tone: professional
+    action: handoff
+    escalation_priority: 1
+    escalation_reason: "safety_violation"
+    prompt_hint: "safety_block"
 
   AWAITING_CLARIFICATION:
     tone: patient
     action: auto_reply
     prompt_hint: "waiting"
+

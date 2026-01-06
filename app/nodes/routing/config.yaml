@@ -35,3 +35,10 @@ config:
     - urgent
     - vip
     - escalation
+  
+  # Escalation messages by language
+  escalation_messages:
+    ru: "К сожалению, я не могу обработать ваш запрос. Передаю вас специалисту службы поддержки. Пожалуйста, ожидайте подключения."
+    en: "Unfortunately, I cannot process your request. Transferring you to a support specialist. Please wait for connection."
+    default: "Unfortunately, I cannot process your request. Transferring you to a support specialist."
+

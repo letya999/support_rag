@@ -118,5 +118,11 @@ class State(TypedDict):
     sentiment: Annotated[Optional[Dict[str, Any]], overwrite] # {label, score}
     safety_violation: Annotated[Optional[bool], overwrite]
     safety_reason: Annotated[Optional[str], overwrite]
+    escalation_requested: Annotated[Optional[bool], overwrite]  # From dialog_analysis
     escalation_decision: Annotated[Optional[str], overwrite] # "escalate", "auto_reply"
     escalation_reason: Annotated[Optional[str], overwrite]
+    action_recommendation: Annotated[Optional[str], overwrite] # "handoff", "auto_reply" from State Machine
+    transition_source: Annotated[Optional[str], overwrite] # Debug: why state machine transitioned
+    escalation_triggered: Annotated[Optional[bool], overwrite]  # True if escalation happened in routing
+    escalation_message: Annotated[Optional[str], overwrite]  # User-facing message for escalation
+

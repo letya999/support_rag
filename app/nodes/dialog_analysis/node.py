@@ -81,6 +81,7 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
         "sentiment": {"label": "frustrated" if analysis[SIGNAL_FRUSTRATION] else "neutral", "score": 0.5},
         "safety_violation": False,
         "safety_reason": None,
+        "escalation_requested": analysis[SIGNAL_ESCALATION_REQ],  # For routing node
         "escalation_decision": "escalate" if analysis[SIGNAL_ESCALATION_REQ] else "auto_reply",
         "escalation_reason": "regex_keyword_match" if analysis[SIGNAL_ESCALATION_REQ] else None
     }

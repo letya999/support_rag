@@ -17,6 +17,11 @@ class GenerationNode(BaseNode):
         """
         Generation node logic.
         """
+        # Check if escalation happened - if so, use escalation message instead of generating
+        escalation_message = state.get("escalation_message")
+        if escalation_message:
+            return {"answer": escalation_message}
+        
         question = state.get("aggregated_query") or state.get("question")
         docs = state.get("docs", [])
         system_prompt = state.get("system_prompt")

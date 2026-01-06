@@ -1,6 +1,6 @@
 node:
   name: input_guardrails
-  enabled: false
+  enabled: true
 
 parameters:
   # Protection level: "basic", "standard", "advanced"

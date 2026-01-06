@@ -18,14 +18,12 @@ pipeline:
 - name: session_starter
   enabled: true
 - name: input_guardrails
-  enabled: false
+  enabled: true
 - name: check_cache
   enabled: true
 - name: language_detection
   enabled: true
 - name: dialog_analysis
-  enabled: true
-- name: state_machine
   enabled: true
 - name: aggregation
   enabled: true
@@ -50,6 +48,8 @@ pipeline:
 - name: reranking
   enabled: true
 - name: multihop
+  enabled: true
+- name: state_machine
   enabled: true
 - name: routing
   enabled: true
@@ -110,7 +110,7 @@ details:
       detect_repeated_questions: true
       inference_timeout_ms: 3000
     config:
-      mode: rule_based
+      mode: llm
       keywords:
         escalation:
         - оператор
@@ -361,6 +361,13 @@ details:
       - urgent
       - vip
       - escalation
+      escalation_messages:
+        ru: К сожалению, я не могу обработать ваш запрос. Передаю вас специалисту
+          службы поддержки. Пожалуйста, ожидайте подключения.
+        en: Unfortunately, I cannot process your request. Transferring you to a support
+          specialist. Please wait for connection.
+        default: Unfortunately, I cannot process your request. Transferring you to
+          a support specialist.
   session_starter:
     parameters:
       load_conversation_history: true

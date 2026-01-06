@@ -67,10 +67,11 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
         escalation = analysis_data.get("escalation", {"decision": "auto_reply", "reason": None})
         
         # Map back to standard dict
+        escalation_req = signals.get(SIGNAL_ESCALATION_REQ, False)
         result = {
             "dialog_analysis": {
                 SIGNAL_GRATITUDE: signals.get(SIGNAL_GRATITUDE, False),
-                SIGNAL_ESCALATION_REQ: signals.get(SIGNAL_ESCALATION_REQ, False),
+                SIGNAL_ESCALATION_REQ: escalation_req,
                 SIGNAL_QUESTION: signals.get(SIGNAL_QUESTION, True),
                 SIGNAL_REPEATED: signals.get(SIGNAL_REPEATED, False),
                 SIGNAL_FRUSTRATION: sentiment.get("label") in ["frustrated", "angry"],
@@ -80,6 +81,7 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
             "sentiment": sentiment,
             "safety_violation": safety.get("violation", False),
             "safety_reason": safety.get("reason"),
+            "escalation_requested": escalation_req,  # For routing node
             "escalation_decision": escalation.get("decision", "auto_reply"),
             "escalation_reason": escalation.get("reason")
         }
@@ -100,6 +102,7 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
             "sentiment": {"label": "neutral", "score": 0.0},
             "safety_violation": False,
             "safety_reason": None,
+            "escalation_requested": False,  # For routing node
             "escalation_decision": "auto_reply",
             "escalation_reason": "fallback"
         }

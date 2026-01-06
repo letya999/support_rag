@@ -8,7 +8,6 @@ pipeline_order:
   - check_cache
   - language_detection
   - dialog_analysis
-  - state_machine
   - aggregation
   - query_translation  # Translate query to document language for unified search
   - easy_classification
@@ -21,9 +20,11 @@ pipeline_order:
   - fusion
   - reranking
   - multihop
+  - state_machine  # Moved here to have access to final confidence from reranking
   - routing
   - prompt_routing
   - generation
   - output_guardrails
   - archive_session
   - store_in_cache
+
