@@ -1,0 +1,67 @@
+TASK: Evaluate how appropriate the answer is for a customer support conversation.
+
+=== CONTEXT ===
+CONVERSATION HISTORY:
+{conversation_history}
+
+CURRENT QUESTION: {question}
+
+USER SENTIMENT: {sentiment_label} (score: {sentiment_score})
+
+ANSWER: {answer}
+
+=== EVALUATION CRITERIA ===
+
+1. PROFESSIONALISM (0-1):
+   - Professional and courteous tone
+   - No informal slang or unprofessional language
+   - Appropriate business communication style
+
+2. EMPATHY (0-1) - **CRITICAL when sentiment is negative/frustrated/angry**:
+   - Acknowledges user's emotions if frustrated/angry
+   - Shows understanding and care
+   - Appropriate empathy level for the situation
+   - **SCORE LOW if user is frustrated but answer lacks empathy**
+
+3. ACTIONABILITY (0-1):
+   - Provides concrete next steps or solutions
+   - Not vague responses like "we'll look into it"
+   - Clear guidance on what user should do
+
+4. CONTEXT AWARENESS (0-1):
+   - References conversation history when relevant
+   - Maintains continuity with previous exchanges
+   - Doesn't repeat what was already said
+
+5. CLOSURE READINESS (0-1):
+   - If user shows gratitude - provides appropriate closure
+   - If escalating - explains next steps clearly
+   - Appropriate conversation ending when needed
+
+=== SCORING GUIDELINES ===
+- For each aspect, score 0.0-1.0:
+  - 1.0 = Excellent
+  - 0.7-0.9 = Good
+  - 0.4-0.6 = Adequate
+  - 0.1-0.3 = Poor
+  - 0.0 = Unacceptable
+
+**IMPORTANT**: 
+- If sentiment is "frustrated" or "angry" and answer lacks empathy, EMPATHY score MUST be ≤0.3
+- If user showed gratitude but answer doesn't provide closure, CLOSURE_READINESS ≤0.4
+
+=== OUTPUT FORMAT ===
+Respond ONLY with valid JSON (no markdown, no explanation):
+{{
+  "professionalism": 0.0-1.0,
+  "empathy": 0.0-1.0,
+  "actionability": 0.0-1.0,
+  "context_awareness": 0.0-1.0,
+  "closure_readiness": 0.0-1.0,
+  "overall_appropriateness": 0.0-1.0,
+  "reasoning": "brief explanation"
+}}
+
+Overall score should be weighted average with empathy DOUBLE weighted if sentiment is negative.
+
+CRITICAL: Output JSON only. No other text.

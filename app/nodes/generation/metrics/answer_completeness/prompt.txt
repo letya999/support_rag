@@ -1,0 +1,31 @@
+TASK: Evaluate how complete and comprehensive the answer is in addressing all aspects of the question.
+
+=== INPUT ===
+QUESTION: {question}
+
+CONTEXT PROVIDED: {context}
+
+ANSWER: {answer}
+
+=== EVALUATION CRITERIA ===
+1. Does the answer cover ALL aspects/parts of the question?
+2. Are there missing details that should have been included based on available context?
+3. Is the answer sufficiently detailed or too brief?
+4. Does it leave important questions unanswered?
+
+=== SCORING GUIDELINES ===
+- 1.0: Comprehensively answers ALL parts of the question with sufficient detail
+- 0.7-0.9: Answers most parts well but missing minor details
+- 0.4-0.6: Partially complete, missing significant aspects
+- 0.1-0.3: Severely incomplete, addresses only small portion
+- 0.0: Does not answer the question at all
+
+=== OUTPUT FORMAT ===
+Respond ONLY with valid JSON (no markdown, no explanation):
+{{
+  "completeness_score": 0.0-1.0,
+  "missing_aspects": ["aspect1", "aspect2"],
+  "reasoning": "brief explanation of score"
+}}
+
+CRITICAL: Output JSON only. No other text.

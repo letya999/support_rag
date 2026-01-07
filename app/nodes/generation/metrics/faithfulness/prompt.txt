@@ -1,0 +1,35 @@
+TASK: Evaluate if the answer is faithful to the given context.
+
+=== CONTEXT ===
+{context}
+
+=== ANSWER ===
+{answer}
+
+=== EVALUATION CRITERIA ===
+The answer is FAITHFUL if:
+- All information in the answer can be inferred directly from the context
+- No facts are added that aren't in the context
+- No contradictions with the context
+- No hallucinations or fabricated information
+
+The answer is NOT FAITHFUL if:
+- Contains information not present in the context
+- Contradicts facts from the context
+- Makes up details or statistics not in the context
+
+=== SCORING GUIDELINES ===
+- 1.0: Perfectly faithful, all claims supported by context
+- 0.7-0.9: Mostly faithful, minor unsupported details
+- 0.4-0.6: Partially faithful, some unsupported claims
+- 0.1-0.3: Largely unfaithful, many unsupported claims
+- 0.0: Completely unfaithful, hallucinated content
+
+=== OUTPUT FORMAT ===
+Respond ONLY with a single number between 0.0 and 1.0.
+No explanation, no other text, just the score.
+
+Example outputs:
+0.95
+0.8
+0.5

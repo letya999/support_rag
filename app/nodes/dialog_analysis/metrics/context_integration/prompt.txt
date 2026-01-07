@@ -1,0 +1,61 @@
+TASK: Evaluate how well the dialog analysis integrates conversation history (multi-turn awareness).
+
+=== INPUT ===
+CONVERSATION HISTORY:
+{conversation_history}
+
+CURRENT USER MESSAGE: {question}
+
+DIALOG ANALYSIS RESULTS:
+{dialog_analysis}
+
+=== EVALUATION CRITERIA ===
+
+1. REFERENCE RESOLUTION (0-1):
+   - Does analysis correctly handle pronouns? ("it", "this", "that problem")
+   - Are references to previous topics understood?
+   - Example: "Why didn't it work?" - "it" refers to previous solution
+
+2. TOPIC CONTINUITY (0-1):
+   - Does analysis track the topic across turns?
+   - Are multi-turn issues recognized as same problem?
+   - No topic confusion between turns
+
+3. REPEATED DETECTION LOGIC (0-1):
+   - If question is rephrased, is SIGNAL_REPEATED correctly true?
+   - If question is new but related, should SIGNAL_REPEATED be false?
+   - Smart handling of paraphrasing vs new question
+
+4. SENTIMENT PROGRESSION (0-1):
+   - Does sentiment classification consider history?
+   - Escalating frustration tracked correctly?
+   - Logical emotional trajectory
+
+5. CROSS-TURN COHERENCE (0-1):
+   - No contradictions with previous analysis?
+   - Consistent signal detection across conversation?
+   - Stable categorization of user intent
+
+=== SCORING GUIDELINES ===
+For each aspect, score 0.0-1.0:
+- 1.0 = Perfect multi-turn awareness
+- 0.7-0.9 = Good context integration
+- 0.4-0.6 = Partial context understanding
+- 0.1-0.3 = Poor context usage
+- 0.0 = Ignores history completely
+
+=== OUTPUT FORMAT ===
+Respond ONLY with valid JSON (no markdown, no explanation):
+{{
+  "reference_resolution": 0.0-1.0,
+  "topic_continuity": 0.0-1.0,
+  "repeated_detection_logic": 0.0-1.0,
+  "sentiment_progression": 0.0-1.0,
+  "cross_turn_coherence": 0.0-1.0,
+  "overall_context_integration": 0.0-1.0,
+  "reasoning": "brief explanation"
+}}
+
+Overall score should be average of all 5 aspects.
+
+CRITICAL: Output JSON only. No other text.

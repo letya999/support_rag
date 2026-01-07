@@ -1,0 +1,7 @@
+model: "gpt-4o-mini"
+temperature: 0.0
+max_tokens: 700
+json_mode: true
+
+# Rule-based logic thresholds
+anger_threshold: 0.7  # angry score > 0.7 triggers escalation

@@ -1,0 +1,36 @@
+TASK: Evaluate if the answer is relevant to the question.
+
+=== QUESTION ===
+{question}
+
+=== ANSWER ===
+{answer}
+
+=== EVALUATION CRITERIA ===
+The answer is RELEVANT if:
+- Directly addresses the question asked
+- Stays on topic
+- Provides information that answers the user's intent
+- No unrelated tangents
+
+The answer is NOT RELEVANT if:
+- Doesn't address the question
+- Goes off-topic
+- Answers a different question
+- Contains mostly irrelevant information
+
+=== SCORING GUIDELINES ===
+- 1.0: Perfectly relevant, directly answers the question
+- 0.7-0.9: Mostly relevant, addresses the question well
+- 0.4-0.6: Partially relevant, some useful info but also off-topic content
+- 0.1-0.3: Barely relevant, mostly doesn't answer the question
+- 0.0: Completely irrelevant, doesn't address the question at all
+
+=== OUTPUT FORMAT ===
+Respond ONLY with a single number between 0.0 and 1.0.
+No explanation, no other text, just the score.
+
+Example outputs:
+0.95
+0.8
+0.5

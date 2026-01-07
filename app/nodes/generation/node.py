@@ -48,7 +48,10 @@ class GenerationNode(BaseNode):
         else:
             chain = self.qa_prompt | get_llm()
         
-        langfuse_handler = get_langfuse_callback_handler()
+        # Use handler from state if provided (e.g. from benchmark script), otherwise create new
+        langfuse_handler = state.get("langfuse_handler")
+        if not langfuse_handler:
+            langfuse_handler = get_langfuse_callback_handler()
         
         response = await chain.ainvoke(
             {"human_prompt": human_prompt},
@@ -56,6 +59,28 @@ class GenerationNode(BaseNode):
         )
         return {"answer": response.content}
 
+
 # For backward compatibility
 generate_node = GenerationNode()
+
+
+async def generate_answer_simple(question: str, docs: List[str]) -> str:
+    """
+    Simple generation helper for evaluation/testing.
+    Directly generates an answer from question and docs without full pipeline state.
+    """
+    docs_str = "\n\n".join(docs)
+    
+    # Reuse the prompt loaded by the main node (avoids reloading file)
+    qa_prompt = generate_node.qa_prompt
+    chain = qa_prompt | get_llm()
+    
+    langfuse_handler = get_langfuse_callback_handler()
+    
+    # prompt_qa_simple.txt expects {docs} and {question}
+    response = await chain.ainvoke(
+        {"docs": docs_str, "question": question},
+        config={"callbacks": [langfuse_handler]}
+    )
+    return response.content
 

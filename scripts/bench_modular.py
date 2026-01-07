@@ -29,10 +29,15 @@ def _fix_local_urls():
 _fix_local_urls()
 
 from app.observability.langfuse_client import get_langfuse_client
+from app.observability.callbacks import get_langfuse_callback_handler
 from app.nodes.retrieval.evaluator import evaluator
+# ... (rest of imports)
+
 from app.nodes.classification.evaluator import evaluator as cls_evaluator
 from app.nodes.easy_classification.evaluator import evaluator as ft_evaluator
 from app.nodes.prompt_routing.evaluator import evaluator as pr_evaluator
+from app.nodes.generation.evaluator import evaluator as gen_evaluator
+from app.nodes.dialog_analysis.evaluator import evaluator as da_evaluator
 
 # Import all node instances
 from app.nodes.session_starter.node import load_session_node
@@ -184,6 +189,20 @@ async def run_modular_bench(args, config):
         
         with item.run(run_name=run_name) as trace:
             try:
+                # Create a handler linked to this specific trace
+                try:
+                    from langfuse.langchain import CallbackHandler
+                    # Attempt to link using trace_id and observation_id (parent)
+                    # trace.id is the current span's ID
+                    lf_handler = CallbackHandler(
+                        trace_id=trace.trace_id,
+                        observation_id=trace.id
+                    )
+                except Exception:
+                    # Fallback to unlinked handler
+                    from langfuse.langchain import CallbackHandler
+                    lf_handler = CallbackHandler()
+
                 state = {
                     "question": question, 
                     "user_id": "bench_user",
@@ -191,7 +210,8 @@ async def run_modular_bench(args, config):
                     "docs": [], 
                     "answer": "", 
                     "confidence": 0.0,
-                    "conversation_history": []
+                    "conversation_history": [],
+                    "langfuse_handler": lf_handler # Pass handler to nodes
                 }
 
                 # Execution Loop following pipeline_order
@@ -261,6 +281,24 @@ async def run_modular_bench(args, config):
                 
                 for m_name, m_val in metrics.items():
                     trace.score(name=m_name, value=float(m_val))
+                
+                # Generation Metrics
+                if "generation" in enabled_nodes and state.get("answer"):
+                    try:
+                        gen_metrics = gen_evaluator.calculate_metrics(state)
+                        for m_name, m_val in gen_metrics.items():
+                            trace.score(name=f"gen_{m_name}", value=float(m_val))
+                    except Exception as e:
+                        print(f"⚠️ Generation metrics error: {e}")
+                
+                # Dialog Analysis Metrics
+                if "dialog_analysis" in enabled_nodes and state.get("dialog_analysis"):
+                    try:
+                        da_metrics = da_evaluator.calculate_metrics(state)
+                        for m_name, m_val in da_metrics.items():
+                            trace.score(name=f"da_{m_name}", value=float(m_val))
+                    except Exception as e:
+                        print(f"⚠️ Dialog analysis metrics error: {e}")
                 
                 all_metrics.append(metrics)
                 print(f"[{search_type}] Hit: {metrics['hit_rate']:.2f} | MRR: {metrics['mrr']:.2f}")

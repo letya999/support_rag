@@ -79,11 +79,11 @@
         },
         {
             "name": "prompt_routing",
-            "enabled": false
+            "enabled": true
         },
         {
             "name": "generation",
-            "enabled": false
+            "enabled": true
         },
         {
             "name": "output_guardrails",

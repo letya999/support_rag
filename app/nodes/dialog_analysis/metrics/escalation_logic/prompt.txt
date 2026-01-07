@@ -1,0 +1,60 @@
+TASK: Validate the escalation decision quality (LLM validation part only).
+
+=== CONTEXT ===
+QUESTION: {question}
+CONVERSATION HISTORY:
+{conversation_history}
+
+DETECTED SIGNALS:
+{dialog_analysis}
+
+SENTIMENT: {sentiment_label} (score: {sentiment_score})
+SAFETY VIOLATION: {safety_violation}
+
+ESCALATION DECISION: {escalation_decision}
+ESCALATION REASON: {escalation_reason}
+
+RULE-BASED CHECK RESULT:
+{rule_check_result}
+
+=== YOUR TASK ===
+The rule-based system already checked if decision follows hard logic:
+- Explicit request (SIGNAL_ESCALATION_REQ=true) OR
+- High anger (sentiment anger + score>0.7) OR  
+- Safety violation (safety_violation=true)
+
+You should evaluate QUALITATIVE aspects:
+
+1. REASON QUALITY (0-1):
+   - Is escalation_reason clear and understandable?
+   - Does it explain WHY escalation happened?
+   - Not vague like "user requested" but specific
+
+2. REASON ALIGNMENT (0-1):
+   - Does the reason match the actual trigger?
+   - If triggered by anger, does reason mention frustration?
+   - If safety violation, does reason cite specific issue?
+
+3. EDGE CASE HANDLING (0-1):
+   - If score is near threshold (e.g. 0.68-0.72), is decision appropriate?
+   - Does it handle borderline cases reasonably?
+
+4. BUSINESS AWARENESS (0-1):
+   - Does decision consider cost of unnecessary escalations?
+   - Does it balance user satisfaction vs operator load?
+   - If NOT escalating frustrated user, is there good reason?
+
+=== OUTPUT FORMAT ===
+Respond ONLY with valid JSON (no markdown, no explanation):
+{{
+  "reason_quality": 0.0-1.0,
+  "reason_alignment": 0.0-1.0,
+  "edge_case_handling": 0.0-1.0,
+  "business_awareness": 0.0-1.0,
+  "llm_validation_score": 0.0-1.0,
+  "reasoning": "brief explanation"
+}}
+
+llm_validation_score should be weighted average (reason_quality and reason_alignment are most important).
+
+CRITICAL: Output JSON only. No other text.

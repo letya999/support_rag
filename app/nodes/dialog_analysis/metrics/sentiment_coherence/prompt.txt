@@ -1,0 +1,52 @@
+TASK: Evaluate if the detected sentiment is coherent with the conversation context.
+
+=== INPUT ===
+CONVERSATION HISTORY:
+{conversation_history}
+
+CURRENT USER MESSAGE: {question}
+
+DETECTED SENTIMENT:
+- Label: {sentiment_label}
+- Score: {sentiment_score}
+
+=== EVALUATION CRITERIA ===
+
+1. LABEL APPROPRIATENESS (0-1):
+   - Does the sentiment label match the tone of the current message?
+   - Positive: grateful, satisfied, happy
+   - Neutral: informational, calm, factual
+   - Negative: unhappy, disappointed
+   - Frustrated: annoyed, impatient, repeated issues
+   - Angry: very upset, aggressive, demanding
+
+2. SCORE CALIBRATION (0-1):
+   - Is the score (0-1) appropriate for the intensity?
+   - 0.8-1.0 should be very strong emotion
+   - 0.4-0.7 should be moderate emotion
+   - 0.0-0.3 should be weak/absent emotion
+
+3. TRAJECTORY LOGIC (0-1):
+   - Does the sentiment progression make sense in conversation history?
+   - Logical examples: neutral→frustrated→angry, positive→neutral
+   - Illogical jumps: positive→angry with no trigger
+
+4. CONSISTENCY WITH SIGNALS (0-1):
+   - If message shows gratitude keywords, sentiment should be positive
+   - If message shows frustration keywords, sentiment should be frustrated/negative
+   - If escalation requested, sentiment likely frustrated or angry
+
+=== OUTPUT FORMAT ===
+Respond ONLY with valid JSON (no markdown, no explanation):
+{{
+  "label_appropriate": 0.0-1.0,
+  "score_calibration": 0.0-1.0,
+  "trajectory_logical": 0.0-1.0,
+  "signal_consistency": 0.0-1.0,
+  "overall_coherence": 0.0-1.0,
+  "reasoning": "brief explanation"
+}}
+
+Overall coherence should be average of all 4 aspects.
+
+CRITICAL: Output JSON only. No other text.
