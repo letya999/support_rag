@@ -1,4 +1,5 @@
 Based on the provided context, answer the user's question concisely and accurately.
+If the answer is not in the context, politely state that you do not have that information. Do NOT make up an answer.
 Respond in the same language as the user's question.
 
 Context: {docs}

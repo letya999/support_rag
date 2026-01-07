@@ -425,16 +425,17 @@ async def analyze_qa_metadata(file: UploadFile = None):
     """
     Analyze Q&A JSON file and generate metadata (categories, intents, handoff).
 
-    Uses hybrid approach:
-    1. Fast embedding-based classification (no training)
-    2. LLM validation for low-confidence predictions
-    3. Rule-based handoff detection
+    Uses CPU-first approach:
+    1. Sentence-transformers for embeddings
+    2. Sklearn clustering for category discovery
+    3. TF-IDF + patterns for naming
+    4. LLM validation ONLY for low-confidence cases
 
     Returns analysis with results ready for user review.
     """
     import json
     import uuid
-    from app.services.metadata_generation import HybridMetadataAnalyzer
+    from app.services.metadata_generation import AutoClassificationPipeline, HandoffDetector
     from app.cache.cache_layer import get_cache_manager
 
     if not file:
@@ -454,7 +455,7 @@ async def analyze_qa_metadata(file: UploadFile = None):
         if len(qa_pairs) > 10000:
             raise ValueError("Too many Q&A pairs (max 10,000)")
 
-        # Validate structure
+        # Validate structure - accept both simple and extended formats
         for idx, pair in enumerate(qa_pairs):
             if not isinstance(pair, dict):
                 raise ValueError(f"Item {idx} is not an object")
@@ -464,41 +465,103 @@ async def analyze_qa_metadata(file: UploadFile = None):
         # Generate analysis ID
         analysis_id = str(uuid.uuid4())
 
-        # Run analysis
-        print(f"[API] Starting metadata analysis for {len(qa_pairs)} Q&A pairs (ID: {analysis_id})")
+        # Run classification
+        print(f"[API] Starting auto-classification for {len(qa_pairs)} Q&A pairs (ID: {analysis_id})")
 
-        analyzer = HybridMetadataAnalyzer()
-        await analyzer.initialize()
+        classifier = AutoClassificationPipeline(
+            embedding_model="all-MiniLM-L6-v2",
+            distance_threshold=0.7,
+            confidence_threshold=0.65,
+            llm_validation_threshold=0.4
+        )
+        
+        handoff_detector = HandoffDetector()
 
-        result = await analyzer.analyze_batch(qa_pairs, analysis_id)
+        # Run classification pipeline
+        classification_results, discovered_categories = await classifier.classify_batch(
+            qa_pairs,
+            use_llm_validation=True
+        )
+        
+        # Get handoff detection
+        handoff_results = handoff_detector.detect_batch(qa_pairs)
+
+        # Build response with metadata
+        qa_with_metadata = []
+        high_confidence_count = 0
+        low_confidence_count = 0
+        
+        for idx, (qa, clf_result, handoff) in enumerate(zip(qa_pairs, classification_results, handoff_results)):
+            metadata = {
+                "category": clf_result.category,
+                "intent": clf_result.intent,
+                "requires_handoff": handoff["requires_handoff"],
+                "confidence_threshold": handoff["confidence_threshold"],
+                "clarifying_questions": handoff["clarifying_questions"],
+                "confidence_scores": {
+                    "category": clf_result.category_confidence,
+                    "intent": clf_result.intent_confidence,
+                    "validation_method": "llm" if clf_result.needs_llm_validation else "embedding"
+                }
+            }
+            
+            if clf_result.category_confidence >= 0.65:
+                high_confidence_count += 1
+            else:
+                low_confidence_count += 1
+            
+            qa_with_metadata.append({
+                "qa_index": idx,
+                "question": qa["question"],
+                "answer": qa["answer"][:200] + "..." if len(qa["answer"]) > 200 else qa["answer"],
+                "metadata": metadata
+            })
+
+        # Prepare result for caching
+        result_data = {
+            "analysis_id": analysis_id,
+            "total_pairs": len(qa_pairs),
+            "high_confidence_count": high_confidence_count,
+            "low_confidence_count": low_confidence_count,
+            "discovered_categories": [
+                {"name": cat.name, "keywords": cat.keywords, "question_count": len(cat.member_indices)}
+                for cat in discovered_categories
+            ],
+            "qa_pairs": [
+                {
+                    "qa_index": item["qa_index"],
+                    "question": qa_pairs[item["qa_index"]]["question"],
+                    "answer": qa_pairs[item["qa_index"]]["answer"],
+                    "metadata": item["metadata"]
+                }
+                for item in qa_with_metadata
+            ]
+        }
 
         # Cache the result
         cache = await get_cache_manager()
         await cache.set(
             f"metadata_analysis:{analysis_id}",
-            json.dumps(result.model_dump(), default=str),
+            json.dumps(result_data, default=str),
             ttl=3600  # 1 hour
         )
 
-        print(f"[API] Analysis complete. Embedding: {result.statistics['embedding_percentage']:.1f}%, LLM: {result.statistics['llm_percentage']:.1f}%")
+        print(f"[API] Analysis complete. {len(discovered_categories)} categories discovered.")
 
         return {
             "status": "success",
             "analysis_id": analysis_id,
-            "total_items": result.total_pairs,
-            "high_confidence": result.high_confidence_count,
-            "low_confidence": result.low_confidence_count,
-            "llm_validated": result.llm_validated_count,
-            "statistics": result.statistics,
-            "qa_pairs": [
-                {
-                    "qa_index": qa.qa_index,
-                    "question": qa.question,
-                    "answer": qa.answer[:200] + "..." if len(qa.answer) > 200 else qa.answer,
-                    "metadata": qa.metadata.model_dump()
-                }
-                for qa in result.qa_with_metadata
-            ]
+            "total_items": len(qa_pairs),
+            "high_confidence": high_confidence_count,
+            "low_confidence": low_confidence_count,
+            "discovered_categories": result_data["discovered_categories"],
+            "statistics": {
+                "total_items": len(qa_pairs),
+                "categories_discovered": len(discovered_categories),
+                "high_confidence_percentage": (high_confidence_count / len(qa_pairs)) * 100 if qa_pairs else 0,
+                "handoff_count": sum(1 for h in handoff_results if h["requires_handoff"])
+            },
+            "qa_pairs": qa_with_metadata
         }
 
     except ValueError as e:

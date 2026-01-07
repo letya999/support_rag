@@ -1,22 +1,19 @@
 """
 Metadata Generation Service
 
-Hybrid approach for automatic Q&A metadata generation:
-- Fast embedding-based classification (no ML training required)
-- LLM validation with context for low-confidence predictions
-- Rule-based handoff detection
+CPU-first automatic Q&A metadata generation:
+- Sentence-transformers for embeddings
+- Sklearn clustering for category discovery  
+- TF-IDF + patterns for category/intent naming
+- LLM validation ONLY for low-confidence cases (minimal API calls)
 """
 
-from .analyzer import HybridMetadataAnalyzer
-from .embedding_classifier import EmbeddingClassifier
-from .context_retriever import ContextRetriever
-from .llm_validator import LLMValidator
+from .auto_classifier import AutoClassificationPipeline, ClassificationResult, CategoryInfo
 from .handoff_detector import HandoffDetector
 
 __all__ = [
-    "HybridMetadataAnalyzer",
-    "EmbeddingClassifier",
-    "ContextRetriever",
-    "LLMValidator",
+    "AutoClassificationPipeline",
+    "ClassificationResult", 
+    "CategoryInfo",
     "HandoffDetector",
 ]
