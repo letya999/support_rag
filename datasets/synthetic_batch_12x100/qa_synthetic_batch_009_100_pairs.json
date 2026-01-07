@@ -1,0 +1,1945 @@
+[
+  {
+    "question": "Are there any hidden fees?",
+    "answer": "You can downgrade to a lower plan from Settings > Subscription. Downgrades take effect at the end of your current billing cycle. No refund is issued for the difference.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "upgrade_plan",
+      "requires_handoff": false,
+      "confidence_threshold": 0.78,
+      "clarifying_questions": [],
+      "tags": [
+        "billing",
+        "upgrade_plan",
+        "high_traffic",
+        "user_reported"
+      ],
+      "source_document": "synthetic_billing_0.json",
+      "generated_at": "2026-01-07T12:27:27.873620"
+    }
+  },
+  {
+    "question": "Can I get a refund?",
+    "answer": "Our refund policy allows refunds within 30 days of purchase for unused services. Contact our support team with your order details to initiate a refund.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "invoice_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.84,
+      "clarifying_questions": [],
+      "tags": [
+        "billing",
+        "invoice_help",
+        "urgent",
+        "enterprise_only"
+      ],
+      "source_document": "synthetic_billing_1.json",
+      "generated_at": "2026-01-07T12:27:27.873634"
+    }
+  },
+  {
+    "question": "Can you help me set up my first project?",
+    "answer": "Yes, we have interactive tutorials in the app. On your first login, you'll be guided through creating your first project. You can replay tutorials anytime from Help > Tutorials.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "onboarding_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.81,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "onboarding_help",
+        "api_related"
+      ],
+      "source_document": "synthetic_getting started_2.json",
+      "generated_at": "2026-01-07T12:27:27.873643"
+    }
+  },
+  {
+    "question": "What's the process to change my password please?",
+    "answer": "Visit Settings > Email & Contact to change your email address. You'll need to verify the new email address by clicking a confirmation link we'll send you.",
+    "metadata": {
+      "category": "Account",
+      "intent": "profile_update",
+      "requires_handoff": false,
+      "confidence_threshold": 0.79,
+      "clarifying_questions": [],
+      "tags": [
+        "account",
+        "profile_update",
+        "documented"
+      ],
+      "source_document": "synthetic_account_3.json",
+      "generated_at": "2026-01-07T12:27:27.873650"
+    }
+  },
+  {
+    "question": "I need help with: what's the process to change my password?",
+    "answer": "To update your profile, go to Settings > Profile Information. You can change your name, profile picture, and other personal details. Click 'Save Changes' when finished.",
+    "metadata": {
+      "category": "Account",
+      "intent": "profile_update",
+      "requires_handoff": false,
+      "confidence_threshold": 0.87,
+      "clarifying_questions": [],
+      "tags": [
+        "account",
+        "profile_update",
+        "documented"
+      ],
+      "source_document": "synthetic_account_4.json",
+      "generated_at": "2026-01-07T12:27:27.873659"
+    }
+  },
+  {
+    "question": "What integrations are available?",
+    "answer": "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_tutorial",
+      "requires_handoff": true,
+      "confidence_threshold": 0.91,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_tutorial",
+        "documented"
+      ],
+      "source_document": "synthetic_features_5.json",
+      "generated_at": "2026-01-07T12:27:27.873667"
+    }
+  },
+  {
+    "question": "When will I be charged exactly?",
+    "answer": "We don't charge any hidden fees. All costs are clearly displayed before checkout. Your invoice shows an itemized breakdown of all charges.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "payment_issue",
+      "requires_handoff": false,
+      "confidence_threshold": 0.87,
+      "clarifying_questions": [
+        "Which payment method did you try?",
+        "What error message did you receive?"
+      ],
+      "tags": [
+        "billing",
+        "payment_issue",
+        "faq"
+      ],
+      "source_document": "synthetic_billing_6.json",
+      "generated_at": "2026-01-07T12:27:27.873677"
+    }
+  },
+  {
+    "question": "Are there video tutorials?",
+    "answer": "We aim to respond to all support requests within 2 business hours during business hours (Mon-Fri, 9AM-6PM UTC). Premium support includes 1-hour response times.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "first_steps",
+      "requires_handoff": false,
+      "confidence_threshold": 0.95,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "first_steps",
+        "high_traffic",
+        "documented",
+        "api_related"
+      ],
+      "source_document": "synthetic_getting started_7.json",
+      "generated_at": "2026-01-07T12:27:27.873684"
+    }
+  },
+  {
+    "question": "What is your refund policy?",
+    "answer": "To cancel, go to Settings > Subscription > Cancel Subscription. We'll provide a summary of your final charges. Your access continues until the end of your billing period.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "subscription_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.89,
+      "clarifying_questions": [],
+      "tags": [
+        "billing",
+        "subscription_help",
+        "documented",
+        "user_reported",
+        "enterprise_only"
+      ],
+      "source_document": "synthetic_billing_8.json",
+      "generated_at": "2026-01-07T12:27:27.873691"
+    }
+  },
+  {
+    "question": "What's the process to change my password?",
+    "answer": "To reset your password, click the 'Forgot Password' link on the login page, enter your email address, and follow the instructions sent to your email. You'll receive a temporary password reset link that expires in 24 hours.",
+    "metadata": {
+      "category": "Account",
+      "intent": "reset_password",
+      "requires_handoff": false,
+      "confidence_threshold": 0.72,
+      "clarifying_questions": [
+        "Do you have access to the email associated with your account?",
+        "Are you trying to reset your password on the web app or mobile?"
+      ],
+      "tags": [
+        "account",
+        "reset_password",
+        "seasonal"
+      ],
+      "source_document": "synthetic_account_9.json",
+      "generated_at": "2026-01-07T12:27:27.873699"
+    }
+  },
+  {
+    "question": "What's the difference between plans please?",
+    "answer": "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_tutorial",
+      "requires_handoff": false,
+      "confidence_threshold": 0.89,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_tutorial",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_features_10.json",
+      "generated_at": "2026-01-07T12:27:27.873706"
+    }
+  },
+  {
+    "question": "I need help with: how long is the trial period?",
+    "answer": "Welcome! Start with our Getting Started guide at example.com/docs/getting-started. It covers account creation, project setup, and key features.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "setup_guide",
+      "requires_handoff": false,
+      "confidence_threshold": 0.77,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "setup_guide",
+        "documented",
+        "user_reported",
+        "enterprise_only"
+      ],
+      "source_document": "synthetic_getting started_11.json",
+      "generated_at": "2026-01-07T12:27:27.873713"
+    }
+  },
+  {
+    "question": "How do I set up webhooks?",
+    "answer": "API rate limits are 1,000 requests per minute for standard accounts and 10,000 for enterprise. Use exponential backoff when hitting limits. Premium accounts can request higher limits.",
+    "metadata": {
+      "category": "Technical",
+      "intent": "performance_issue",
+      "requires_handoff": false,
+      "confidence_threshold": 0.93,
+      "clarifying_questions": [],
+      "tags": [
+        "technical",
+        "performance_issue",
+        "enterprise_only",
+        "faq",
+        "api_related"
+      ],
+      "source_document": "synthetic_technical_12.json",
+      "generated_at": "2026-01-07T12:27:27.873720"
+    }
+  },
+  {
+    "question": "Where can I find my billing history exactly?",
+    "answer": "You can view all your invoices in Settings > Billing > Invoice History. Invoices are generated on the first day of each billing cycle and are available as PDF downloads.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "payment_issue",
+      "requires_handoff": true,
+      "confidence_threshold": 0.88,
+      "clarifying_questions": [
+        "What error message did you receive?",
+        "Which payment method did you try?"
+      ],
+      "tags": [
+        "billing",
+        "payment_issue",
+        "user_reported",
+        "faq",
+        "enterprise_only"
+      ],
+      "source_document": "synthetic_billing_13.json",
+      "generated_at": "2026-01-07T12:27:27.873728"
+    }
+  },
+  {
+    "question": "What's your support response time?",
+    "answer": "We aim to respond to all support requests within 2 business hours during business hours (Mon-Fri, 9AM-6PM UTC). Premium support includes 1-hour response times.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "documentation",
+      "requires_handoff": false,
+      "confidence_threshold": 0.72,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "documentation",
+        "enterprise_only",
+        "faq"
+      ],
+      "source_document": "synthetic_getting started_14.json",
+      "generated_at": "2026-01-07T12:27:27.873735"
+    }
+  },
+  {
+    "question": "What's the way to secure my account?",
+    "answer": "To update your profile, go to Settings > Profile Information. You can change your name, profile picture, and other personal details. Click 'Save Changes' when finished.",
+    "metadata": {
+      "category": "Account",
+      "intent": "login_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.78,
+      "clarifying_questions": [
+        "Have you recently changed your password?",
+        "Are you seeing any specific error messages?"
+      ],
+      "tags": [
+        "account",
+        "login_help",
+        "api_related"
+      ],
+      "source_document": "synthetic_account_15.json",
+      "generated_at": "2026-01-07T12:27:27.873743"
+    }
+  },
+  {
+    "question": "Can you help me update my profile information?",
+    "answer": "To reset your password, click the 'Forgot Password' link on the login page, enter your email address, and follow the instructions sent to your email. You'll receive a temporary password reset link that expires in 24 hours.",
+    "metadata": {
+      "category": "Account",
+      "intent": "login_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.86,
+      "clarifying_questions": [
+        "Are you seeing any specific error messages?",
+        "Have you recently changed your password?"
+      ],
+      "tags": [
+        "account",
+        "login_help",
+        "documented"
+      ],
+      "source_document": "synthetic_account_16.json",
+      "generated_at": "2026-01-07T12:27:27.873752"
+    }
+  },
+  {
+    "question": "How do I secure my account please?",
+    "answer": "Account security is important to us. Enable 2FA, use a strong password, monitor login activity, and never share your credentials with anyone.",
+    "metadata": {
+      "category": "Account",
+      "intent": "reset_password",
+      "requires_handoff": false,
+      "confidence_threshold": 0.72,
+      "clarifying_questions": [
+        "Are you trying to reset your password on the web app or mobile?",
+        "Do you have access to the email associated with your account?"
+      ],
+      "tags": [
+        "account",
+        "reset_password",
+        "documented"
+      ],
+      "source_document": "synthetic_account_17.json",
+      "generated_at": "2026-01-07T12:27:27.873759"
+    }
+  },
+  {
+    "question": "I need help with: how do I set up alerts?",
+    "answer": "Yes, we support importing from CSV, JSON, and direct API connections. Use the Import Wizard in Settings > Data > Import to get started.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_availability",
+      "requires_handoff": false,
+      "confidence_threshold": 0.89,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_availability",
+        "api_related"
+      ],
+      "source_document": "synthetic_features_18.json",
+      "generated_at": "2026-01-07T12:27:27.873766"
+    }
+  },
+  {
+    "question": "How do I troubleshoot API errors?",
+    "answer": "Performance depends on your query complexity and data size. Use caching, optimize queries, and consider upgrading to a higher-tier plan with better resources.",
+    "metadata": {
+      "category": "Technical",
+      "intent": "error_troubleshooting",
+      "requires_handoff": false,
+      "confidence_threshold": 0.84,
+      "clarifying_questions": [],
+      "tags": [
+        "technical",
+        "error_troubleshooting",
+        "beta_feature",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_technical_19.json",
+      "generated_at": "2026-01-07T12:27:27.873773"
+    }
+  },
+  {
+    "question": "Are there video tutorials exactly?",
+    "answer": "Our service works on any modern browser (Chrome, Firefox, Safari, Edge). No software installation required. Check docs for API client requirements.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "onboarding_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.84,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "onboarding_help",
+        "urgent",
+        "common_question"
+      ],
+      "source_document": "synthetic_getting started_20.json",
+      "generated_at": "2026-01-07T12:27:27.873780"
+    }
+  },
+  {
+    "question": "How do I update my payment method?",
+    "answer": "You can downgrade to a lower plan from Settings > Subscription. Downgrades take effect at the end of your current billing cycle. No refund is issued for the difference.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "payment_issue",
+      "requires_handoff": false,
+      "confidence_threshold": 0.72,
+      "clarifying_questions": [
+        "What error message did you receive?",
+        "Which payment method did you try?"
+      ],
+      "tags": [
+        "billing",
+        "payment_issue",
+        "documented",
+        "common_question"
+      ],
+      "source_document": "synthetic_billing_21.json",
+      "generated_at": "2026-01-07T12:27:27.873789"
+    }
+  },
+  {
+    "question": "What's the process to change my password?",
+    "answer": "Account security is important to us. Enable 2FA, use a strong password, monitor login activity, and never share your credentials with anyone.",
+    "metadata": {
+      "category": "Account",
+      "intent": "reset_password",
+      "requires_handoff": false,
+      "confidence_threshold": 0.88,
+      "clarifying_questions": [
+        "Are you trying to reset your password on the web app or mobile?",
+        "Do you have access to the email associated with your account?"
+      ],
+      "tags": [
+        "account",
+        "reset_password",
+        "common_question"
+      ],
+      "source_document": "synthetic_account_22.json",
+      "generated_at": "2026-01-07T12:27:27.873797"
+    }
+  },
+  {
+    "question": "Can you help me use the API?",
+    "answer": "Authenticate using API keys. Include your key in the Authorization header: 'Authorization: Bearer YOUR_API_KEY'. Keys can be created in Settings > API Keys.",
+    "metadata": {
+      "category": "Technical",
+      "intent": "performance_issue",
+      "requires_handoff": false,
+      "confidence_threshold": 0.83,
+      "clarifying_questions": [],
+      "tags": [
+        "technical",
+        "performance_issue",
+        "user_reported"
+      ],
+      "source_document": "synthetic_technical_23.json",
+      "generated_at": "2026-01-07T12:27:27.873804"
+    }
+  },
+  {
+    "question": "How do I create reports please?",
+    "answer": "Integrations are available for Slack, Zapier, Salesforce, HubSpot, and more. Connect integrations in Settings > Integrations using OAuth or API keys.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_tutorial",
+      "requires_handoff": false,
+      "confidence_threshold": 0.9,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_tutorial",
+        "common_question",
+        "urgent",
+        "beta_feature"
+      ],
+      "source_document": "synthetic_features_24.json",
+      "generated_at": "2026-01-07T12:27:27.873811"
+    }
+  },
+  {
+    "question": "I need help with: what authentication methods are supported?",
+    "answer": "Yes, we support webhooks for real-time event notifications. Configure webhooks in Settings > Webhooks. All webhook deliveries include retry logic with exponential backoff.",
+    "metadata": {
+      "category": "Technical",
+      "intent": "integration_support",
+      "requires_handoff": true,
+      "confidence_threshold": 0.82,
+      "clarifying_questions": [],
+      "tags": [
+        "technical",
+        "integration_support",
+        "urgent",
+        "common_question"
+      ],
+      "source_document": "synthetic_technical_25.json",
+      "generated_at": "2026-01-07T12:27:27.873819"
+    }
+  },
+  {
+    "question": "How do I manage permissions?",
+    "answer": "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_request",
+      "requires_handoff": false,
+      "confidence_threshold": 0.76,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_request",
+        "seasonal",
+        "beta_feature"
+      ],
+      "source_document": "synthetic_features_26.json",
+      "generated_at": "2026-01-07T12:27:27.873825"
+    }
+  },
+  {
+    "question": "Can I change my billing cycle exactly?",
+    "answer": "You can downgrade to a lower plan from Settings > Subscription. Downgrades take effect at the end of your current billing cycle. No refund is issued for the difference.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "subscription_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.7,
+      "clarifying_questions": [],
+      "tags": [
+        "billing",
+        "subscription_help",
+        "beta_feature",
+        "user_reported"
+      ],
+      "source_document": "synthetic_billing_27.json",
+      "generated_at": "2026-01-07T12:27:27.873832"
+    }
+  },
+  {
+    "question": "What payment methods are accepted?",
+    "answer": "Yes, you can pause your subscription for up to 3 months from Settings > Subscription > Pause Subscription. Your data will be preserved, and you can resume anytime.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "subscription_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.82,
+      "clarifying_questions": [],
+      "tags": [
+        "billing",
+        "subscription_help",
+        "faq",
+        "common_question",
+        "documented"
+      ],
+      "source_document": "synthetic_billing_28.json",
+      "generated_at": "2026-01-07T12:27:27.873839"
+    }
+  },
+  {
+    "question": "Are there video tutorials?",
+    "answer": "Yes, we have interactive tutorials in the app. On your first login, you'll be guided through creating your first project. You can replay tutorials anytime from Help > Tutorials.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "first_steps",
+      "requires_handoff": false,
+      "confidence_threshold": 0.74,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "first_steps",
+        "user_reported"
+      ],
+      "source_document": "synthetic_getting started_29.json",
+      "generated_at": "2026-01-07T12:27:27.873845"
+    }
+  },
+  {
+    "question": "Can you help me downgrade my plan?",
+    "answer": "We don't charge any hidden fees. All costs are clearly displayed before checkout. Your invoice shows an itemized breakdown of all charges.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "refund_request",
+      "requires_handoff": false,
+      "confidence_threshold": 0.76,
+      "clarifying_questions": [],
+      "tags": [
+        "billing",
+        "refund_request",
+        "documented"
+      ],
+      "source_document": "synthetic_billing_30.json",
+      "generated_at": "2026-01-07T12:27:27.873852"
+    }
+  },
+  {
+    "question": "How do I reset my password please?",
+    "answer": "To reset your password, click the 'Forgot Password' link on the login page, enter your email address, and follow the instructions sent to your email. You'll receive a temporary password reset link that expires in 24 hours.",
+    "metadata": {
+      "category": "Account",
+      "intent": "reset_password",
+      "requires_handoff": false,
+      "confidence_threshold": 0.94,
+      "clarifying_questions": [
+        "Are you trying to reset your password on the web app or mobile?",
+        "Do you have access to the email associated with your account?"
+      ],
+      "tags": [
+        "account",
+        "reset_password",
+        "faq",
+        "common_question",
+        "user_reported"
+      ],
+      "source_document": "synthetic_account_31.json",
+      "generated_at": "2026-01-07T12:27:27.873861"
+    }
+  },
+  {
+    "question": "I need help with: what are the system requirements?",
+    "answer": "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "onboarding_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.75,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "onboarding_help",
+        "urgent"
+      ],
+      "source_document": "synthetic_getting started_32.json",
+      "generated_at": "2026-01-07T12:27:27.873870"
+    }
+  },
+  {
+    "question": "Can I import data from other platforms?",
+    "answer": "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_limitation",
+      "requires_handoff": false,
+      "confidence_threshold": 0.72,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_limitation",
+        "api_related",
+        "user_reported"
+      ],
+      "source_document": "synthetic_features_33.json",
+      "generated_at": "2026-01-07T12:27:27.873877"
+    }
+  },
+  {
+    "question": "How do I contact support exactly?",
+    "answer": "Our service works on any modern browser (Chrome, Firefox, Safari, Edge). No software installation required. Check docs for API client requirements.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "first_steps",
+      "requires_handoff": false,
+      "confidence_threshold": 0.92,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "first_steps",
+        "beta_feature"
+      ],
+      "source_document": "synthetic_getting started_34.json",
+      "generated_at": "2026-01-07T12:27:27.873884"
+    }
+  },
+  {
+    "question": "What information can I update in my account?",
+    "answer": "To update your profile, go to Settings > Profile Information. You can change your name, profile picture, and other personal details. Click 'Save Changes' when finished.",
+    "metadata": {
+      "category": "Account",
+      "intent": "email_change",
+      "requires_handoff": true,
+      "confidence_threshold": 0.86,
+      "clarifying_questions": [],
+      "tags": [
+        "account",
+        "email_change",
+        "common_question",
+        "seasonal",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_account_35.json",
+      "generated_at": "2026-01-07T12:27:27.873891"
+    }
+  },
+  {
+    "question": "What does a 429 error mean?",
+    "answer": "Yes, we support webhooks for real-time event notifications. Configure webhooks in Settings > Webhooks. All webhook deliveries include retry logic with exponential backoff.",
+    "metadata": {
+      "category": "Technical",
+      "intent": "compatibility",
+      "requires_handoff": false,
+      "confidence_threshold": 0.82,
+      "clarifying_questions": [],
+      "tags": [
+        "technical",
+        "compatibility",
+        "seasonal"
+      ],
+      "source_document": "synthetic_technical_36.json",
+      "generated_at": "2026-01-07T12:27:27.873898"
+    }
+  },
+  {
+    "question": "Can you help me downgrade my plan?",
+    "answer": "To cancel, go to Settings > Subscription > Cancel Subscription. We'll provide a summary of your final charges. Your access continues until the end of your billing period.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "upgrade_plan",
+      "requires_handoff": true,
+      "confidence_threshold": 0.78,
+      "clarifying_questions": [],
+      "tags": [
+        "billing",
+        "upgrade_plan",
+        "api_related",
+        "seasonal",
+        "user_reported"
+      ],
+      "source_document": "synthetic_billing_37.json",
+      "generated_at": "2026-01-07T12:27:27.873904"
+    }
+  },
+  {
+    "question": "How do I create reports please?",
+    "answer": "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_availability",
+      "requires_handoff": false,
+      "confidence_threshold": 0.8,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_availability",
+        "faq",
+        "user_reported",
+        "common_question"
+      ],
+      "source_document": "synthetic_features_38.json",
+      "generated_at": "2026-01-07T12:27:27.873915"
+    }
+  },
+  {
+    "question": "I need help with: how can I reset my account password?",
+    "answer": "You can secure your account by enabling two-factor authentication in your security settings. We also recommend using a strong, unique password and updating it regularly.",
+    "metadata": {
+      "category": "Account",
+      "intent": "reset_password",
+      "requires_handoff": false,
+      "confidence_threshold": 0.73,
+      "clarifying_questions": [
+        "Are you trying to reset your password on the web app or mobile?",
+        "Do you have access to the email associated with your account?"
+      ],
+      "tags": [
+        "account",
+        "reset_password",
+        "enterprise_only",
+        "documented",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_account_39.json",
+      "generated_at": "2026-01-07T12:27:27.873923"
+    }
+  },
+  {
+    "question": "I can't remember my password, how do I recover it?",
+    "answer": "You can secure your account by enabling two-factor authentication in your security settings. We also recommend using a strong, unique password and updating it regularly.",
+    "metadata": {
+      "category": "Account",
+      "intent": "email_change",
+      "requires_handoff": false,
+      "confidence_threshold": 0.92,
+      "clarifying_questions": [],
+      "tags": [
+        "account",
+        "email_change",
+        "beta_feature",
+        "enterprise_only",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_account_40.json",
+      "generated_at": "2026-01-07T12:27:27.873929"
+    }
+  },
+  {
+    "question": "How do I downgrade my plan exactly?",
+    "answer": "Billing typically occurs on the same day each month. You'll receive an invoice via email before payment is processed.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "subscription_help",
+      "requires_handoff": true,
+      "confidence_threshold": 0.88,
+      "clarifying_questions": [],
+      "tags": [
+        "billing",
+        "subscription_help",
+        "enterprise_only"
+      ],
+      "source_document": "synthetic_billing_41.json",
+      "generated_at": "2026-01-07T12:27:27.873935"
+    }
+  },
+  {
+    "question": "Where can I find documentation?",
+    "answer": "Full documentation is at docs.example.com, including API reference, tutorials, FAQs, and best practices guides.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "onboarding_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.88,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "onboarding_help",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_getting started_42.json",
+      "generated_at": "2026-01-07T12:27:27.873941"
+    }
+  },
+  {
+    "question": "What's the way to set up my first project?",
+    "answer": "Our free trial lasts 14 days. You'll have access to all features. Before your trial ends, you can upgrade to a paid plan to continue using your projects.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "setup_guide",
+      "requires_handoff": true,
+      "confidence_threshold": 0.87,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "setup_guide",
+        "beta_feature",
+        "api_related",
+        "documented"
+      ],
+      "source_document": "synthetic_getting started_43.json",
+      "generated_at": "2026-01-07T12:27:27.873957"
+    }
+  },
+  {
+    "question": "What's the difference between plans?",
+    "answer": "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_limitation",
+      "requires_handoff": false,
+      "confidence_threshold": 0.89,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_limitation",
+        "enterprise_only",
+        "beta_feature"
+      ],
+      "source_document": "synthetic_features_44.json",
+      "generated_at": "2026-01-07T12:27:27.873963"
+    }
+  },
+  {
+    "question": "How do I create reports please?",
+    "answer": "Team members can be added in Settings > Team. Assign roles (Admin, Editor, Viewer) to control permissions. Enterprise plans support advanced permission management.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_availability",
+      "requires_handoff": false,
+      "confidence_threshold": 0.89,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_availability",
+        "faq"
+      ],
+      "source_document": "synthetic_features_45.json",
+      "generated_at": "2026-01-07T12:27:27.873969"
+    }
+  },
+  {
+    "question": "I need help with: what's the difference between plans?",
+    "answer": "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_request",
+      "requires_handoff": false,
+      "confidence_threshold": 0.89,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_request",
+        "faq"
+      ],
+      "source_document": "synthetic_features_46.json",
+      "generated_at": "2026-01-07T12:27:27.873975"
+    }
+  },
+  {
+    "question": "What's your support response time?",
+    "answer": "Welcome! Start with our Getting Started guide at example.com/docs/getting-started. It covers account creation, project setup, and key features.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "documentation",
+      "requires_handoff": true,
+      "confidence_threshold": 0.91,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "documentation",
+        "seasonal",
+        "enterprise_only",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_getting started_47.json",
+      "generated_at": "2026-01-07T12:27:27.873982"
+    }
+  },
+  {
+    "question": "How can I change my email address exactly?",
+    "answer": "You can secure your account by enabling two-factor authentication in your security settings. We also recommend using a strong, unique password and updating it regularly.",
+    "metadata": {
+      "category": "Account",
+      "intent": "login_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.84,
+      "clarifying_questions": [
+        "Are you seeing any specific error messages?",
+        "Have you recently changed your password?"
+      ],
+      "tags": [
+        "account",
+        "login_help",
+        "api_related",
+        "seasonal",
+        "faq"
+      ],
+      "source_document": "synthetic_account_48.json",
+      "generated_at": "2026-01-07T12:27:27.873990"
+    }
+  },
+  {
+    "question": "Where can I find my billing history?",
+    "answer": "You can downgrade to a lower plan from Settings > Subscription. Downgrades take effect at the end of your current billing cycle. No refund is issued for the difference.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "payment_issue",
+      "requires_handoff": false,
+      "confidence_threshold": 0.86,
+      "clarifying_questions": [
+        "What error message did you receive?",
+        "Which payment method did you try?"
+      ],
+      "tags": [
+        "billing",
+        "payment_issue",
+        "enterprise_only",
+        "common_question"
+      ],
+      "source_document": "synthetic_billing_49.json",
+      "generated_at": "2026-01-07T12:27:27.873997"
+    }
+  },
+  {
+    "question": "Why is my application slow?",
+    "answer": "Yes, we support webhooks for real-time event notifications. Configure webhooks in Settings > Webhooks. All webhook deliveries include retry logic with exponential backoff.",
+    "metadata": {
+      "category": "Technical",
+      "intent": "integration_support",
+      "requires_handoff": false,
+      "confidence_threshold": 0.73,
+      "clarifying_questions": [],
+      "tags": [
+        "technical",
+        "integration_support",
+        "faq",
+        "seasonal"
+      ],
+      "source_document": "synthetic_technical_50.json",
+      "generated_at": "2026-01-07T12:27:27.874003"
+    }
+  },
+  {
+    "question": "Can you help me update my account details?",
+    "answer": "Account security is important to us. Enable 2FA, use a strong password, monitor login activity, and never share your credentials with anyone.",
+    "metadata": {
+      "category": "Account",
+      "intent": "login_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.84,
+      "clarifying_questions": [
+        "Have you recently changed your password?",
+        "Are you seeing any specific error messages?"
+      ],
+      "tags": [
+        "account",
+        "login_help",
+        "faq",
+        "api_related",
+        "urgent"
+      ],
+      "source_document": "synthetic_account_51.json",
+      "generated_at": "2026-01-07T12:27:27.874011"
+    }
+  },
+  {
+    "question": "How do I view my invoices please?",
+    "answer": "We don't charge any hidden fees. All costs are clearly displayed before checkout. Your invoice shows an itemized breakdown of all charges.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "subscription_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.88,
+      "clarifying_questions": [],
+      "tags": [
+        "billing",
+        "subscription_help",
+        "beta_feature"
+      ],
+      "source_document": "synthetic_billing_52.json",
+      "generated_at": "2026-01-07T12:27:27.874019"
+    }
+  },
+  {
+    "question": "I need help with: can I pause my subscription?",
+    "answer": "We don't charge any hidden fees. All costs are clearly displayed before checkout. Your invoice shows an itemized breakdown of all charges.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "payment_issue",
+      "requires_handoff": true,
+      "confidence_threshold": 0.87,
+      "clarifying_questions": [
+        "What error message did you receive?",
+        "Which payment method did you try?"
+      ],
+      "tags": [
+        "billing",
+        "payment_issue",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_billing_53.json",
+      "generated_at": "2026-01-07T12:27:27.874031"
+    }
+  },
+  {
+    "question": "How do I request a refund?",
+    "answer": "To cancel, go to Settings > Subscription > Cancel Subscription. We'll provide a summary of your final charges. Your access continues until the end of your billing period.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "payment_issue",
+      "requires_handoff": false,
+      "confidence_threshold": 0.79,
+      "clarifying_questions": [
+        "What error message did you receive?",
+        "Which payment method did you try?"
+      ],
+      "tags": [
+        "billing",
+        "payment_issue",
+        "user_reported",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_billing_54.json",
+      "generated_at": "2026-01-07T12:27:27.874042"
+    }
+  },
+  {
+    "question": "What's the difference between plans exactly?",
+    "answer": "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_request",
+      "requires_handoff": true,
+      "confidence_threshold": 0.88,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_request",
+        "common_question"
+      ],
+      "source_document": "synthetic_features_55.json",
+      "generated_at": "2026-01-07T12:27:27.874051"
+    }
+  },
+  {
+    "question": "What's your support response time?",
+    "answer": "Yes! Check our YouTube channel for video tutorials, webinars, and product updates. Subscribe for the latest content.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "documentation",
+      "requires_handoff": false,
+      "confidence_threshold": 0.94,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "documentation",
+        "faq"
+      ],
+      "source_document": "synthetic_getting started_56.json",
+      "generated_at": "2026-01-07T12:27:27.874060"
+    }
+  },
+  {
+    "question": "What's the way to set up my first project?",
+    "answer": "Yes! Check our YouTube channel for video tutorials, webinars, and product updates. Subscribe for the latest content.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "onboarding_help",
+      "requires_handoff": true,
+      "confidence_threshold": 0.91,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "onboarding_help",
+        "high_traffic",
+        "urgent"
+      ],
+      "source_document": "synthetic_getting started_57.json",
+      "generated_at": "2026-01-07T12:27:27.874071"
+    }
+  },
+  {
+    "question": "Are there video tutorials?",
+    "answer": "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "onboarding_help",
+      "requires_handoff": true,
+      "confidence_threshold": 0.9,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "onboarding_help",
+        "urgent",
+        "seasonal",
+        "faq"
+      ],
+      "source_document": "synthetic_getting started_58.json",
+      "generated_at": "2026-01-07T12:27:27.874078"
+    }
+  },
+  {
+    "question": "What export formats are supported please?",
+    "answer": "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_tutorial",
+      "requires_handoff": false,
+      "confidence_threshold": 0.82,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_tutorial",
+        "user_reported",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_features_59.json",
+      "generated_at": "2026-01-07T12:27:27.874084"
+    }
+  },
+  {
+    "question": "I need help with: i can't remember my password, how do I recover it?",
+    "answer": "Account security is important to us. Enable 2FA, use a strong password, monitor login activity, and never share your credentials with anyone.",
+    "metadata": {
+      "category": "Account",
+      "intent": "login_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.81,
+      "clarifying_questions": [
+        "Are you seeing any specific error messages?",
+        "Have you recently changed your password?"
+      ],
+      "tags": [
+        "account",
+        "login_help",
+        "seasonal",
+        "enterprise_only"
+      ],
+      "source_document": "synthetic_account_60.json",
+      "generated_at": "2026-01-07T12:27:27.874092"
+    }
+  },
+  {
+    "question": "What integrations are available?",
+    "answer": "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_tutorial",
+      "requires_handoff": false,
+      "confidence_threshold": 0.82,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_tutorial",
+        "api_related"
+      ],
+      "source_document": "synthetic_features_61.json",
+      "generated_at": "2026-01-07T12:27:27.874098"
+    }
+  },
+  {
+    "question": "I forgot my password, what should I do exactly?",
+    "answer": "You can secure your account by enabling two-factor authentication in your security settings. We also recommend using a strong, unique password and updating it regularly.",
+    "metadata": {
+      "category": "Account",
+      "intent": "profile_update",
+      "requires_handoff": false,
+      "confidence_threshold": 0.94,
+      "clarifying_questions": [],
+      "tags": [
+        "account",
+        "profile_update",
+        "common_question",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_account_62.json",
+      "generated_at": "2026-01-07T12:27:27.874104"
+    }
+  },
+  {
+    "question": "Are there video tutorials?",
+    "answer": "Our service works on any modern browser (Chrome, Firefox, Safari, Edge). No software installation required. Check docs for API client requirements.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "first_steps",
+      "requires_handoff": false,
+      "confidence_threshold": 0.86,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "first_steps",
+        "user_reported"
+      ],
+      "source_document": "synthetic_getting started_63.json",
+      "generated_at": "2026-01-07T12:27:27.874111"
+    }
+  },
+  {
+    "question": "What's the difference between plans?",
+    "answer": "Integrations are available for Slack, Zapier, Salesforce, HubSpot, and more. Connect integrations in Settings > Integrations using OAuth or API keys.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_availability",
+      "requires_handoff": false,
+      "confidence_threshold": 0.75,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_availability",
+        "faq",
+        "common_question"
+      ],
+      "source_document": "synthetic_features_64.json",
+      "generated_at": "2026-01-07T12:27:27.874121"
+    }
+  },
+  {
+    "question": "How long is the trial period?",
+    "answer": "Our free trial lasts 14 days. You'll have access to all features. Before your trial ends, you can upgrade to a paid plan to continue using your projects.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "onboarding_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.77,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "onboarding_help",
+        "enterprise_only",
+        "common_question"
+      ],
+      "source_document": "synthetic_getting started_65.json",
+      "generated_at": "2026-01-07T12:27:27.874128"
+    }
+  },
+  {
+    "question": "How do I set up webhooks please?",
+    "answer": "We provide SDKs for Python, JavaScript, Java, Go, and Ruby. Check our GitHub repository for official SDKs and community-maintained libraries.",
+    "metadata": {
+      "category": "Technical",
+      "intent": "performance_issue",
+      "requires_handoff": true,
+      "confidence_threshold": 0.89,
+      "clarifying_questions": [],
+      "tags": [
+        "technical",
+        "performance_issue",
+        "faq"
+      ],
+      "source_document": "synthetic_technical_66.json",
+      "generated_at": "2026-01-07T12:27:27.874134"
+    }
+  },
+  {
+    "question": "I need help with: what integrations are available?",
+    "answer": "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_request",
+      "requires_handoff": true,
+      "confidence_threshold": 0.77,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_request",
+        "enterprise_only",
+        "documented",
+        "faq"
+      ],
+      "source_document": "synthetic_features_67.json",
+      "generated_at": "2026-01-07T12:27:27.874140"
+    }
+  },
+  {
+    "question": "Are there any hidden fees?",
+    "answer": "To cancel, go to Settings > Subscription > Cancel Subscription. We'll provide a summary of your final charges. Your access continues until the end of your billing period.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "invoice_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.95,
+      "clarifying_questions": [],
+      "tags": [
+        "billing",
+        "invoice_help",
+        "faq",
+        "enterprise_only"
+      ],
+      "source_document": "synthetic_billing_68.json",
+      "generated_at": "2026-01-07T12:27:27.874146"
+    }
+  },
+  {
+    "question": "Is there SDK support for my language exactly?",
+    "answer": "A 401 error means your API key is invalid, expired, or missing. Check that you're using the correct key and it's included in the Authorization header.",
+    "metadata": {
+      "category": "Technical",
+      "intent": "compatibility",
+      "requires_handoff": false,
+      "confidence_threshold": 0.71,
+      "clarifying_questions": [],
+      "tags": [
+        "technical",
+        "compatibility",
+        "enterprise_only",
+        "urgent",
+        "faq"
+      ],
+      "source_document": "synthetic_technical_69.json",
+      "generated_at": "2026-01-07T12:27:27.874153"
+    }
+  },
+  {
+    "question": "What information can I update in my account?",
+    "answer": "Visit Settings > Email & Contact to change your email address. You'll need to verify the new email address by clicking a confirmation link we'll send you.",
+    "metadata": {
+      "category": "Account",
+      "intent": "login_help",
+      "requires_handoff": true,
+      "confidence_threshold": 0.89,
+      "clarifying_questions": [
+        "Are you seeing any specific error messages?",
+        "Have you recently changed your password?"
+      ],
+      "tags": [
+        "account",
+        "login_help",
+        "enterprise_only"
+      ],
+      "source_document": "synthetic_account_70.json",
+      "generated_at": "2026-01-07T12:27:27.874160"
+    }
+  },
+  {
+    "question": "Why is my application slow?",
+    "answer": "Yes, we support webhooks for real-time event notifications. Configure webhooks in Settings > Webhooks. All webhook deliveries include retry logic with exponential backoff.",
+    "metadata": {
+      "category": "Technical",
+      "intent": "integration_support",
+      "requires_handoff": false,
+      "confidence_threshold": 0.79,
+      "clarifying_questions": [],
+      "tags": [
+        "technical",
+        "integration_support",
+        "enterprise_only",
+        "api_related"
+      ],
+      "source_document": "synthetic_technical_71.json",
+      "generated_at": "2026-01-07T12:27:27.874167"
+    }
+  },
+  {
+    "question": "Is there a free trial available?",
+    "answer": "Yes! Check our YouTube channel for video tutorials, webinars, and product updates. Subscribe for the latest content.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "documentation",
+      "requires_handoff": true,
+      "confidence_threshold": 0.84,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "documentation",
+        "common_question"
+      ],
+      "source_document": "synthetic_getting started_72.json",
+      "generated_at": "2026-01-07T12:27:27.874174"
+    }
+  },
+  {
+    "question": "What's the difference between plans please?",
+    "answer": "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_tutorial",
+      "requires_handoff": false,
+      "confidence_threshold": 0.91,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_tutorial",
+        "documented"
+      ],
+      "source_document": "synthetic_features_73.json",
+      "generated_at": "2026-01-07T12:27:27.874179"
+    }
+  },
+  {
+    "question": "I need help with: can I add team members?",
+    "answer": "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_limitation",
+      "requires_handoff": false,
+      "confidence_threshold": 0.9,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_limitation",
+        "documented"
+      ],
+      "source_document": "synthetic_features_74.json",
+      "generated_at": "2026-01-07T12:27:27.874186"
+    }
+  },
+  {
+    "question": "How long is the trial period?",
+    "answer": "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "setup_guide",
+      "requires_handoff": true,
+      "confidence_threshold": 0.94,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "setup_guide",
+        "faq"
+      ],
+      "source_document": "synthetic_getting started_75.json",
+      "generated_at": "2026-01-07T12:27:27.874192"
+    }
+  },
+  {
+    "question": "How can I reset my account password exactly?",
+    "answer": "You can secure your account by enabling two-factor authentication in your security settings. We also recommend using a strong, unique password and updating it regularly.",
+    "metadata": {
+      "category": "Account",
+      "intent": "reset_password",
+      "requires_handoff": false,
+      "confidence_threshold": 0.91,
+      "clarifying_questions": [
+        "Do you have access to the email associated with your account?",
+        "Are you trying to reset your password on the web app or mobile?"
+      ],
+      "tags": [
+        "account",
+        "reset_password",
+        "beta_feature",
+        "common_question"
+      ],
+      "source_document": "synthetic_account_76.json",
+      "generated_at": "2026-01-07T12:27:27.874199"
+    }
+  },
+  {
+    "question": "How do I set up my first project?",
+    "answer": "Contact us through the Help > Contact Support section in your dashboard. You can also email support@example.com or chat with us during business hours.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "setup_guide",
+      "requires_handoff": false,
+      "confidence_threshold": 0.85,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "setup_guide",
+        "common_question"
+      ],
+      "source_document": "synthetic_getting started_77.json",
+      "generated_at": "2026-01-07T12:27:27.874205"
+    }
+  },
+  {
+    "question": "When will I be charged?",
+    "answer": "We don't charge any hidden fees. All costs are clearly displayed before checkout. Your invoice shows an itemized breakdown of all charges.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "subscription_help",
+      "requires_handoff": true,
+      "confidence_threshold": 0.89,
+      "clarifying_questions": [],
+      "tags": [
+        "billing",
+        "subscription_help",
+        "enterprise_only",
+        "api_related"
+      ],
+      "source_document": "synthetic_billing_78.json",
+      "generated_at": "2026-01-07T12:27:27.874210"
+    }
+  },
+  {
+    "question": "Can you help me reset my password?",
+    "answer": "You can secure your account by enabling two-factor authentication in your security settings. We also recommend using a strong, unique password and updating it regularly.",
+    "metadata": {
+      "category": "Account",
+      "intent": "profile_update",
+      "requires_handoff": false,
+      "confidence_threshold": 0.9,
+      "clarifying_questions": [],
+      "tags": [
+        "account",
+        "profile_update",
+        "urgent",
+        "user_reported"
+      ],
+      "source_document": "synthetic_account_79.json",
+      "generated_at": "2026-01-07T12:27:27.874216"
+    }
+  },
+  {
+    "question": "How long is the trial period please?",
+    "answer": "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "first_steps",
+      "requires_handoff": false,
+      "confidence_threshold": 0.75,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "first_steps",
+        "common_question",
+        "documented",
+        "urgent"
+      ],
+      "source_document": "synthetic_getting started_80.json",
+      "generated_at": "2026-01-07T12:27:27.874222"
+    }
+  },
+  {
+    "question": "I need help with: what export formats are supported?",
+    "answer": "Integrations are available for Slack, Zapier, Salesforce, HubSpot, and more. Connect integrations in Settings > Integrations using OAuth or API keys.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_availability",
+      "requires_handoff": false,
+      "confidence_threshold": 0.73,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_availability",
+        "common_question"
+      ],
+      "source_document": "synthetic_features_81.json",
+      "generated_at": "2026-01-07T12:27:27.874229"
+    }
+  },
+  {
+    "question": "How do I get started?",
+    "answer": "Yes! Check our YouTube channel for video tutorials, webinars, and product updates. Subscribe for the latest content.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "onboarding_help",
+      "requires_handoff": true,
+      "confidence_threshold": 0.94,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "onboarding_help",
+        "user_reported"
+      ],
+      "source_document": "synthetic_getting started_82.json",
+      "generated_at": "2026-01-07T12:27:27.874235"
+    }
+  },
+  {
+    "question": "How do I use the API exactly?",
+    "answer": "Our API documentation is available at docs.example.com/api. We provide REST and GraphQL endpoints with comprehensive guides and code examples for popular languages.",
+    "metadata": {
+      "category": "Technical",
+      "intent": "error_troubleshooting",
+      "requires_handoff": false,
+      "confidence_threshold": 0.76,
+      "clarifying_questions": [],
+      "tags": [
+        "technical",
+        "error_troubleshooting",
+        "seasonal",
+        "user_reported",
+        "faq"
+      ],
+      "source_document": "synthetic_technical_83.json",
+      "generated_at": "2026-01-07T12:27:27.874241"
+    }
+  },
+  {
+    "question": "Is there a free trial available?",
+    "answer": "Yes! Check our YouTube channel for video tutorials, webinars, and product updates. Subscribe for the latest content.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "documentation",
+      "requires_handoff": false,
+      "confidence_threshold": 0.84,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "documentation",
+        "enterprise_only",
+        "common_question"
+      ],
+      "source_document": "synthetic_getting started_84.json",
+      "generated_at": "2026-01-07T12:27:27.874247"
+    }
+  },
+  {
+    "question": "Can I get a refund?",
+    "answer": "Billing typically occurs on the same day each month. You'll receive an invoice via email before payment is processed.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "invoice_help",
+      "requires_handoff": true,
+      "confidence_threshold": 0.88,
+      "clarifying_questions": [],
+      "tags": [
+        "billing",
+        "invoice_help",
+        "documented",
+        "seasonal",
+        "urgent"
+      ],
+      "source_document": "synthetic_billing_85.json",
+      "generated_at": "2026-01-07T12:27:27.874253"
+    }
+  },
+  {
+    "question": "Are there video tutorials?",
+    "answer": "Our free trial lasts 14 days. You'll have access to all features. Before your trial ends, you can upgrade to a paid plan to continue using your projects.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "setup_guide",
+      "requires_handoff": true,
+      "confidence_threshold": 0.88,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "setup_guide",
+        "common_question",
+        "urgent",
+        "faq"
+      ],
+      "source_document": "synthetic_getting started_86.json",
+      "generated_at": "2026-01-07T12:27:27.874259"
+    }
+  },
+  {
+    "question": "Is there a free trial available please?",
+    "answer": "Create a project from your dashboard. Click 'New Project', enter a name and description, select your industry, and configure your preferences.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "setup_guide",
+      "requires_handoff": true,
+      "confidence_threshold": 0.92,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "setup_guide",
+        "common_question",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_getting started_87.json",
+      "generated_at": "2026-01-07T12:27:27.874264"
+    }
+  },
+  {
+    "question": "I need help with: what's your support response time?",
+    "answer": "Create a project from your dashboard. Click 'New Project', enter a name and description, select your industry, and configure your preferences.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "onboarding_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.81,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "onboarding_help",
+        "api_related"
+      ],
+      "source_document": "synthetic_getting started_88.json",
+      "generated_at": "2026-01-07T12:27:27.874270"
+    }
+  },
+  {
+    "question": "How do I contact support?",
+    "answer": "Contact us through the Help > Contact Support section in your dashboard. You can also email support@example.com or chat with us during business hours.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "first_steps",
+      "requires_handoff": true,
+      "confidence_threshold": 0.86,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "first_steps",
+        "faq",
+        "documented"
+      ],
+      "source_document": "synthetic_getting started_89.json",
+      "generated_at": "2026-01-07T12:27:27.874276"
+    }
+  },
+  {
+    "question": "What's your support response time exactly?",
+    "answer": "Full documentation is at docs.example.com, including API reference, tutorials, FAQs, and best practices guides.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "documentation",
+      "requires_handoff": true,
+      "confidence_threshold": 0.8,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "documentation",
+        "enterprise_only",
+        "high_traffic",
+        "api_related"
+      ],
+      "source_document": "synthetic_getting started_90.json",
+      "generated_at": "2026-01-07T12:27:27.874282"
+    }
+  },
+  {
+    "question": "What export formats are supported?",
+    "answer": "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode.",
+    "metadata": {
+      "category": "Features",
+      "intent": "feature_availability",
+      "requires_handoff": false,
+      "confidence_threshold": 0.72,
+      "clarifying_questions": [],
+      "tags": [
+        "features",
+        "feature_availability",
+        "api_related",
+        "seasonal"
+      ],
+      "source_document": "synthetic_features_91.json",
+      "generated_at": "2026-01-07T12:27:27.874288"
+    }
+  },
+  {
+    "question": "I can't remember my password, how do I recover it?",
+    "answer": "Account security is important to us. Enable 2FA, use a strong password, monitor login activity, and never share your credentials with anyone.",
+    "metadata": {
+      "category": "Account",
+      "intent": "email_change",
+      "requires_handoff": false,
+      "confidence_threshold": 0.71,
+      "clarifying_questions": [],
+      "tags": [
+        "account",
+        "email_change",
+        "user_reported",
+        "beta_feature",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_account_92.json",
+      "generated_at": "2026-01-07T12:27:27.874293"
+    }
+  },
+  {
+    "question": "Why is my application slow?",
+    "answer": "We provide SDKs for Python, JavaScript, Java, Go, and Ruby. Check our GitHub repository for official SDKs and community-maintained libraries.",
+    "metadata": {
+      "category": "Technical",
+      "intent": "performance_issue",
+      "requires_handoff": false,
+      "confidence_threshold": 0.92,
+      "clarifying_questions": [],
+      "tags": [
+        "technical",
+        "performance_issue",
+        "urgent"
+      ],
+      "source_document": "synthetic_technical_93.json",
+      "generated_at": "2026-01-07T12:27:27.874300"
+    }
+  },
+  {
+    "question": "Is there a free trial available please?",
+    "answer": "Full documentation is at docs.example.com, including API reference, tutorials, FAQs, and best practices guides.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "setup_guide",
+      "requires_handoff": false,
+      "confidence_threshold": 0.87,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "setup_guide",
+        "seasonal",
+        "high_traffic"
+      ],
+      "source_document": "synthetic_getting started_94.json",
+      "generated_at": "2026-01-07T12:27:27.874305"
+    }
+  },
+  {
+    "question": "I need help with: how do I request a refund?",
+    "answer": "Our refund policy allows refunds within 30 days of purchase for unused services. Contact our support team with your order details to initiate a refund.",
+    "metadata": {
+      "category": "Billing",
+      "intent": "refund_request",
+      "requires_handoff": false,
+      "confidence_threshold": 0.89,
+      "clarifying_questions": [],
+      "tags": [
+        "billing",
+        "refund_request",
+        "api_related"
+      ],
+      "source_document": "synthetic_billing_95.json",
+      "generated_at": "2026-01-07T12:27:27.874311"
+    }
+  },
+  {
+    "question": "How do I reset my password?",
+    "answer": "To update your profile, go to Settings > Profile Information. You can change your name, profile picture, and other personal details. Click 'Save Changes' when finished.",
+    "metadata": {
+      "category": "Account",
+      "intent": "profile_update",
+      "requires_handoff": false,
+      "confidence_threshold": 0.7,
+      "clarifying_questions": [],
+      "tags": [
+        "account",
+        "profile_update",
+        "enterprise_only",
+        "beta_feature"
+      ],
+      "source_document": "synthetic_account_96.json",
+      "generated_at": "2026-01-07T12:27:27.874317"
+    }
+  },
+  {
+    "question": "What information can I update in my account exactly?",
+    "answer": "Account security is important to us. Enable 2FA, use a strong password, monitor login activity, and never share your credentials with anyone.",
+    "metadata": {
+      "category": "Account",
+      "intent": "login_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.93,
+      "clarifying_questions": [
+        "Are you seeing any specific error messages?",
+        "Have you recently changed your password?"
+      ],
+      "tags": [
+        "account",
+        "login_help",
+        "urgent",
+        "api_related"
+      ],
+      "source_document": "synthetic_account_97.json",
+      "generated_at": "2026-01-07T12:27:27.874324"
+    }
+  },
+  {
+    "question": "How do I improve performance?",
+    "answer": "Our API documentation is available at docs.example.com/api. We provide REST and GraphQL endpoints with comprehensive guides and code examples for popular languages.",
+    "metadata": {
+      "category": "Technical",
+      "intent": "integration_support",
+      "requires_handoff": true,
+      "confidence_threshold": 0.72,
+      "clarifying_questions": [],
+      "tags": [
+        "technical",
+        "integration_support",
+        "user_reported",
+        "enterprise_only"
+      ],
+      "source_document": "synthetic_technical_98.json",
+      "generated_at": "2026-01-07T12:27:27.874331"
+    }
+  },
+  {
+    "question": "Is there a free trial available?",
+    "answer": "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up.",
+    "metadata": {
+      "category": "Getting Started",
+      "intent": "onboarding_help",
+      "requires_handoff": false,
+      "confidence_threshold": 0.91,
+      "clarifying_questions": [],
+      "tags": [
+        "getting started",
+        "onboarding_help",
+        "user_reported",
+        "urgent"
+      ],
+      "source_document": "synthetic_getting started_99.json",
+      "generated_at": "2026-01-07T12:27:27.874337"
+    }
+  }
+]
