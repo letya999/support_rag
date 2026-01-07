@@ -182,7 +182,15 @@ if __name__ == "__main__":
         default="datasets/qa_data.json",
         help="Path to the JSON file containing Q&A data"
     )
+    parser.add_argument(
+        "--qdrant-url",
+        type=str,
+        help="Override Qdrant URL (e.g., http://localhost:6333)"
+    )
     args = parser.parse_args()
+    
+    if args.qdrant_url:
+        settings.QDRANT_URL = args.qdrant_url
     
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

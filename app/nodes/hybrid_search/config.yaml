@@ -11,6 +11,8 @@ parameters:
   score_threshold: 0.4
   use_or_logic: true
   min_word_length: 2
+  # Применять фильтр по категории к lexical search (как и к vector search)
+  apply_category_filter_to_lexical: true
 
 # Текстовые настройки
 config:

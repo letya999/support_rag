@@ -214,7 +214,7 @@ async def rag_query(request: RAGRequestBody):
 
         # Format response for Telegram bot
         # Use escalation_message if answer is not set but escalation was triggered
-        answer = result.get("answer") or result.get("escalation_message", "Не смог найти ответ.")
+        answer = result.get("answer") or result.get("escalation_message") or "Не смог найти ответ."
         sources = result.get("best_doc_metadata", [])
         confidence = result.get("confidence", 0.0)
         query_id = result.get("query_id", session_id)

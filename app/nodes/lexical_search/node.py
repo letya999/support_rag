@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from app.observability.tracing import observe
 from app.storage.models import SearchResult
 from app.nodes.lexical_search.storage import lexical_search_db
@@ -38,7 +38,8 @@ class LexicalSearchNode(BaseNode):
 async def lexical_search_node(
     query: str, 
     top_k: int = 10,
-    detected_language: str = None
+    detected_language: Optional[str] = None,
+    category_filter: Optional[str] = None
 ) -> List[SearchResult]:
     """
     Execute lexical search (BM25/FTS).
@@ -47,11 +48,13 @@ async def lexical_search_node(
         query: Search query
         top_k: Number of results to return
         detected_language: Optional language code from language_detection node
+        category_filter: Optional category to filter documents by (controlled by config)
     """
     return await lexical_search_db(
         query, 
         top_k=top_k,
-        detected_language=detected_language
+        detected_language=detected_language,
+        category_filter=category_filter
     )
 
 # For backward compatibility and graph integration

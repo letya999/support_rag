@@ -77,6 +77,12 @@ async def search_hybrid(
         category_filter: Optional category filter
         detected_language: Language detected by language_detection node (for lexical search translation)
     """
+    params = get_node_params("hybrid_search")
+    apply_filter_to_lexical = params.get("apply_category_filter_to_lexical", True)
+    
+    # Determine lexical filter based on config
+    lexical_category_filter = category_filter if apply_filter_to_lexical else None
+    
     # Run both searches in parallel
     # Vector search uses multilingual embeddings (no translation needed)
     # Lexical search uses translation based on detected_language
@@ -88,7 +94,8 @@ async def search_hybrid(
     lexical_task = lexical_search_node(
         query, 
         top_k=top_k * 2,
-        detected_language=detected_language
+        detected_language=detected_language,
+        category_filter=lexical_category_filter
     )
     
     vector_results, lexical_results = await asyncio.gather(vector_task, lexical_task)

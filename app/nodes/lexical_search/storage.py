@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import re
 import time
 from langfuse import observe
@@ -10,7 +10,8 @@ async def lexical_search_db(
     query: str, 
     top_k: int = 3,
     detected_language: str = None,
-    document_language: str = "ru"
+    document_language: str = "ru",
+    category_filter: Optional[str] = None
 ) -> List[SearchResult]:
     """
     Search for documents using PostgreSQL full-text search.
@@ -23,6 +24,7 @@ async def lexical_search_db(
         top_k: Number of results to return
         detected_language: Language detected by language_detection node (optional, for logging)
         document_language: Primary language of documents in the database (default: 'ru')
+        category_filter: Optional category to filter by (from config, not hardcoded)
     """
     from app.services.config_loader.loader import get_global_param
     
@@ -30,7 +32,8 @@ async def lexical_search_db(
     if document_language == "ru":
         document_language = get_global_param("default_language", "ru")
     
-    print(f"🔍 Lexical search for: '{query}' (document_language={document_language})")
+    filter_info = f", category_filter={category_filter}" if category_filter else ""
+    print(f"🔍 Lexical search for: '{query}' (document_language={document_language}{filter_info})")
     
     # Helper to construct OR-based tsquery string
     def clean_query_for_tsquery(text: str) -> str:
@@ -68,9 +71,8 @@ async def lexical_search_db(
     async with get_db_connection() as conn:
         async with conn.cursor() as cur:
             try:
-                # Optimized query using search_vector (GIN indexed)
-                await cur.execute(
-                    """
+                # Build query dynamically based on whether category_filter is provided
+                base_query = """
                     SELECT 
                         content, 
                         ts_rank_cd(search_vector, query) AS score, 
@@ -78,24 +80,36 @@ async def lexical_search_db(
                     FROM documents, 
                          (SELECT to_tsquery(%s, %s) AS query) AS q
                     WHERE search_vector @@ query
-                    ORDER BY score DESC
-                    LIMIT %s;
-                    """,
-                    (tsquery_config, tsquery_str, top_k)
-                )
+                """
+                params = [tsquery_config, tsquery_str]
+                
+                if category_filter:
+                    base_query += " AND metadata->>'category' = %s"
+                    params.append(category_filter)
+                
+                base_query += " ORDER BY score DESC LIMIT %s;"
+                params.append(top_k)
+                
+                await cur.execute(base_query, tuple(params))
                 rows = await cur.fetchall()
             except Exception as e:
                 print(f"Index scan failed, falling back: {e}")
                 # Fallback to simple query if something goes wrong
-                await cur.execute(
-                    """
+                fallback_query = """
                     SELECT content, 0.0, metadata
                     FROM documents
                     WHERE content ILIKE %s
-                    LIMIT %s
-                    """,
-                    (f"%{query}%", top_k)
-                )
+                """
+                params = [f"%{query}%"]
+                
+                if category_filter:
+                    fallback_query += " AND metadata->>'category' = %s"
+                    params.append(category_filter)
+                
+                fallback_query += " LIMIT %s"
+                params.append(top_k)
+                
+                await cur.execute(fallback_query, tuple(params))
                 rows = await cur.fetchall()
 
             for row in rows:
