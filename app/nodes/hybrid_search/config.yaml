@@ -4,9 +4,9 @@ node:
 
 # Числовые и булевые параметры
 parameters:
-  vector_top_k: 10
-  lexical_top_k: 10
-  final_top_k: 10
+  vector_top_k: 5
+  lexical_top_k: 5
+  final_top_k: 5
   rrf_k: 60
   score_threshold: 0.0
   use_or_logic: true

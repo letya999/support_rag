@@ -4,7 +4,7 @@ node:
 
 # Числовые и булевые параметры
 parameters:
-  history_messages_count: 3
+  history_messages_count: 2
   include_assistant_responses: true
   min_message_length: 2
   llm_temperature: 0

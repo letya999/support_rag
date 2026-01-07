@@ -4,7 +4,7 @@ node:
 
 # Числовые и булевые параметры
 parameters:
-  max_history_messages: 5
+  max_history_messages: 3
   max_message_length: 300
   include_user_profile: true
   include_entities: true
