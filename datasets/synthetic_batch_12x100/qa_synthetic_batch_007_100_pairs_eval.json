@@ -1,0 +1,1202 @@
+[
+  {
+    "question": "How do I view my invoices?",
+    "expected_chunks": [
+      "We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for enterprise customers. You can update your payment method in Settings > Billing > Payment Methods."
+    ],
+    "expected_answer": "We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for enterprise customers. You can update your payment method in Settings > Billing > Payment Methods.",
+    "expected_intent": "payment_issue",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.79,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What's the way to upgrade my subscription?",
+    "expected_chunks": [
+      "We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for enterprise customers. You can update your payment method in Settings > Billing > Payment Methods."
+    ],
+    "expected_answer": "We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for enterprise customers. You can update your payment method in Settings > Billing > Payment Methods.",
+    "expected_intent": "invoice_help",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.71,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Can you help me set up my first project?",
+    "expected_chunks": [
+      "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up."
+    ],
+    "expected_answer": "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up.",
+    "expected_intent": "documentation",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.87,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How long is the trial period please?",
+    "expected_chunks": [
+      "Welcome! Start with our Getting Started guide at example.com/docs/getting-started. It covers account creation, project setup, and key features."
+    ],
+    "expected_answer": "Welcome! Start with our Getting Started guide at example.com/docs/getting-started. It covers account creation, project setup, and key features.",
+    "expected_intent": "first_steps",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.91,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: how do I troubleshoot API errors?",
+    "expected_chunks": [
+      "API rate limits are 1,000 requests per minute for standard accounts and 10,000 for enterprise. Use exponential backoff when hitting limits. Premium accounts can request higher limits."
+    ],
+    "expected_answer": "API rate limits are 1,000 requests per minute for standard accounts and 10,000 for enterprise. Use exponential backoff when hitting limits. Premium accounts can request higher limits.",
+    "expected_intent": "integration_support",
+    "expected_category": "Technical",
+    "expected_action": "handoff",
+    "confidence_score": 0.83,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What's the difference between plans?",
+    "expected_chunks": [
+      "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics."
+    ],
+    "expected_answer": "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics.",
+    "expected_intent": "feature_request",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.88,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I contact support exactly?",
+    "expected_chunks": [
+      "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up."
+    ],
+    "expected_answer": "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up.",
+    "expected_intent": "first_steps",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.88,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What authentication methods are supported?",
+    "expected_chunks": [
+      "We provide SDKs for Python, JavaScript, Java, Go, and Ruby. Check our GitHub repository for official SDKs and community-maintained libraries."
+    ],
+    "expected_answer": "We provide SDKs for Python, JavaScript, Java, Go, and Ruby. Check our GitHub repository for official SDKs and community-maintained libraries.",
+    "expected_intent": "api_help",
+    "expected_category": "Technical",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.88,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What integrations are available?",
+    "expected_chunks": [
+      "Yes, we support importing from CSV, JSON, and direct API connections. Use the Import Wizard in Settings > Data > Import to get started."
+    ],
+    "expected_answer": "Yes, we support importing from CSV, JSON, and direct API connections. Use the Import Wizard in Settings > Data > Import to get started.",
+    "expected_intent": "feature_tutorial",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.87,
+    "difficulty": "easy"
+  },
+  {
+    "question": "How can I enable two-factor authentication?",
+    "expected_chunks": [
+      "To update your profile, go to Settings > Profile Information. You can change your name, profile picture, and other personal details. Click 'Save Changes' when finished."
+    ],
+    "expected_answer": "To update your profile, go to Settings > Profile Information. You can change your name, profile picture, and other personal details. Click 'Save Changes' when finished.",
+    "expected_intent": "profile_update",
+    "expected_category": "Account",
+    "expected_action": "handoff",
+    "confidence_score": 0.88,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I update my profile information please?",
+    "expected_chunks": [
+      "Visit Settings > Email & Contact to change your email address. You'll need to verify the new email address by clicking a confirmation link we'll send you."
+    ],
+    "expected_answer": "Visit Settings > Email & Contact to change your email address. You'll need to verify the new email address by clicking a confirmation link we'll send you.",
+    "expected_intent": "profile_update",
+    "expected_category": "Account",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.8,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: how do I get started?",
+    "expected_chunks": [
+      "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up."
+    ],
+    "expected_answer": "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up.",
+    "expected_intent": "first_steps",
+    "expected_category": "Getting Started",
+    "expected_action": "handoff",
+    "confidence_score": 0.94,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Is there a free trial available?",
+    "expected_chunks": [
+      "Our free trial lasts 14 days. You'll have access to all features. Before your trial ends, you can upgrade to a paid plan to continue using your projects."
+    ],
+    "expected_answer": "Our free trial lasts 14 days. You'll have access to all features. Before your trial ends, you can upgrade to a paid plan to continue using your projects.",
+    "expected_intent": "setup_guide",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.74,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What are the API rate limits exactly?",
+    "expected_chunks": [
+      "Our API documentation is available at docs.example.com/api. We provide REST and GraphQL endpoints with comprehensive guides and code examples for popular languages."
+    ],
+    "expected_answer": "Our API documentation is available at docs.example.com/api. We provide REST and GraphQL endpoints with comprehensive guides and code examples for popular languages.",
+    "expected_intent": "compatibility",
+    "expected_category": "Technical",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.76,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Are there any hidden fees?",
+    "expected_chunks": [
+      "You can view all your invoices in Settings > Billing > Invoice History. Invoices are generated on the first day of each billing cycle and are available as PDF downloads."
+    ],
+    "expected_answer": "You can view all your invoices in Settings > Billing > Invoice History. Invoices are generated on the first day of each billing cycle and are available as PDF downloads.",
+    "expected_intent": "payment_issue",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.8,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What payment methods are accepted?",
+    "expected_chunks": [
+      "To upgrade your plan, go to Settings > Subscription > Plans and select your desired plan. The upgrade takes effect immediately, and we'll prorate the charges based on your current billing cycle."
+    ],
+    "expected_answer": "To upgrade your plan, go to Settings > Subscription > Plans and select your desired plan. The upgrade takes effect immediately, and we'll prorate the charges based on your current billing cycle.",
+    "expected_intent": "refund_request",
+    "expected_category": "Billing",
+    "expected_action": "handoff",
+    "confidence_score": 0.81,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What integrations are available?",
+    "expected_chunks": [
+      "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode."
+    ],
+    "expected_answer": "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode.",
+    "expected_intent": "feature_request",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.8,
+    "difficulty": "easy"
+  },
+  {
+    "question": "I forgot my password, what should I do please?",
+    "expected_chunks": [
+      "To reset your password, click the 'Forgot Password' link on the login page, enter your email address, and follow the instructions sent to your email. You'll receive a temporary password reset link that expires in 24 hours."
+    ],
+    "expected_answer": "To reset your password, click the 'Forgot Password' link on the login page, enter your email address, and follow the instructions sent to your email. You'll receive a temporary password reset link tha...",
+    "expected_intent": "account_security",
+    "expected_category": "Account",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.85,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: how do I downgrade my plan?",
+    "expected_chunks": [
+      "We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for enterprise customers. You can update your payment method in Settings > Billing > Payment Methods."
+    ],
+    "expected_answer": "We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for enterprise customers. You can update your payment method in Settings > Billing > Payment Methods.",
+    "expected_intent": "payment_issue",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.87,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I set up alerts?",
+    "expected_chunks": [
+      "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics."
+    ],
+    "expected_answer": "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics.",
+    "expected_intent": "feature_request",
+    "expected_category": "Features",
+    "expected_action": "handoff",
+    "confidence_score": 0.84,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Is there a tutorial for new users exactly?",
+    "expected_chunks": [
+      "Welcome! Start with our Getting Started guide at example.com/docs/getting-started. It covers account creation, project setup, and key features."
+    ],
+    "expected_answer": "Welcome! Start with our Getting Started guide at example.com/docs/getting-started. It covers account creation, project setup, and key features.",
+    "expected_intent": "first_steps",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.73,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I forgot my password, what should I do?",
+    "expected_chunks": [
+      "Account security is important to us. Enable 2FA, use a strong password, monitor login activity, and never share your credentials with anyone."
+    ],
+    "expected_answer": "Account security is important to us. Enable 2FA, use a strong password, monitor login activity, and never share your credentials with anyone.",
+    "expected_intent": "account_security",
+    "expected_category": "Account",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.82,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What's the way to authenticate with the API?",
+    "expected_chunks": [
+      "Our API documentation is available at docs.example.com/api. We provide REST and GraphQL endpoints with comprehensive guides and code examples for popular languages."
+    ],
+    "expected_answer": "Our API documentation is available at docs.example.com/api. We provide REST and GraphQL endpoints with comprehensive guides and code examples for popular languages.",
+    "expected_intent": "api_help",
+    "expected_category": "Technical",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.77,
+    "difficulty": "medium"
+  },
+  {
+    "question": "When will I be charged?",
+    "expected_chunks": [
+      "To upgrade your plan, go to Settings > Subscription > Plans and select your desired plan. The upgrade takes effect immediately, and we'll prorate the charges based on your current billing cycle."
+    ],
+    "expected_answer": "To upgrade your plan, go to Settings > Subscription > Plans and select your desired plan. The upgrade takes effect immediately, and we'll prorate the charges based on your current billing cycle.",
+    "expected_intent": "subscription_help",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.91,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Is there a tutorial for new users please?",
+    "expected_chunks": [
+      "Our free trial lasts 14 days. You'll have access to all features. Before your trial ends, you can upgrade to a paid plan to continue using your projects."
+    ],
+    "expected_answer": "Our free trial lasts 14 days. You'll have access to all features. Before your trial ends, you can upgrade to a paid plan to continue using your projects.",
+    "expected_intent": "onboarding_help",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.8,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: can I add team members?",
+    "expected_chunks": [
+      "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode."
+    ],
+    "expected_answer": "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode.",
+    "expected_intent": "feature_request",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.94,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Where can I find documentation?",
+    "expected_chunks": [
+      "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up."
+    ],
+    "expected_answer": "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up.",
+    "expected_intent": "setup_guide",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.87,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Is there SDK support for my language exactly?",
+    "expected_chunks": [
+      "API rate limits are 1,000 requests per minute for standard accounts and 10,000 for enterprise. Use exponential backoff when hitting limits. Premium accounts can request higher limits."
+    ],
+    "expected_answer": "API rate limits are 1,000 requests per minute for standard accounts and 10,000 for enterprise. Use exponential backoff when hitting limits. Premium accounts can request higher limits.",
+    "expected_intent": "integration_support",
+    "expected_category": "Technical",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.7,
+    "difficulty": "medium"
+  },
+  {
+    "question": "When will I be charged?",
+    "expected_chunks": [
+      "You can downgrade to a lower plan from Settings > Subscription. Downgrades take effect at the end of your current billing cycle. No refund is issued for the difference."
+    ],
+    "expected_answer": "You can downgrade to a lower plan from Settings > Subscription. Downgrades take effect at the end of your current billing cycle. No refund is issued for the difference.",
+    "expected_intent": "payment_issue",
+    "expected_category": "Billing",
+    "expected_action": "handoff",
+    "confidence_score": 0.76,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What's the way to export data?",
+    "expected_chunks": [
+      "Integrations are available for Slack, Zapier, Salesforce, HubSpot, and more. Connect integrations in Settings > Integrations using OAuth or API keys."
+    ],
+    "expected_answer": "Integrations are available for Slack, Zapier, Salesforce, HubSpot, and more. Connect integrations in Settings > Integrations using OAuth or API keys.",
+    "expected_intent": "feature_limitation",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.94,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Is there a tutorial for new users?",
+    "expected_chunks": [
+      "Our free trial lasts 14 days. You'll have access to all features. Before your trial ends, you can upgrade to a paid plan to continue using your projects."
+    ],
+    "expected_answer": "Our free trial lasts 14 days. You'll have access to all features. Before your trial ends, you can upgrade to a paid plan to continue using your projects.",
+    "expected_intent": "onboarding_help",
+    "expected_category": "Getting Started",
+    "expected_action": "handoff",
+    "confidence_score": 0.79,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Can I customize the dashboard please?",
+    "expected_chunks": [
+      "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly."
+    ],
+    "expected_answer": "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly.",
+    "expected_intent": "feature_request",
+    "expected_category": "Features",
+    "expected_action": "handoff",
+    "confidence_score": 0.92,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: what's your support response time?",
+    "expected_chunks": [
+      "We aim to respond to all support requests within 2 business hours during business hours (Mon-Fri, 9AM-6PM UTC). Premium support includes 1-hour response times."
+    ],
+    "expected_answer": "We aim to respond to all support requests within 2 business hours during business hours (Mon-Fri, 9AM-6PM UTC). Premium support includes 1-hour response times.",
+    "expected_intent": "first_steps",
+    "expected_category": "Getting Started",
+    "expected_action": "handoff",
+    "confidence_score": 0.74,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I create reports?",
+    "expected_chunks": [
+      "Team members can be added in Settings > Team. Assign roles (Admin, Editor, Viewer) to control permissions. Enterprise plans support advanced permission management."
+    ],
+    "expected_answer": "Team members can be added in Settings > Team. Assign roles (Admin, Editor, Viewer) to control permissions. Enterprise plans support advanced permission management.",
+    "expected_intent": "feature_limitation",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.84,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What is your refund policy exactly?",
+    "expected_chunks": [
+      "To cancel, go to Settings > Subscription > Cancel Subscription. We'll provide a summary of your final charges. Your access continues until the end of your billing period."
+    ],
+    "expected_answer": "To cancel, go to Settings > Subscription > Cancel Subscription. We'll provide a summary of your final charges. Your access continues until the end of your billing period.",
+    "expected_intent": "invoice_help",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.8,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What export formats are supported?",
+    "expected_chunks": [
+      "Export data from Settings > Data > Export. We support CSV, JSON, and Excel formats. Exports are generated within 24 hours and sent to your registered email."
+    ],
+    "expected_answer": "Export data from Settings > Data > Export. We support CSV, JSON, and Excel formats. Exports are generated within 24 hours and sent to your registered email.",
+    "expected_intent": "feature_request",
+    "expected_category": "Features",
+    "expected_action": "handoff",
+    "confidence_score": 0.92,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What's the way to update my payment method?",
+    "expected_chunks": [
+      "You can view all your invoices in Settings > Billing > Invoice History. Invoices are generated on the first day of each billing cycle and are available as PDF downloads."
+    ],
+    "expected_answer": "You can view all your invoices in Settings > Billing > Invoice History. Invoices are generated on the first day of each billing cycle and are available as PDF downloads.",
+    "expected_intent": "payment_issue",
+    "expected_category": "Billing",
+    "expected_action": "handoff",
+    "confidence_score": 0.8,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What export formats are supported?",
+    "expected_chunks": [
+      "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly."
+    ],
+    "expected_answer": "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly.",
+    "expected_intent": "feature_limitation",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.73,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I downgrade my plan please?",
+    "expected_chunks": [
+      "We don't charge any hidden fees. All costs are clearly displayed before checkout. Your invoice shows an itemized breakdown of all charges."
+    ],
+    "expected_answer": "We don't charge any hidden fees. All costs are clearly displayed before checkout. Your invoice shows an itemized breakdown of all charges.",
+    "expected_intent": "invoice_help",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.74,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: are there video tutorials?",
+    "expected_chunks": [
+      "Create a project from your dashboard. Click 'New Project', enter a name and description, select your industry, and configure your preferences."
+    ],
+    "expected_answer": "Create a project from your dashboard. Click 'New Project', enter a name and description, select your industry, and configure your preferences.",
+    "expected_intent": "first_steps",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.95,
+    "difficulty": "medium"
+  },
+  {
+    "question": "When will I be charged?",
+    "expected_chunks": [
+      "We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for enterprise customers. You can update your payment method in Settings > Billing > Payment Methods."
+    ],
+    "expected_answer": "We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for enterprise customers. You can update your payment method in Settings > Billing > Payment Methods.",
+    "expected_intent": "refund_request",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.9,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What does a 429 error mean exactly?",
+    "expected_chunks": [
+      "Performance depends on your query complexity and data size. Use caching, optimize queries, and consider upgrading to a higher-tier plan with better resources."
+    ],
+    "expected_answer": "Performance depends on your query complexity and data size. Use caching, optimize queries, and consider upgrading to a higher-tier plan with better resources.",
+    "expected_intent": "error_troubleshooting",
+    "expected_category": "Technical",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.78,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I improve performance?",
+    "expected_chunks": [
+      "A 429 error indicates rate limiting. Wait before retrying. We recommend implementing exponential backoff (2s, 4s, 8s) between retries."
+    ],
+    "expected_answer": "A 429 error indicates rate limiting. Wait before retrying. We recommend implementing exponential backoff (2s, 4s, 8s) between retries.",
+    "expected_intent": "performance_issue",
+    "expected_category": "Technical",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.73,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What's the way to request a refund?",
+    "expected_chunks": [
+      "Yes, you can pause your subscription for up to 3 months from Settings > Subscription > Pause Subscription. Your data will be preserved, and you can resume anytime."
+    ],
+    "expected_answer": "Yes, you can pause your subscription for up to 3 months from Settings > Subscription > Pause Subscription. Your data will be preserved, and you can resume anytime.",
+    "expected_intent": "invoice_help",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.79,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How long is the trial period?",
+    "expected_chunks": [
+      "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up."
+    ],
+    "expected_answer": "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up.",
+    "expected_intent": "onboarding_help",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.72,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Where can I find documentation please?",
+    "expected_chunks": [
+      "We aim to respond to all support requests within 2 business hours during business hours (Mon-Fri, 9AM-6PM UTC). Premium support includes 1-hour response times."
+    ],
+    "expected_answer": "We aim to respond to all support requests within 2 business hours during business hours (Mon-Fri, 9AM-6PM UTC). Premium support includes 1-hour response times.",
+    "expected_intent": "first_steps",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.94,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: how do I troubleshoot API errors?",
+    "expected_chunks": [
+      "Authenticate using API keys. Include your key in the Authorization header: 'Authorization: Bearer YOUR_API_KEY'. Keys can be created in Settings > API Keys."
+    ],
+    "expected_answer": "Authenticate using API keys. Include your key in the Authorization header: 'Authorization: Bearer YOUR_API_KEY'. Keys can be created in Settings > API Keys.",
+    "expected_intent": "performance_issue",
+    "expected_category": "Technical",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.74,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I upgrade my subscription?",
+    "expected_chunks": [
+      "Billing typically occurs on the same day each month. You'll receive an invoice via email before payment is processed."
+    ],
+    "expected_answer": "Billing typically occurs on the same day each month. You'll receive an invoice via email before payment is processed.",
+    "expected_intent": "subscription_help",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.8,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I use the API exactly?",
+    "expected_chunks": [
+      "We provide SDKs for Python, JavaScript, Java, Go, and Ruby. Check our GitHub repository for official SDKs and community-maintained libraries."
+    ],
+    "expected_answer": "We provide SDKs for Python, JavaScript, Java, Go, and Ruby. Check our GitHub repository for official SDKs and community-maintained libraries.",
+    "expected_intent": "error_troubleshooting",
+    "expected_category": "Technical",
+    "expected_action": "handoff",
+    "confidence_score": 0.93,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Where can I find documentation?",
+    "expected_chunks": [
+      "Create a project from your dashboard. Click 'New Project', enter a name and description, select your industry, and configure your preferences."
+    ],
+    "expected_answer": "Create a project from your dashboard. Click 'New Project', enter a name and description, select your industry, and configure your preferences.",
+    "expected_intent": "first_steps",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.8,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Where can I find documentation?",
+    "expected_chunks": [
+      "Full documentation is at docs.example.com, including API reference, tutorials, FAQs, and best practices guides."
+    ],
+    "expected_answer": "Full documentation is at docs.example.com, including API reference, tutorials, FAQs, and best practices guides.",
+    "expected_intent": "first_steps",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.93,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Can you help me set up webhooks?",
+    "expected_chunks": [
+      "We provide SDKs for Python, JavaScript, Java, Go, and Ruby. Check our GitHub repository for official SDKs and community-maintained libraries."
+    ],
+    "expected_answer": "We provide SDKs for Python, JavaScript, Java, Go, and Ruby. Check our GitHub repository for official SDKs and community-maintained libraries.",
+    "expected_intent": "api_help",
+    "expected_category": "Technical",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.87,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I authenticate with the API please?",
+    "expected_chunks": [
+      "Performance depends on your query complexity and data size. Use caching, optimize queries, and consider upgrading to a higher-tier plan with better resources."
+    ],
+    "expected_answer": "Performance depends on your query complexity and data size. Use caching, optimize queries, and consider upgrading to a higher-tier plan with better resources.",
+    "expected_intent": "compatibility",
+    "expected_category": "Technical",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.87,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: can I schedule automated reports?",
+    "expected_chunks": [
+      "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode."
+    ],
+    "expected_answer": "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode.",
+    "expected_intent": "feature_tutorial",
+    "expected_category": "Features",
+    "expected_action": "handoff",
+    "confidence_score": 0.77,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Are there any hidden fees?",
+    "expected_chunks": [
+      "To upgrade your plan, go to Settings > Subscription > Plans and select your desired plan. The upgrade takes effect immediately, and we'll prorate the charges based on your current billing cycle."
+    ],
+    "expected_answer": "To upgrade your plan, go to Settings > Subscription > Plans and select your desired plan. The upgrade takes effect immediately, and we'll prorate the charges based on your current billing cycle.",
+    "expected_intent": "upgrade_plan",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.82,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What export formats are supported exactly?",
+    "expected_chunks": [
+      "Yes, we support importing from CSV, JSON, and direct API connections. Use the Import Wizard in Settings > Data > Import to get started."
+    ],
+    "expected_answer": "Yes, we support importing from CSV, JSON, and direct API connections. Use the Import Wizard in Settings > Data > Import to get started.",
+    "expected_intent": "feature_request",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.78,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I get started?",
+    "expected_chunks": [
+      "Our free trial lasts 14 days. You'll have access to all features. Before your trial ends, you can upgrade to a paid plan to continue using your projects."
+    ],
+    "expected_answer": "Our free trial lasts 14 days. You'll have access to all features. Before your trial ends, you can upgrade to a paid plan to continue using your projects.",
+    "expected_intent": "onboarding_help",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.85,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What payment methods are accepted?",
+    "expected_chunks": [
+      "To cancel, go to Settings > Subscription > Cancel Subscription. We'll provide a summary of your final charges. Your access continues until the end of your billing period."
+    ],
+    "expected_answer": "To cancel, go to Settings > Subscription > Cancel Subscription. We'll provide a summary of your final charges. Your access continues until the end of your billing period.",
+    "expected_intent": "payment_issue",
+    "expected_category": "Billing",
+    "expected_action": "handoff",
+    "confidence_score": 0.76,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Is there a free trial available?",
+    "expected_chunks": [
+      "Our service works on any modern browser (Chrome, Firefox, Safari, Edge). No software installation required. Check docs for API client requirements."
+    ],
+    "expected_answer": "Our service works on any modern browser (Chrome, Firefox, Safari, Edge). No software installation required. Check docs for API client requirements.",
+    "expected_intent": "setup_guide",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.7,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I downgrade my plan please?",
+    "expected_chunks": [
+      "Yes, you can pause your subscription for up to 3 months from Settings > Subscription > Pause Subscription. Your data will be preserved, and you can resume anytime."
+    ],
+    "expected_answer": "Yes, you can pause your subscription for up to 3 months from Settings > Subscription > Pause Subscription. Your data will be preserved, and you can resume anytime.",
+    "expected_intent": "payment_issue",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.7,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: can I customize the dashboard?",
+    "expected_chunks": [
+      "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly."
+    ],
+    "expected_answer": "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly.",
+    "expected_intent": "feature_availability",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.77,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Where is the API documentation?",
+    "expected_chunks": [
+      "API rate limits are 1,000 requests per minute for standard accounts and 10,000 for enterprise. Use exponential backoff when hitting limits. Premium accounts can request higher limits."
+    ],
+    "expected_answer": "API rate limits are 1,000 requests per minute for standard accounts and 10,000 for enterprise. Use exponential backoff when hitting limits. Premium accounts can request higher limits.",
+    "expected_intent": "error_troubleshooting",
+    "expected_category": "Technical",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.72,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I contact support exactly?",
+    "expected_chunks": [
+      "Contact us through the Help > Contact Support section in your dashboard. You can also email support@example.com or chat with us during business hours."
+    ],
+    "expected_answer": "Contact us through the Help > Contact Support section in your dashboard. You can also email support@example.com or chat with us during business hours.",
+    "expected_intent": "setup_guide",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.94,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I set up my first project?",
+    "expected_chunks": [
+      "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up."
+    ],
+    "expected_answer": "Yes, we offer a free trial with full feature access for 14 days. No credit card required to sign up.",
+    "expected_intent": "onboarding_help",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.86,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Why am I getting a 401 error?",
+    "expected_chunks": [
+      "A 401 error means your API key is invalid, expired, or missing. Check that you're using the correct key and it's included in the Authorization header."
+    ],
+    "expected_answer": "A 401 error means your API key is invalid, expired, or missing. Check that you're using the correct key and it's included in the Authorization header.",
+    "expected_intent": "performance_issue",
+    "expected_category": "Technical",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.91,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What export formats are supported?",
+    "expected_chunks": [
+      "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics."
+    ],
+    "expected_answer": "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics.",
+    "expected_intent": "feature_availability",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.87,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What's the process to change my password please?",
+    "expected_chunks": [
+      "Visit Settings > Email & Contact to change your email address. You'll need to verify the new email address by clicking a confirmation link we'll send you."
+    ],
+    "expected_answer": "Visit Settings > Email & Contact to change your email address. You'll need to verify the new email address by clicking a confirmation link we'll send you.",
+    "expected_intent": "email_change",
+    "expected_category": "Account",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.85,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: can I schedule automated reports?",
+    "expected_chunks": [
+      "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode."
+    ],
+    "expected_answer": "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode.",
+    "expected_intent": "feature_tutorial",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.88,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What's your support response time?",
+    "expected_chunks": [
+      "Create a project from your dashboard. Click 'New Project', enter a name and description, select your industry, and configure your preferences."
+    ],
+    "expected_answer": "Create a project from your dashboard. Click 'New Project', enter a name and description, select your industry, and configure your preferences.",
+    "expected_intent": "setup_guide",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.88,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I get started exactly?",
+    "expected_chunks": [
+      "Yes, we have interactive tutorials in the app. On your first login, you'll be guided through creating your first project. You can replay tutorials anytime from Help > Tutorials."
+    ],
+    "expected_answer": "Yes, we have interactive tutorials in the app. On your first login, you'll be guided through creating your first project. You can replay tutorials anytime from Help > Tutorials.",
+    "expected_intent": "setup_guide",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.86,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I set up my first project?",
+    "expected_chunks": [
+      "Create a project from your dashboard. Click 'New Project', enter a name and description, select your industry, and configure your preferences."
+    ],
+    "expected_answer": "Create a project from your dashboard. Click 'New Project', enter a name and description, select your industry, and configure your preferences.",
+    "expected_intent": "onboarding_help",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.92,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What's the way to set up alerts?",
+    "expected_chunks": [
+      "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly."
+    ],
+    "expected_answer": "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly.",
+    "expected_intent": "feature_availability",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.92,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Can you help me set up alerts?",
+    "expected_chunks": [
+      "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics."
+    ],
+    "expected_answer": "Alerts notify you of important events via email or Slack. Configure alert rules in Settings > Alerts. You can set thresholds for various metrics.",
+    "expected_intent": "feature_availability",
+    "expected_category": "Features",
+    "expected_action": "handoff",
+    "confidence_score": 0.82,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Is there SDK support for my language please?",
+    "expected_chunks": [
+      "Authenticate using API keys. Include your key in the Authorization header: 'Authorization: Bearer YOUR_API_KEY'. Keys can be created in Settings > API Keys."
+    ],
+    "expected_answer": "Authenticate using API keys. Include your key in the Authorization header: 'Authorization: Bearer YOUR_API_KEY'. Keys can be created in Settings > API Keys.",
+    "expected_intent": "integration_support",
+    "expected_category": "Technical",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.76,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: how do I upgrade my subscription?",
+    "expected_chunks": [
+      "You can downgrade to a lower plan from Settings > Subscription. Downgrades take effect at the end of your current billing cycle. No refund is issued for the difference."
+    ],
+    "expected_answer": "You can downgrade to a lower plan from Settings > Subscription. Downgrades take effect at the end of your current billing cycle. No refund is issued for the difference.",
+    "expected_intent": "subscription_help",
+    "expected_category": "Billing",
+    "expected_action": "handoff",
+    "confidence_score": 0.92,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Where is the API documentation?",
+    "expected_chunks": [
+      "Performance depends on your query complexity and data size. Use caching, optimize queries, and consider upgrading to a higher-tier plan with better resources."
+    ],
+    "expected_answer": "Performance depends on your query complexity and data size. Use caching, optimize queries, and consider upgrading to a higher-tier plan with better resources.",
+    "expected_intent": "compatibility",
+    "expected_category": "Technical",
+    "expected_action": "handoff",
+    "confidence_score": 0.87,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What are the security features available exactly?",
+    "expected_chunks": [
+      "To reset your password, click the 'Forgot Password' link on the login page, enter your email address, and follow the instructions sent to your email. You'll receive a temporary password reset link that expires in 24 hours."
+    ],
+    "expected_answer": "To reset your password, click the 'Forgot Password' link on the login page, enter your email address, and follow the instructions sent to your email. You'll receive a temporary password reset link tha...",
+    "expected_intent": "email_change",
+    "expected_category": "Account",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.88,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What payment methods are accepted?",
+    "expected_chunks": [
+      "To upgrade your plan, go to Settings > Subscription > Plans and select your desired plan. The upgrade takes effect immediately, and we'll prorate the charges based on your current billing cycle."
+    ],
+    "expected_answer": "To upgrade your plan, go to Settings > Subscription > Plans and select your desired plan. The upgrade takes effect immediately, and we'll prorate the charges based on your current billing cycle.",
+    "expected_intent": "upgrade_plan",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.83,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What's the way to manage permissions?",
+    "expected_chunks": [
+      "Team members can be added in Settings > Team. Assign roles (Admin, Editor, Viewer) to control permissions. Enterprise plans support advanced permission management."
+    ],
+    "expected_answer": "Team members can be added in Settings > Team. Assign roles (Admin, Editor, Viewer) to control permissions. Enterprise plans support advanced permission management.",
+    "expected_intent": "feature_tutorial",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.82,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Where can I find documentation?",
+    "expected_chunks": [
+      "Contact us through the Help > Contact Support section in your dashboard. You can also email support@example.com or chat with us during business hours."
+    ],
+    "expected_answer": "Contact us through the Help > Contact Support section in your dashboard. You can also email support@example.com or chat with us during business hours.",
+    "expected_intent": "setup_guide",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.94,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I downgrade my plan please?",
+    "expected_chunks": [
+      "You can view all your invoices in Settings > Billing > Invoice History. Invoices are generated on the first day of each billing cycle and are available as PDF downloads."
+    ],
+    "expected_answer": "You can view all your invoices in Settings > Billing > Invoice History. Invoices are generated on the first day of each billing cycle and are available as PDF downloads.",
+    "expected_intent": "invoice_help",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.76,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: can I import data from other platforms?",
+    "expected_chunks": [
+      "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly."
+    ],
+    "expected_answer": "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly.",
+    "expected_intent": "feature_availability",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.82,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Is there a free trial available?",
+    "expected_chunks": [
+      "Welcome! Start with our Getting Started guide at example.com/docs/getting-started. It covers account creation, project setup, and key features."
+    ],
+    "expected_answer": "Welcome! Start with our Getting Started guide at example.com/docs/getting-started. It covers account creation, project setup, and key features.",
+    "expected_intent": "first_steps",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.83,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Are there any hidden fees exactly?",
+    "expected_chunks": [
+      "You can view all your invoices in Settings > Billing > Invoice History. Invoices are generated on the first day of each billing cycle and are available as PDF downloads."
+    ],
+    "expected_answer": "You can view all your invoices in Settings > Billing > Invoice History. Invoices are generated on the first day of each billing cycle and are available as PDF downloads.",
+    "expected_intent": "subscription_help",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.87,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I use the API?",
+    "expected_chunks": [
+      "A 429 error indicates rate limiting. Wait before retrying. We recommend implementing exponential backoff (2s, 4s, 8s) between retries."
+    ],
+    "expected_answer": "A 429 error indicates rate limiting. Wait before retrying. We recommend implementing exponential backoff (2s, 4s, 8s) between retries.",
+    "expected_intent": "performance_issue",
+    "expected_category": "Technical",
+    "expected_action": "handoff",
+    "confidence_score": 0.94,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What's your support response time?",
+    "expected_chunks": [
+      "Yes, we have interactive tutorials in the app. On your first login, you'll be guided through creating your first project. You can replay tutorials anytime from Help > Tutorials."
+    ],
+    "expected_answer": "Yes, we have interactive tutorials in the app. On your first login, you'll be guided through creating your first project. You can replay tutorials anytime from Help > Tutorials.",
+    "expected_intent": "documentation",
+    "expected_category": "Getting Started",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.76,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Can you help me update my profile information?",
+    "expected_chunks": [
+      "Account security is important to us. Enable 2FA, use a strong password, monitor login activity, and never share your credentials with anyone."
+    ],
+    "expected_answer": "Account security is important to us. Enable 2FA, use a strong password, monitor login activity, and never share your credentials with anyone.",
+    "expected_intent": "profile_update",
+    "expected_category": "Account",
+    "expected_action": "handoff",
+    "confidence_score": 0.9,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Can I change my billing cycle please?",
+    "expected_chunks": [
+      "To cancel, go to Settings > Subscription > Cancel Subscription. We'll provide a summary of your final charges. Your access continues until the end of your billing period."
+    ],
+    "expected_answer": "To cancel, go to Settings > Subscription > Cancel Subscription. We'll provide a summary of your final charges. Your access continues until the end of your billing period.",
+    "expected_intent": "invoice_help",
+    "expected_category": "Billing",
+    "expected_action": "handoff",
+    "confidence_score": 0.8,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: what's the difference between plans?",
+    "expected_chunks": [
+      "Integrations are available for Slack, Zapier, Salesforce, HubSpot, and more. Connect integrations in Settings > Integrations using OAuth or API keys."
+    ],
+    "expected_answer": "Integrations are available for Slack, Zapier, Salesforce, HubSpot, and more. Connect integrations in Settings > Integrations using OAuth or API keys.",
+    "expected_intent": "feature_request",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.71,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I reset my password?",
+    "expected_chunks": [
+      "You can secure your account by enabling two-factor authentication in your security settings. We also recommend using a strong, unique password and updating it regularly."
+    ],
+    "expected_answer": "You can secure your account by enabling two-factor authentication in your security settings. We also recommend using a strong, unique password and updating it regularly.",
+    "expected_intent": "login_help",
+    "expected_category": "Account",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.87,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Can I import data from other platforms exactly?",
+    "expected_chunks": [
+      "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode."
+    ],
+    "expected_answer": "Yes, you can fully customize your dashboard. Add, remove, and rearrange widgets. Click 'Customize' on your dashboard to enter edit mode.",
+    "expected_intent": "feature_tutorial",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.93,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I request a refund?",
+    "expected_chunks": [
+      "Yes, you can pause your subscription for up to 3 months from Settings > Subscription > Pause Subscription. Your data will be preserved, and you can resume anytime."
+    ],
+    "expected_answer": "Yes, you can pause your subscription for up to 3 months from Settings > Subscription > Pause Subscription. Your data will be preserved, and you can resume anytime.",
+    "expected_intent": "payment_issue",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.89,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Can I customize the dashboard?",
+    "expected_chunks": [
+      "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly."
+    ],
+    "expected_answer": "You can create custom reports from the Reports section. Select metrics, time periods, and visualization types. Reports can be scheduled daily, weekly, or monthly.",
+    "expected_intent": "feature_limitation",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.74,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Can I customize the dashboard?",
+    "expected_chunks": [
+      "Integrations are available for Slack, Zapier, Salesforce, HubSpot, and more. Connect integrations in Settings > Integrations using OAuth or API keys."
+    ],
+    "expected_answer": "Integrations are available for Slack, Zapier, Salesforce, HubSpot, and more. Connect integrations in Settings > Integrations using OAuth or API keys.",
+    "expected_intent": "feature_limitation",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.87,
+    "difficulty": "medium"
+  },
+  {
+    "question": "Can I schedule automated reports please?",
+    "expected_chunks": [
+      "Integrations are available for Slack, Zapier, Salesforce, HubSpot, and more. Connect integrations in Settings > Integrations using OAuth or API keys."
+    ],
+    "expected_answer": "Integrations are available for Slack, Zapier, Salesforce, HubSpot, and more. Connect integrations in Settings > Integrations using OAuth or API keys.",
+    "expected_intent": "feature_tutorial",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.89,
+    "difficulty": "medium"
+  },
+  {
+    "question": "I need help with: why am I getting a 401 error?",
+    "expected_chunks": [
+      "A 429 error indicates rate limiting. Wait before retrying. We recommend implementing exponential backoff (2s, 4s, 8s) between retries."
+    ],
+    "expected_answer": "A 429 error indicates rate limiting. Wait before retrying. We recommend implementing exponential backoff (2s, 4s, 8s) between retries.",
+    "expected_intent": "error_troubleshooting",
+    "expected_category": "Technical",
+    "expected_action": "handoff",
+    "confidence_score": 0.94,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I view my invoices?",
+    "expected_chunks": [
+      "We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for enterprise customers. You can update your payment method in Settings > Billing > Payment Methods."
+    ],
+    "expected_answer": "We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for enterprise customers. You can update your payment method in Settings > Billing > Payment Methods.",
+    "expected_intent": "refund_request",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.92,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I manage permissions exactly?",
+    "expected_chunks": [
+      "Yes, we support importing from CSV, JSON, and direct API connections. Use the Import Wizard in Settings > Data > Import to get started."
+    ],
+    "expected_answer": "Yes, we support importing from CSV, JSON, and direct API connections. Use the Import Wizard in Settings > Data > Import to get started.",
+    "expected_intent": "feature_request",
+    "expected_category": "Features",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.73,
+    "difficulty": "medium"
+  },
+  {
+    "question": "How do I view my invoices?",
+    "expected_chunks": [
+      "We don't charge any hidden fees. All costs are clearly displayed before checkout. Your invoice shows an itemized breakdown of all charges."
+    ],
+    "expected_answer": "We don't charge any hidden fees. All costs are clearly displayed before checkout. Your invoice shows an itemized breakdown of all charges.",
+    "expected_intent": "upgrade_plan",
+    "expected_category": "Billing",
+    "expected_action": "auto_reply",
+    "confidence_score": 0.88,
+    "difficulty": "medium"
+  },
+  {
+    "question": "What authentication methods are supported?",
+    "expected_chunks": [
+      "We provide SDKs for Python, JavaScript, Java, Go, and Ruby. Check our GitHub repository for official SDKs and community-maintained libraries."
+    ],
+    "expected_answer": "We provide SDKs for Python, JavaScript, Java, Go, and Ruby. Check our GitHub repository for official SDKs and community-maintained libraries.",
+    "expected_intent": "error_troubleshooting",
+    "expected_category": "Technical",
+    "expected_action": "handoff",
+    "confidence_score": 0.86,
+    "difficulty": "medium"
+  }
+]
