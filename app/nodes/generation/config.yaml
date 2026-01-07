@@ -4,8 +4,8 @@ node:
 
 # Числовые и булевые параметры
 parameters:
-  temperature: 0.3
-  max_tokens: 1000
+  temperature: 0.1
+  max_tokens: 750
   include_sources: true
   add_confidence_warning: true
   confidence_warning_threshold: 0.3

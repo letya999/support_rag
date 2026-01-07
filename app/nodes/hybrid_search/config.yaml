@@ -8,7 +8,7 @@ parameters:
   lexical_top_k: 5
   final_top_k: 5
   rrf_k: 60
-  score_threshold: 0.0
+  score_threshold: 0.4
   use_or_logic: true
   min_word_length: 2
 

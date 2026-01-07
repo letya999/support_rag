@@ -6,7 +6,7 @@ from app.nodes.state_machine.rules_engine import get_rules_engine, RulesEngine
 from app.nodes.state_machine.states_config import (
     TRANSITION_RULES, STATE_CONFIG, 
     INITIAL, ANSWER_PROVIDED, ESCALATION_NEEDED, ESCALATION_REQUESTED,
-    SAFETY_VIOLATION, EMPATHY_MODE, BLOCKED
+    SAFETY_VIOLATION, EMPATHY_MODE, BLOCKED, LOW_CONFIDENCE, STUCK_LOOP
 )
 
 
@@ -165,14 +165,21 @@ class StateMachineNode(BaseNode):
         
         # 3. Phase 5: Empathy Check (Post-processing)
         # If the determined state is a standard answer state, check if we need to enforce empathy
+        # BUT: Don't override escalation logic if we're close to max attempts
+        params = get_node_params("state_machine")
+        max_attempts = params.get("max_attempts_before_handoff", 3)
+        
         if new_state in [ANSWER_PROVIDED, INITIAL] and sentiment.get("label") == "negative":
-             return {
-                "dialog_state": EMPATHY_MODE,
-                "attempt_count": new_attempt_count,
-                "state_behavior": self._rules_engine.get_state_behavior(EMPATHY_MODE),
-                "action_recommendation": "auto_reply",
-                "transition_source": "sentiment_empathy"
-            }
+            # Only switch to empathy mode if we still have attempts left
+            # Leave at least 1 attempt before escalation
+            if new_attempt_count < max_attempts - 1:
+                return {
+                    "dialog_state": EMPATHY_MODE,
+                    "attempt_count": new_attempt_count,
+                    "state_behavior": self._rules_engine.get_state_behavior(EMPATHY_MODE),
+                    "action_recommendation": "auto_reply",
+                    "transition_source": "sentiment_empathy"
+                }
 
         # 4. Get state behavior for prompt routing
         state_behavior = self._rules_engine.get_state_behavior(new_state)
@@ -286,8 +293,10 @@ class StateMachineNode(BaseNode):
             new_state = ESCALATION_NEEDED
             
         # 4. Phase 5: Empathy Check
+        # Only switch to empathy mode if we still have attempts left
         if new_state in [ANSWER_PROVIDED, INITIAL] and sentiment.get("label") == "negative":
-             new_state = EMPATHY_MODE
+            if attempt_count < max_attempts - 1:
+                new_state = EMPATHY_MODE
         
         # 5. Check confidence (added for completeness)
         # Note: confidence is in state, not in analysis

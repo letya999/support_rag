@@ -4,8 +4,8 @@ node:
 
 # Числовые и булевые параметры
 parameters:
-  intent_confidence_threshold: 0.3
-  category_confidence_threshold: 0.3
+  intent_confidence_threshold: 0.4
+  category_confidence_threshold: 0.4
   skip_if_low_confidence: true
 
 # Текстовые настройки и словари

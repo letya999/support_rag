@@ -11,6 +11,7 @@ from app.nodes.state_machine.states_config import (
     SIGNAL_REPEATED, SIGNAL_FRUSTRATION
 )
 from app.nodes.dialog_analysis.rules.question_detector import is_question
+from app.nodes.dialog_analysis.loop_detector import detect_topic_loop
 
 class DialogAnalysisNode(BaseNode):
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -20,9 +21,9 @@ class DialogAnalysisNode(BaseNode):
         if conversation_config.use_llm_analysis:
             return await llm_dialog_analysis_node(state)
         else:
-            return regex_dialog_analysis_node(state)
+            return await regex_dialog_analysis_node(state)
 
-def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
+async def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
     """
     Analyzes the dialog history for signals like gratitude, escalation requests, etc.
     Does NOT use LLM, pure Python logic.
@@ -42,7 +43,8 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
         SIGNAL_ESCALATION_REQ: False,
         SIGNAL_QUESTION: False,
         SIGNAL_FRUSTRATION: False, 
-        SIGNAL_REPEATED: False
+        SIGNAL_REPEATED: False,
+        "topic_loop_detected": False  # New field
     }
 
     # 1. Gratitude check
@@ -82,6 +84,19 @@ def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
             def clean(s): return re.sub(r'[^\w\s]', '', s).strip()
             if clean(current_question) == clean(last_user_msg):
                 analysis[SIGNAL_REPEATED] = True
+    
+    # 6. Topic loop detection (NEW!)
+    if params.get("detect_topic_loop", True):
+        loop_result = await detect_topic_loop(
+            current_question=state.get("question", ""),
+            conversation_history=history,
+            similarity_threshold=params.get("topic_loop_similarity_threshold", 0.8),
+            window_size=params.get("topic_loop_window_size", 4),
+            min_messages_for_loop=params.get("topic_loop_min_messages", 3)
+        )
+        analysis["topic_loop_detected"] = loop_result["topic_loop_detected"]
+        # Store additional metadata for debugging
+        state["loop_detection_metadata"] = loop_result
     
     return {
         "dialog_analysis": analysis,

@@ -5,7 +5,7 @@ node:
 # Числовые и булевые параметры
 parameters:
   use_rules_engine: true
-  max_attempts_before_handoff: 3
+  max_attempts_before_handoff: 4
   reset_on_gratitude: true
 
 # Текстовые настройки и словари

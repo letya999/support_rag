@@ -8,6 +8,7 @@ from app.nodes.state_machine.states_config import (
     SIGNAL_GRATITUDE, SIGNAL_ESCALATION_REQ, SIGNAL_QUESTION, 
     SIGNAL_REPEATED, SIGNAL_FRUSTRATION
 )
+from app.nodes.dialog_analysis.loop_detector import detect_topic_loop
 
 @observe(as_type="span")
 async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
@@ -86,13 +87,29 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
         
         # Map back to standard dict
         escalation_req = signals.get(SIGNAL_ESCALATION_REQ, False)
+        
+        # Topic loop detection (NEW!)
+        topic_loop_detected = False
+        if params.get("detect_topic_loop", True):
+            loop_result = await detect_topic_loop(
+                current_question=current_question,
+                conversation_history=history,
+                similarity_threshold=params.get("topic_loop_similarity_threshold", 0.8),
+                window_size=params.get("topic_loop_window_size", 4),
+                min_messages_for_loop=params.get("topic_loop_min_messages", 3)
+            )
+            topic_loop_detected = loop_result["topic_loop_detected"]
+            # Store additional metadata for debugging
+            state["loop_detection_metadata"] = loop_result
+        
         result = {
             "dialog_analysis": {
                 SIGNAL_GRATITUDE: signals.get(SIGNAL_GRATITUDE, False),
                 SIGNAL_ESCALATION_REQ: escalation_req,
                 SIGNAL_QUESTION: signals.get(SIGNAL_QUESTION, True),
                 SIGNAL_REPEATED: signals.get(SIGNAL_REPEATED, False),
-                SIGNAL_FRUSTRATION: sentiment.get("label") in ["frustrated", "angry"]
+                SIGNAL_FRUSTRATION: sentiment.get("label") in ["frustrated", "angry"],
+                "topic_loop_detected": topic_loop_detected  # NEW!
             },
             # Phase 5 & 6 State Extensions
             "sentiment": sentiment,
@@ -114,7 +131,8 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
                 SIGNAL_ESCALATION_REQ: False,
                 SIGNAL_QUESTION: True,
                 SIGNAL_FRUSTRATION: False,
-                SIGNAL_REPEATED: False
+                SIGNAL_REPEATED: False,
+                "topic_loop_detected": False  # NEW!
             },
             "sentiment": {"label": "neutral", "score": 0.0},
             "safety_violation": False,

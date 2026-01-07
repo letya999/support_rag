@@ -83,7 +83,7 @@ details:
       max_entries: 1000
   aggregation:
     parameters:
-      history_messages_count: 3
+      history_messages_count: 2
       include_assistant_responses: true
       min_message_length: 2
       llm_temperature: 0
@@ -141,8 +141,8 @@ details:
         - hate
   easy_classification:
     parameters:
-      intent_confidence_threshold: 0.3
-      category_confidence_threshold: 0.3
+      intent_confidence_threshold: 0.4
+      category_confidence_threshold: 0.4
       skip_if_low_confidence: true
     config:
       fallback_intent: unknown
@@ -152,8 +152,8 @@ details:
         sentence_model: intfloat/multilingual-e5-small
   generation:
     parameters:
-      temperature: 0.3
-      max_tokens: 1000
+      temperature: 0.1
+      max_tokens: 750
       include_sources: true
       add_confidence_warning: true
       confidence_warning_threshold: 0.3
@@ -161,11 +161,11 @@ details:
       model: gpt-4o-mini
   hybrid_search:
     parameters:
-      vector_top_k: 10
-      lexical_top_k: 10
-      final_top_k: 10
+      vector_top_k: 5
+      lexical_top_k: 5
+      final_top_k: 5
       rrf_k: 60
-      score_threshold: 0.0
+      score_threshold: 0.4
       use_or_logic: true
       min_word_length: 2
     config:
@@ -314,9 +314,9 @@ details:
     parameters:
       output_docs_count: 3
       max_hops: 2
-      complexity_threshold: 1.5
+      complexity_threshold: 2
       skip_if_high_confidence: true
-      high_confidence_threshold: 0.8
+      high_confidence_threshold: 0.5
       min_query_length: 10
     config:
       complexity_detection:
@@ -371,7 +371,7 @@ details:
         log_to_langfuse: true
   prompt_routing:
     parameters:
-      max_history_messages: 5
+      max_history_messages: 3
       max_message_length: 300
       include_user_profile: true
       include_entities: true
@@ -403,8 +403,8 @@ details:
       document_language: en
   reranking:
     parameters:
-      confidence_threshold: 0.3
-      top_k: 5
+      confidence_threshold: 0.4
+      top_k: 3
       batch_size: 32
       use_gpu: true
       inference_timeout_ms: 5000
@@ -412,7 +412,7 @@ details:
       model_name: BAAI/bge-reranker-v2-m3
   routing:
     parameters:
-      min_confidence_auto_reply: 0.3
+      min_confidence_auto_reply: 0.4
       respect_escalation_decision: true
       respect_requires_handoff: true
       clarification_enabled: true
@@ -424,8 +424,8 @@ details:
         4: low_confidence
         5: auto_reply
       clarification_confidence_range:
-      - 0.3
-      - 0.6
+      - 0.4
+      - 0.65
       always_escalate_categories:
       - billing_dispute
       - account_closure
@@ -445,7 +445,7 @@ details:
   session_starter:
     parameters:
       load_conversation_history: true
-      max_history_messages: 10
+      max_history_messages: 5
       load_session_history: true
       max_session_history: 3
       filter_system_messages: true
@@ -458,7 +458,7 @@ details:
   state_machine:
     parameters:
       use_rules_engine: true
-      max_attempts_before_handoff: 3
+      max_attempts_before_handoff: 4
       reset_on_gratitude: true
     config:
       default_state: INITIAL

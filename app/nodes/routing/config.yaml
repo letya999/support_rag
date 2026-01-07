@@ -4,7 +4,7 @@ node:
 
 # Числовые и булевые параметры
 parameters:
-  min_confidence_auto_reply: 0.3
+  min_confidence_auto_reply: 0.4
   respect_escalation_decision: true
   respect_requires_handoff: true
   clarification_enabled: true
@@ -20,8 +20,8 @@ config:
   
   # Confidence range for triggering clarification
   clarification_confidence_range:
-    - 0.3
-    - 0.6
+    - 0.4
+    - 0.65
   
   # Categories that always require human escalation
   always_escalate_categories:

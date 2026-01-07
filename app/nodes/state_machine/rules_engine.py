@@ -164,6 +164,18 @@ class RulesEngine:
         for rule in self._rules:
             condition = rule.get('condition', {})
             
+            # Check attempt count constraints if specified
+            requires_attempts_lt = rule.get('requires_attempts_less_than')
+            requires_attempts_gte = rule.get('requires_attempts_gte')
+            
+            if requires_attempts_lt is not None and attempt_count >= requires_attempts_lt:
+                # Skip this rule if attempts >= threshold
+                continue
+            
+            if requires_attempts_gte is not None and attempt_count < requires_attempts_gte:
+                # Skip this rule if attempts < threshold
+                continue
+            
             if self._check_condition(condition, analysis):
                 # Rule matched!
                 result = TransitionResult(
@@ -183,6 +195,16 @@ class RulesEngine:
                     elif action_type == 'log':
                         # Could be used for observability
                         pass
+                
+                # Check post_condition if exists
+                post_condition = rule.get('post_condition', {})
+                if post_condition:
+                    if_attempts_exceed = post_condition.get('if_attempts_exceed')
+                    override_state = post_condition.get('override_state')
+                    
+                    if if_attempts_exceed is not None and new_attempt_count > if_attempts_exceed and override_state:
+                        # Override the target state based on attempt count
+                        result.new_state = override_state
                 
                 return result, new_attempt_count
         

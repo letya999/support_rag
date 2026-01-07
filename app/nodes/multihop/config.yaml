@@ -6,9 +6,9 @@ node:
 parameters:
   output_docs_count: 3
   max_hops: 2
-  complexity_threshold: 1.5
+  complexity_threshold: 2
   skip_if_high_confidence: true
-  high_confidence_threshold: 0.8
+  high_confidence_threshold: 0.5
   min_query_length: 10
 
 # Текстовые настройки и словари

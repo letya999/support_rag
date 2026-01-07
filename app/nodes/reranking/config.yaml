@@ -4,7 +4,7 @@ node:
 
 # Числовые и булевые параметры
 parameters:
-  confidence_threshold: 0.3
+  confidence_threshold: 0.4
   top_k: 3
   batch_size: 32
   use_gpu: true
