@@ -56,25 +56,18 @@ class GeneratedQAPair:
     generated_at: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dict, excluding original_question and question_type for storage."""
-        data = asdict(self)
-        data.pop('original_question', None)
-        data.pop('question_type', None)
-        data['question'] = data.pop('paraphrased_question')
-        data['metadata'] = {
-            'category': data.pop('category'),
-            'intent': data.pop('intent'),
-            'difficulty': data.pop('difficulty'),
-            'confidence_score': data.pop('confidence_score'),
-            'requires_handoff': data.pop('requires_handoff'),
-            'clarifying_questions': data.pop('clarifying_questions'),
-            'related_questions': data.pop('related_questions'),
-            'tags': data.pop('tags'),
-            'source_document': data.pop('source_document'),
-            'generation_method': data.pop('generation_method'),
-            'generated_at': data.pop('generated_at'),
+        """Convert to dict with only required metadata fields."""
+        return {
+            'question': self.paraphrased_question,
+            'answer': self.answer,
+            'metadata': {
+                'category': self.category,
+                'intent': self.intent,
+                'requires_handoff': self.requires_handoff,
+                'confidence_threshold': self.confidence_score,
+                'clarifying_questions': self.clarifying_questions,
+            }
         }
-        return data
 
 
 class LLMBasedQAGenerator:

@@ -173,14 +173,16 @@ Only return the JSON array, no other text."""
                 pair['metadata'] = {
                     'category': category,
                     'intent': pair.pop('intent', 'general'),
-                    'difficulty': pair.pop('difficulty', 'medium'),
-                    'product': self.product_name,
-                    'confidence_score': 0.85,
-                    'requires_handoff': False,
-                    'tags': [category.lower().replace(' ', '_'), self.industry.lower()],
-                    'source_document': f'{self.product_name}_generated.json',
-                    'generated_at': datetime.now().isoformat(),
+                    'requires_handoff': pair.pop('requires_handoff', False),
+                    'confidence_threshold': 0.85,
+                    'clarifying_questions': pair.pop('clarifying_questions', []),
                 }
+                # Remove unused fields
+                pair.pop('difficulty', None)
+                pair.pop('product', None)
+                pair.pop('tags', None)
+                pair.pop('source_document', None)
+                pair.pop('generated_at', None)
 
             logger.info(f"✓ Generated {len(qa_pairs)} pairs for {category}")
             return qa_pairs

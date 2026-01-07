@@ -144,13 +144,9 @@ class RAGASQAGenerator:
                 "metadata": {
                     "category": "FAQ-derived",
                     "intent": "generated_by_ragas",
-                    "evolution_type": getattr(item, 'evolution_type', 'unknown'),
-                    "context_chunks": item.context if hasattr(item, 'context') else [],
-                    "confidence_score": 0.9,
                     "requires_handoff": False,
-                    "tags": ["ragas_generated", "synthetic"],
-                    "source_document": "ragas_generation",
-                    "generated_at": datetime.now().isoformat(),
+                    "confidence_threshold": 0.9,
+                    "clarifying_questions": [],
                 }
             }
             qa_pairs.append(qa_pair)
@@ -200,12 +196,9 @@ def create_synthetic_variants(
                 "metadata": {
                     "category": "FAQ-derived",
                     "intent": action.replace(" ", "_"),
-                    "difficulty": "medium",
-                    "confidence_score": 0.85,
                     "requires_handoff": False,
-                    "tags": ["variant", "faq_derived"],
-                    "source_document": pair.get("metadata", {}).get("source", "unknown"),
-                    "generated_at": datetime.now().isoformat(),
+                    "confidence_threshold": 0.85,
+                    "clarifying_questions": [],
                 }
             }
             variants.append(variant)

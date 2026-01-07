@@ -222,9 +222,6 @@ class SyntheticQAGenerator:
                 "requires_handoff": random.choice([False, False, False, True]),  # 25% need handoff
                 "confidence_threshold": round(random.uniform(0.7, 0.95), 2),
                 "clarifying_questions": clarifying_questions,
-                "tags": [category.lower(), intent.lower()] + self._generate_tags(),
-                "source_document": f"synthetic_{category.lower()}_{index}.json",
-                "generated_at": datetime.now().isoformat(),
             }
         }
 
