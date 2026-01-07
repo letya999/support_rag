@@ -81,6 +81,10 @@ details:
       redis_url: ${REDIS_URL:-redis://redis:6379/0}
       ttl_seconds: 86400
       max_entries: 1000
+      semantic:
+        threshold: 0.95  # Semantic similarity threshold (higher = stricter)
+        ttl_seconds: 86400  # Cache TTL for semantic entries
+        min_confidence_to_cache: 0.7  # Only cache high-confidence results
   aggregation:
     parameters:
       history_messages_count: 2
