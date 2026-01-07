@@ -144,12 +144,15 @@ class PersistenceManager:
                     SELECT role, content, created_at, metadata
                     FROM messages
                     WHERE session_id = %s
-                    ORDER BY created_at ASC
+                    ORDER BY created_at DESC
                     LIMIT %s
                     """,
                     (session_id, limit)
                 )
                 rows = await cur.fetchall()
+                
+                # Reverse to get chronological order (oldest -> newest) of the recent slice
+                rows.reverse()
                 
                 return [
                     {

@@ -38,9 +38,10 @@ class SessionStarterNode(BaseNode):
         try:
             # 1. Load conversation_history from DB (current session)
             # We strictly enforce DB as the single source of truth for history
+            max_history = self.params["max_history_messages"]
             raw_history_db = await PersistenceManager.get_session_messages(
                 session_id=session_id,
-                limit=20
+                limit=max_history
             )
 
             if raw_history_db:
@@ -107,13 +108,9 @@ class SessionStarterNode(BaseNode):
         If PromptRouting is async, it can await a coroutine.
         Let's return an async function (coroutine function) or a partial.
         """
-        # We'll return a coroutine object or function
-        # But lambda cannot be async easily in that syntax without async def.
-        # We will store the coroutine FUNCTION.
-        import asyncio
-        # Actually better to return an async lambda
-        # Actually better to return an async lambda
-        return PersistenceManager.get_user_recent_sessions(user_id)
+        # Load max_session_history from config
+        max_sessions = self.params["max_session_history"]
+        return PersistenceManager.get_user_recent_sessions(user_id, limit=max_sessions)
 
     async def _ensure_redis_session(self, user_id: str, session_id: str) -> Optional[Any]:
         try:
