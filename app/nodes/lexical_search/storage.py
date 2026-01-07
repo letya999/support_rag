@@ -43,8 +43,15 @@ async def lexical_search_db(
         # Join with | for OR logic
         return " | ".join(words)
 
-    # Determine which tsquery config to use based on document language
-    if document_language == "ru":
+    # Determine which tsquery config to use based on document language or query content
+    # Simple heuristic: if query contains latin characters, it's likely English (translated or original)
+    # This prevents using 'russian' config for english words which breaks stemming
+    has_latin = any('a' <= char.lower() <= 'z' for char in query)
+    
+    if has_latin:
+        tsquery_config = "english"
+        print(f"🌍 Detected Latin characters in query, forcing tsquery_config='english'")
+    elif document_language == "ru":
         tsquery_config = "russian"
     else:
         tsquery_config = "english"

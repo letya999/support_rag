@@ -60,20 +60,25 @@ class DOCXLoader(BaseDocumentLoader):
                 else:
                     # This is a paragraph
                     para = Paragraph(element, docx_doc)
-                    text = para.text.strip()
+                    text = (para.text or "").strip()
 
                     if text:
                         raw_text_parts.append(text)
 
+                        # Safely get style name
+                        style_name = "Normal"
+                        if para.style and hasattr(para.style, "name"):
+                            style_name = para.style.name
+
                         # Determine block type based on style
-                        block_type = BlockType.HEADING if para.style.name.startswith("Heading") else BlockType.TEXT
+                        block_type = BlockType.HEADING if style_name.startswith("Heading") else BlockType.TEXT
 
                         block = Block(
                             type=block_type,
                             content=text,
                             metadata={
-                                "style": para.style.name,
-                                "level": self._get_heading_level(para.style.name)
+                                "style": style_name,
+                                "level": self._get_heading_level(style_name)
                             },
                             original_index=len(doc.blocks)
                         )
@@ -106,7 +111,7 @@ class DOCXLoader(BaseDocumentLoader):
             row_data = []
             for cell in row.cells:
                 # Get text from all paragraphs in the cell
-                cell_text = "\n".join(p.text for p in cell.paragraphs).strip()
+                cell_text = "\n".join((p.text or "") for p in cell.paragraphs).strip()
                 row_data.append(cell_text)
             if row_data:
                 table_data.append(row_data)
