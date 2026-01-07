@@ -8,6 +8,11 @@ class LexicalSearchNode(BaseNode):
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Logic for lexical search.
+
+        Contracts:
+            - Required Inputs: `aggregated_query` OR `question` (str)
+            - Optional Inputs: `detected_language` (str)
+            - Guaranteed Outputs: `docs` (List[str]), `scores` (List[float]), `lexical_results` (List[SearchResult])
         """
         question = state.get("aggregated_query") or state.get("question", "")
         detected_language = state.get("detected_language")  # Get from language_detection node

@@ -7,6 +7,11 @@ class RerankingNode(BaseNode):
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Reranking logic.
+
+        Contracts:
+            - Required Inputs: `question` (str), `docs` (List[str])
+            - Optional Inputs: None
+            - Guaranteed Outputs: `docs` (List[str], reordered), `rerank_scores` (List[float]), `best_rerank_score` (float), `confidence` (float)
         """
         question = state.get("question", "")
         docs = state.get("docs", [])

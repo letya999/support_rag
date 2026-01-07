@@ -114,7 +114,14 @@ class InputGuardrailsNode(BaseNode):
     @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
+
         Scan user input for security threats.
+        
+        Contracts:
+            - Required Inputs: `question` (str)
+            - Optional Inputs: `detected_language` (str)
+            - Guaranteed Outputs: `guardrails_passed` (bool) OR `guardrails_blocked` (bool), `guardrails_risk_score` (float), `guardrails_triggered` (List[str])
+            - Conditional Outputs: `guardrails_warning` (bool), `guardrails_sanitized` (bool), `user_input` (modified), `answer` (if blocked), `action` (if blocked)
         
         If threat detected:
         - block mode: return safe rejection message

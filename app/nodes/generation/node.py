@@ -15,6 +15,11 @@ class GenerationNode(BaseNode):
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generation node logic.
+
+        Contracts:
+            - Required Inputs: `system_prompt` OR `docs`+`question` (str)
+            - Optional Inputs: `escalation_message` (str), `human_prompt` (str), `aggregated_query` (str)
+            - Guaranteed Outputs: `answer` (str)
         """
         # Check if escalation happened - if so, use escalation message instead of generating
         escalation_message = state.get("escalation_message")

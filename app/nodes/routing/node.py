@@ -34,6 +34,12 @@ class RoutingNode(BaseNode):
         """
         Routing executor - выполняет решение State Machine.
         
+        Contracts:
+            - Required Inputs: `action_recommendation` (str), `escalation_reason` (str/None)
+            - Optional Inputs: `best_doc_metadata` (Dict), `confidence` (float), `confidence_threshold` (float), `detected_language` (str), `answer` (str, if blocked)
+            - Guaranteed Outputs: `action` (str), `routing_reason` (str/None), `answer` (str, if escalation/block)
+            - Conditional Outputs: `matched_intent`, `matched_category`, `routing_confidence`, `routing_threshold`, `escalation_triggered` (bool), `escalation_message` (str)
+
         State Machine принимает решение об эскалации и устанавливает action_recommendation.
         Routing только формирует escalation_message и логирует.
         """

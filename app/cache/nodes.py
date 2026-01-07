@@ -101,6 +101,12 @@ async def check_cache_node(state: State) -> State:
     """
     Check if query exists in cache (Semantic + Exact).
 
+    Contracts:
+        - Required Inputs: `question` (str)
+        - Optional Inputs: None
+        - Guaranteed Outputs: `cache_hit` (bool), `cache_key` (str)
+        - Conditional Outputs: `answer` (str), `confidence` (float), `docs` (List[str]), `cache_reason` (str), `question_embedding` (List[float])
+
     Performs:
     1. Query normalization & Exact Match (Redis)
     2. Semantic Search (Qdrant) with TTL filter

@@ -17,6 +17,11 @@ class SessionStarterNode(BaseNode):
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Session loading logic with lazy loading optimizations.
+
+        Contracts:
+            - Required Inputs: `user_id` (str), `session_id` (str)
+            - Optional Inputs: None
+            - Guaranteed Outputs: `conversation_history` (List[Dict]), `user_profile` (Dict, if enabled), `_session_history_loader` (Callable), `attempt_count` (int, if persisted), `extracted_entities` (optional), `_session_metadata` (optional)
         """
         user_id = state.get("user_id")
         session_id = state.get("session_id")

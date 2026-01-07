@@ -7,6 +7,11 @@ class RetrievalNode(BaseNode):
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Logic for simple retrieval.
+
+        Contracts:
+            - Required Inputs: `aggregated_query` OR `question` (str)
+            - Optional Inputs: `matched_category` (str)
+            - Guaranteed Outputs: `docs` (List[str]), `scores` (List[float]), `confidence` (float), `best_doc_metadata` (Dict), `vector_results` (List[SearchResult])
         """
         question = state.get("aggregated_query") or state.get("question", "")
         category_filter = state.get("matched_category") if state.get("filter_used") else None

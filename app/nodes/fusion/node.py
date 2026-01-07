@@ -7,6 +7,10 @@ class FusionNode(BaseNode):
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Fusion logic.
+
+        Contracts:
+            - Required Inputs: `vector_results` (List[SearchResult]), `lexical_results` (List[SearchResult])
+            - Guaranteed Outputs: `docs` (List[str]), `rerank_scores` (List[float]), `confidence` (float), `best_doc_metadata` (dict)
         """
         vector_results = state.get("vector_results", [])
         lexical_results = state.get("lexical_results", [])

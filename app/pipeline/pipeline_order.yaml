@@ -20,7 +20,7 @@ pipeline_order:
   - hybrid_search
   - retrieve
   - lexical_search
-  - fusion
+  - fusion            # CRITICAL: Requires 'retrieve' AND 'lexical_search'. No graceful degradation.
   - reranking
   - multihop
   - state_machine  # Moved here to have access to final confidence from reranking

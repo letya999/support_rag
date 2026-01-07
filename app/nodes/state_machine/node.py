@@ -27,6 +27,12 @@ class StateMachineNode(BaseNode):
         """
         Main State Machine logic.
         
+        Contracts:
+            - Required Inputs: `dialog_analysis` (Dict), `dialog_state` (str, optional default INITIAL), `attempt_count` (int, default 0)
+            - Optional Inputs: `escalation_decision` (str), `safety_violation` (bool), `sentiment` (Dict), `guardrails_blocked` (bool), `docs` (List), `confidence` (float), `confidence_threshold` (float/str), `vector_results` (List)
+            - Guaranteed Outputs: `dialog_state` (str), `attempt_count` (int), `action_recommendation` (str), `escalation_reason` (str/None)
+            - Conditional Outputs: `state_behavior` (Dict), `transition_source` (str)
+
         Evaluates dialog analysis signals against rules to determine:
         1. The next conversation state
         2. Updated attempt count
