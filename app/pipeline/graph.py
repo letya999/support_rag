@@ -17,7 +17,10 @@ from app.nodes.hybrid_search.node import hybrid_search_node
 from app.nodes.classification.node import classify_node
 from app.nodes.easy_classification.node import fasttext_classify_node
 from app.nodes.metadata_filtering.node import metadata_filter_node
-from app.cache.nodes import check_cache_node, store_in_cache_node
+# New cache nodes from refactored structure
+from app.nodes.check_cache.node import check_cache_node
+from app.nodes.store_in_cache.node import store_in_cache_node
+from app.nodes.cache_similarity.node import cache_similarity_node
 from app.nodes.session_starter.node import load_session_node
 from app.nodes.aggregation.node import aggregate_node
 from app.nodes.dialog_analysis.node import dialog_analysis_node
@@ -48,6 +51,7 @@ except ImportError:
 
 NODE_FUNCTIONS = {
     "check_cache": check_cache_node,
+    "cache_similarity": cache_similarity_node,  # NEW: Optional semantic similarity check
     "easy_classification": fasttext_classify_node,  # Folder: easy_classification/
     "classify": classify_node,
     "metadata_filtering": metadata_filter_node,     # Folder: metadata_filtering/

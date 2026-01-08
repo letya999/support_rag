@@ -130,23 +130,29 @@ def generate_full_config():
     # 3. Build Details Section
     details = {}
     
-    # Global Parameters - extract from shared configs where possible
-    # Get default_language from languages.yaml if available
-    default_language = shared_configs.get("languages", {}).get("response", {}).get("default_language", "ru")
+    # Global Parameters - load from global.yaml if available
+    global_config = shared_configs.get("global", {})
+    global_params = global_config.get("parameters", {})
+    
+    # Get default_language from languages.yaml if available, or from global.yaml
+    default_language = shared_configs.get("languages", {}).get("response", {}).get("default_language")
+    if not default_language:
+        default_language = global_params.get("default_language", "en")
     
     details["global"] = {
         "parameters": {
             "default_language": default_language,
-            "confidence_threshold": 0.3,
-            "debug_mode": False,
-            "persist_to_postgres": True,
-            "session_ttl_hours": 24,
-            "session_timeout_minutes": 30,
-            "session_idle_threshold_minutes": 5,
-            "timeout_ms": 5000,
-            "retry_count": 3
+            "confidence_threshold": global_params.get("confidence_threshold", 0.3),
+            "debug_mode": global_params.get("debug_mode", False),
+            "persist_to_postgres": global_params.get("persist_to_postgres", True),
+            "session_ttl_hours": global_params.get("session_ttl_hours", 24),
+            "session_timeout_minutes": global_params.get("session_timeout_minutes", 30),
+            "session_idle_threshold_minutes": global_params.get("session_idle_threshold_minutes", 5),
+            "timeout_ms": global_params.get("timeout_ms", 5000),
+            "retry_count": global_params.get("retry_count", 3)
         }
     }
+
     
     # Cache Configuration (Defaults)
     details["cache"] = {

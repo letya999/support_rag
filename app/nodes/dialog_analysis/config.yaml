@@ -7,7 +7,7 @@ parameters:
   negative_sentiment_threshold: -0.3
   detect_repeated_questions: true
   detect_topic_loop: true
-  topic_loop_similarity_threshold: 0.8
+  topic_loop_similarity_threshold: 0.85  # Higher threshold for English embeddings (translation-based approach)
   topic_loop_window_size: 4
   topic_loop_min_messages: 3
   inference_timeout_ms: 3000

@@ -126,7 +126,8 @@ class ArchiveSessionNode(BaseNode):
                     content=question,
                     metadata={
                         "detected_language": state.get("detected_language"),
-                        "sentiment": state.get("sentiment")
+                        "sentiment": state.get("sentiment"),
+                        "translated": state.get("translated_query")  # Save English translation for loop detection
                     }
                 )
             

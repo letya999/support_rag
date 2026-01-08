@@ -4,7 +4,7 @@ node:
 
 # Числовые и булевые параметры
 parameters:
-  use_category_filter: true
+  use_category_filter: false  # Temporarily disabled - causing empty results
   skip_on_unknown: true
 
 # Текстовые настройки и словари

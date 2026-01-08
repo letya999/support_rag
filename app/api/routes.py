@@ -12,6 +12,9 @@ from app.nodes.retrieval.search import retrieve_context
 
 router = APIRouter()
 
+# Default confidence threshold (fallback if config fails to load)
+# This value should match the one in app/nodes/_shared_config/global.yaml
+DEFAULT_CONFIDENCE_THRESHOLD = 0.3
 
 # Telegram Bot Models
 class RAGRequestBody(BaseModel):
@@ -107,13 +110,18 @@ async def ask(
     
     langfuse_handler = get_langfuse_callback_handler()
     
+    # Get global confidence threshold from pipeline config
+    from app.services.config_loader.loader import load_shared_config
+    global_config = load_shared_config("global")
+    confidence_threshold = global_config.get("parameters", {}).get("confidence_threshold", DEFAULT_CONFIDENCE_THRESHOLD)
+    
     try:
         try:
             result = await rag_graph.ainvoke(
                 {
                     "question": q,
                     "hybrid_used": hybrid,
-                    "confidence_threshold": float("-inf") # Ignore confidence threshold as requested
+                    "confidence_threshold": confidence_threshold
                 },
                 config={
                     "callbacks": [langfuse_handler],
@@ -128,7 +136,7 @@ async def ask(
                     {
                         "question": q,
                         "hybrid_used": hybrid,
-                        "confidence_threshold": float("-inf") 
+                        "confidence_threshold": confidence_threshold
                     },
                     config={
                         "callbacks": [], 
@@ -170,6 +178,11 @@ async def rag_query(request: RAGRequestBody):
 
     langfuse_handler = get_langfuse_callback_handler()
 
+    # Get global confidence threshold from pipeline config
+    from app.services.config_loader.loader import load_shared_config
+    global_config = load_shared_config("global")
+    confidence_threshold = global_config.get("parameters", {}).get("confidence_threshold", DEFAULT_CONFIDENCE_THRESHOLD)
+
     try:
         try:
             # Prepare state for RAG graph with conversation context
@@ -179,7 +192,7 @@ async def rag_query(request: RAGRequestBody):
                 "user_id": user_id,
                 "session_id": session_id,
                 "hybrid_used": True,
-                "confidence_threshold": float("-inf")  # Don't filter by confidence
+                "confidence_threshold": confidence_threshold
             }
 
             # Run RAG graph
@@ -200,7 +213,7 @@ async def rag_query(request: RAGRequestBody):
                     "user_id": user_id,
                     "session_id": session_id,
                     "hybrid_used": True,
-                    "confidence_threshold": float("-inf")
+                    "confidence_threshold": confidence_threshold
                 }
                 result = await rag_graph.ainvoke(
                     input_state,

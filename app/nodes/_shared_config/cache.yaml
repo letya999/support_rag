@@ -1,0 +1,14 @@
+# Shared cache configuration
+# Used by cache nodes (check_cache, store_in_cache)
+
+parameters:
+  backend: redis
+  redis_url: ${REDIS_URL:-redis://redis:6379/0}
+  ttl_seconds: 86400  # 24 hours
+  max_entries: 1000
+  
+  # Semantic cache settings
+  semantic:
+    threshold: 0.95  # Semantic similarity threshold (higher = stricter, 0.90 -> 0.95)
+    ttl_seconds: 86400  # Cache TTL for semantic entries
+    min_confidence_to_cache: 0.7  # Only cache high-confidence results

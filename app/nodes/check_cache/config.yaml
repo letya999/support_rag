@@ -1,0 +1,13 @@
+node:
+  name: check_cache
+  enabled: true
+
+# Note: Most cache parameters (ttl_seconds, max_entries, redis_url, backend)
+# are defined in _shared_config/cache.yaml and loaded via get_cache_config()
+# This keeps configuration DRY (Don't Repeat Yourself)
+
+# Node-specific parameters (if any needed in future)
+parameters: {}
+  
+config: {}
+

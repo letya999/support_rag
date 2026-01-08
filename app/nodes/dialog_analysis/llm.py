@@ -94,9 +94,11 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
             loop_result = await detect_topic_loop(
                 current_question=current_question,
                 conversation_history=history,
-                similarity_threshold=params.get("topic_loop_similarity_threshold", 0.8),
+                similarity_threshold=params.get("topic_loop_similarity_threshold", 0.85),  # Higher for English
                 window_size=params.get("topic_loop_window_size", 4),
-                min_messages_for_loop=params.get("topic_loop_min_messages", 3)
+                min_messages_for_loop=params.get("topic_loop_min_messages", 3),
+                translated_query=state.get("translated_query"),  # From query_translation node
+                detected_language=state.get("detected_language")  # From language_detection node
             )
             topic_loop_detected = loop_result["topic_loop_detected"]
             # Store additional metadata for debugging

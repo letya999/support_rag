@@ -1,0 +1,30 @@
+# Global pipeline parameters
+# These settings apply across all nodes unless overridden
+
+parameters:
+  # Default language for responses
+  default_language: en
+  
+  # Minimum confidence threshold for auto-reply
+  # Below this threshold, the system will escalate to human operator
+  # Range: 0.0 - 1.0
+  # - 0.0: Always auto-reply (never escalate based on confidence)
+  # - 0.3: Low threshold (recommended for most cases)
+  # - 0.5: Medium threshold
+  # - 0.7: High threshold (only very confident answers)
+  confidence_threshold: 0.3
+  
+  # Debug mode - enables verbose logging
+  debug_mode: false
+  
+  # Database persistence settings
+  persist_to_postgres: true
+  
+  # Session management
+  session_ttl_hours: 24
+  session_timeout_minutes: 30
+  session_idle_threshold_minutes: 5
+  
+  # Performance settings
+  timeout_ms: 5000
+  retry_count: 3

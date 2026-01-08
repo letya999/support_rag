@@ -42,8 +42,9 @@ class State(TypedDict):
     session_history: Annotated[Optional[List[Dict[str, Any]]], overwrite]
     _session_history_loader: Annotated[Optional[Any], overwrite]
     
-    # Conversation History with LangGraph reducer
-    conversation_history: Annotated[Optional[List[Dict[str, Any]]], add_messages]
+    # Conversation History - only passed to nodes that need it (dialog_analysis, prompt_routing, generation)
+    # Changed from add_messages to overwrite to prevent automatic propagation to all nodes
+    conversation_history: Annotated[Optional[List[Dict[str, Any]]], overwrite]
     conversation_config: Annotated[Optional[Dict[str, Any]], overwrite]
     
     # Aggregation (Phase 2)

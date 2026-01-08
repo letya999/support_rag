@@ -8,11 +8,12 @@
 pipeline_order:
   - session_starter
   - input_guardrails  # Blocks dangerous content BEFORE cache check
-  - check_cache       # Only checked for safe content
-  - language_detection
-  - dialog_analysis
+  - language_detection  # 1. Detect language first
+  - query_translation   # 2. Translate to English for unified search & loop detection
+  - check_cache         # 3. Check exact match cache (only for safe content)
+  - cache_similarity    # 4. Optional: Check semantic similarity in cache (uses translations)
+  - dialog_analysis     # 5. Uses translated_query for loop detection
   - aggregation
-  - query_translation  # Translate query to document language for unified search
   - easy_classification
   - classify
   - metadata_filtering

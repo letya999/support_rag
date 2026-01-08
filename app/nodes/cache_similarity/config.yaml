@@ -1,0 +1,19 @@
+node:
+  name: cache_similarity
+  enabled: false  # По умолчанию выключена
+
+# Note: similarity_threshold is defined in _shared_config/cache.yaml -> semantic.threshold
+# This config only contains node-specific parameters not in shared config
+
+# Числовые и булевые параметры (node-specific)
+parameters:
+  max_candidates: 5  # Maximum number of candidates to consider
+  use_english_translation: true  # Compare using English translations for better accuracy
+  validate_doc_relevance: true  # Validate that cached docs are relevant to query
+  relevance_threshold: 0.3  # Minimum keyword overlap for doc relevance
+  
+# Текстовые настройки
+config:
+  collection_name: "semantic_cache"
+  distance_metric: "cosine"
+

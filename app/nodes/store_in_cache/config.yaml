@@ -1,0 +1,15 @@
+node:
+  name: store_in_cache
+  enabled: true
+
+# Note: Cache backend settings (ttl_seconds, redis_url, backend)
+# are defined in _shared_config/cache.yaml
+# Only node-specific parameters are defined here
+
+# Числовые и булевые параметры (node-specific)
+parameters:
+  store_in_semantic: true  # Also store in Qdrant semantic cache
+  # min_confidence_to_cache is taken from _shared_config/cache.yaml
+  
+config: {}
+

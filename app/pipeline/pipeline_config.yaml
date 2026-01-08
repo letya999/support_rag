@@ -19,15 +19,15 @@ pipeline:
   enabled: true
 - name: input_guardrails
   enabled: true
-- name: check_cache
-  enabled: true
 - name: language_detection
+  enabled: true
+- name: query_translation
+  enabled: true
+- name: check_cache
   enabled: true
 - name: dialog_analysis
   enabled: true
 - name: aggregation
-  enabled: true
-- name: query_translation
   enabled: true
 - name: easy_classification
   enabled: true
@@ -81,10 +81,6 @@ details:
       redis_url: ${REDIS_URL:-redis://redis:6379/0}
       ttl_seconds: 86400
       max_entries: 1000
-      semantic:
-        threshold: 0.95  # Semantic similarity threshold (higher = stricter)
-        ttl_seconds: 86400  # Cache TTL for semantic entries
-        min_confidence_to_cache: 0.7  # Only cache high-confidence results
   aggregation:
     parameters:
       history_messages_count: 2
@@ -112,6 +108,10 @@ details:
     parameters:
       negative_sentiment_threshold: -0.3
       detect_repeated_questions: true
+      detect_topic_loop: true
+      topic_loop_similarity_threshold: 0.85
+      topic_loop_window_size: 4
+      topic_loop_min_messages: 3
       inference_timeout_ms: 3000
       llm:
         model: gpt-4o-mini
@@ -172,6 +172,7 @@ details:
       score_threshold: 0.4
       use_or_logic: true
       min_word_length: 2
+      apply_category_filter_to_lexical: true
     config:
       fusion_method: rrf
       collection_name: documents
@@ -306,7 +307,7 @@ details:
       - es
   metadata_filtering:
     parameters:
-      use_category_filter: true
+      use_category_filter: false
       skip_on_unknown: true
     config:
       fallback_category: General
