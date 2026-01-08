@@ -1,9 +1,9 @@
 from typing import List, Optional
 import re
 import time
-from langfuse import observe
 from app.storage.connection import get_db_connection
 from app.storage.models import SearchResult
+from app.observability.tracing import observe, langfuse_context
 
 @observe(as_type="span")
 async def lexical_search_db(
@@ -16,17 +16,28 @@ async def lexical_search_db(
     """
     Search for documents using PostgreSQL full-text search.
     
+    Contracts:
+        Input:
+            Required: query (str)
+            Optional: top_k (int), detected_language (str), document_language (str), category_filter (str)
+        Output:
+            Guaranteed: List[SearchResult]
+    
     Note: Query should already be translated to document_language 
     by query_translation node before reaching this function.
-    
-    Args:
-        query: User's search query (already translated)
-        top_k: Number of results to return
-        detected_language: Language detected by language_detection node (optional, for logging)
-        document_language: Primary language of documents in the database (default: 'ru')
-        category_filter: Optional category to filter by (from config, not hardcoded)
     """
     from app.services.config_loader.loader import get_global_param
+    
+    # Log inputs explicitly
+    if langfuse_context:
+        langfuse_context.update_current_observation(
+            input={
+                "query": query[:100] + "..." if len(query) > 100 else query,
+                "top_k": top_k,
+                "detected_language": detected_language,
+                "category_filter": category_filter
+            }
+        )
     
     # Get document language from config if not provided
     if document_language == "ru":
@@ -47,8 +58,6 @@ async def lexical_search_db(
         return " | ".join(words)
 
     # Determine which tsquery config to use based on document language or query content
-    # Simple heuristic: if query contains latin characters, it's likely English (translated or original)
-    # This prevents using 'russian' config for english words which breaks stemming
     has_latin = any('a' <= char.lower() <= 'z' for char in query)
     
     if has_latin:
@@ -118,5 +127,18 @@ async def lexical_search_db(
                     score=float(row[1]),
                     metadata=row[2]
                 ))
-    print(f"🐘 DB Search took {time.perf_counter() - t_start_db:.4f}s")
+    
+    elapsed = time.perf_counter() - t_start_db
+    print(f"🐘 DB Search took {elapsed:.4f}s")
+    
+    # Log output explicitly
+    if langfuse_context:
+        langfuse_context.update_current_observation(
+            output={
+                "results_count": len(results),
+                "top_score": results[0].score if results else 0.0,
+                "elapsed_ms": round(elapsed * 1000, 2)
+            }
+        )
+    
     return results

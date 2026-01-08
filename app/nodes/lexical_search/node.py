@@ -5,6 +5,35 @@ from app.nodes.lexical_search.storage import lexical_search_db
 from app.nodes.base_node import BaseNode
 
 class LexicalSearchNode(BaseNode):
+    """
+    Performs lexical search using BM25/Full-Text Search.
+    
+    Contracts:
+        Input:
+            Required: None
+            Optional:
+                - question (str): User question
+                - aggregated_query (str): Enhanced query
+                - detected_language (str): User's language
+        
+        Output:
+            Guaranteed:
+                - docs (List[str]): Retrieved document contents
+                - scores (List[float]): BM25 scores
+                - lexical_results (List[SearchResult]): Raw results
+            Conditional: None
+    """
+    
+    INPUT_CONTRACT = {
+        "required": [],
+        "optional": ["question", "aggregated_query", "detected_language"]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["docs", "scores", "lexical_results"],
+        "conditional": []
+    }
+    
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Logic for lexical search.

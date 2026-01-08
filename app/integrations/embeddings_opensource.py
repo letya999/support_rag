@@ -2,7 +2,8 @@ import asyncio
 from typing import List, Union
 from sentence_transformers import SentenceTransformer
 import torch
-from langfuse import observe
+import torch
+from app.observability.tracing import langfuse_context, observe
 from concurrent.futures import ThreadPoolExecutor
 
 # Create a dedicated executor for embeddings to avoid blocking the main loop
@@ -53,10 +54,27 @@ async def _get_embedding_base(text: str, is_query: bool = True) -> List[float]:
     )
     return embeddings[0]
 
-@observe(as_type="span", name="get_embedding")
+# Removed @observe to prevent logging full vector
 async def _get_embedding_observed(text: str, is_query: bool = True) -> List[float]:
     """Observed version of get_embedding."""
-    return await _get_embedding_base(text, is_query)
+    # Manual tracing to avoid logging full vector
+    # Check if langfuse_context is available and active
+    if langfuse_context and langfuse_context.get_current_trace_id():
+        span = langfuse_context.span(
+            name="get_embedding",
+            input={"text": text, "is_query": is_query}
+        )
+        try:
+            result = await _get_embedding_base(text, is_query)
+            if span:
+                span.end(output={"vector_size": len(result), "sample": result[:5]})
+            return result
+        except Exception as e:
+            if span:
+                span.end(level="ERROR", status_message=str(e))
+            raise
+    else:
+        return await _get_embedding_base(text, is_query)
 
 async def get_embedding(text: str, is_query: bool = True) -> List[float]:
     """
@@ -85,10 +103,26 @@ async def _get_embeddings_batch_base(texts: List[str], batch_size: int = 32) -> 
     )
     return embeddings
 
-@observe(as_type="span", name="get_embeddings_batch")
+# Removed @observe to prevent logging full vector
 async def _get_embeddings_batch_observed(texts: List[str], batch_size: int = 32) -> List[List[float]]:
     """Observed version of get_embeddings_batch."""
-    return await _get_embeddings_batch_base(texts, batch_size)
+    # Check if langfuse_context is available and active
+    if langfuse_context and langfuse_context.get_current_trace_id():
+        span = langfuse_context.span(
+            name="get_embeddings_batch",
+            input={"count": len(texts), "batch_size": batch_size}
+        )
+        try:
+            results = await _get_embeddings_batch_base(texts, batch_size)
+            if span:
+                span.end(output={"count": len(results), "vector_size": len(results[0]) if results else 0})
+            return results
+        except Exception as e:
+            if span:
+                span.end(level="ERROR", status_message=str(e))
+            raise
+    else:
+        return await _get_embeddings_batch_base(texts, batch_size)
 
 async def get_embeddings_batch(texts: List[str], batch_size: int = 32) -> List[List[float]]:
     """

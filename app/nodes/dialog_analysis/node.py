@@ -14,6 +14,51 @@ from app.nodes.dialog_analysis.rules.question_detector import is_question
 from app.nodes.dialog_analysis.loop_detector import detect_topic_loop
 
 class DialogAnalysisNode(BaseNode):
+    """
+    Analyzes dialog for signals like gratitude, escalation, frustration.
+    
+    Contracts:
+        Input:
+            Required:
+                - question (str): Current user question
+            Optional:
+                - conversation_history (List[Dict]): Message history
+                - session_history (List[Dict]): Alias for history
+                - translated_query (str): For translated loop detection
+        
+        Output:
+            Guaranteed:
+                - dialog_analysis (Dict): Analysis results with signal flags
+                - sentiment (Dict): Sentiment analysis result
+                - safety_violation (bool): Safety check result
+                - escalation_requested (bool): Whether escalation was requested
+                - escalation_decision (str): Decision for routing
+            Conditional:
+                - safety_reason (str): Reason if safety violation
+                - escalation_reason (str): Reason for escalation
+                - loop_detection_metadata (Dict): Loop detection details
+    """
+    
+    INPUT_CONTRACT = {
+        "required": ["question"],
+        "optional": ["conversation_history", "session_history", "translated_query"]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": [
+            "dialog_analysis",
+            "sentiment", 
+            "safety_violation",
+            "escalation_requested",
+            "escalation_decision"
+        ],
+        "conditional": [
+            "safety_reason",
+            "escalation_reason",
+            "loop_detection_metadata"
+        ]
+    }
+    
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Dispatcher for dialog analysis.

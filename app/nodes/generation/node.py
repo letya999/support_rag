@@ -6,6 +6,44 @@ from langchain_core.prompts import ChatPromptTemplate
 from app.observability.callbacks import get_langfuse_callback_handler
 
 class GenerationNode(BaseNode):
+    """
+    Generation node for producing answers using LLM.
+    
+    Contracts:
+        Input:
+            Required: None (flexible - uses one of the combinations below)
+            Optional:
+                - system_prompt (str): Pre-built system prompt from prompt_routing
+                - human_prompt (str): Pre-built human prompt
+                - docs (List[str]): Retrieved documents for context
+                - question (str): User question
+                - aggregated_query (str): Aggregated/enhanced query
+                - escalation_message (str): If set, skip generation
+                - langfuse_handler: Custom callback handler
+        
+        Output:
+            Guaranteed:
+                - answer (str): Generated answer
+            Conditional: None
+    """
+    
+    INPUT_CONTRACT = {
+        "required": [],  # Flexible - can work with different combos
+        "optional": [
+            "system_prompt",
+            "human_prompt", 
+            "docs",
+            "question",
+            "aggregated_query",
+            "escalation_message"
+        ]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["answer"],
+        "conditional": []
+    }
+    
     def __init__(self, name: Optional[str] = None):
         super().__init__(name)
         # Load prompts using base class utility

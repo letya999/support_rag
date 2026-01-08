@@ -17,12 +17,31 @@ class CheckCacheNode(BaseNode):
     Check if query exists in cache (Exact Match only).
     
     Contracts:
-        - Required Inputs: `question` (str)
-        - Optional Inputs: None
-        - Guaranteed Outputs: `cache_hit` (bool), `cache_key` (str)
-        - Conditional Outputs: `answer` (str), `confidence` (float), 
-                               `docs` (List[str]), `cache_reason` (str)
+        Input:
+            Required:
+                - question (str): User's question
+            Optional: None
+        
+        Output:
+            Guaranteed:
+                - cache_hit (bool): Whether cache hit occurred
+                - cache_key (str): Normalized cache key used
+            Conditional (when cache_hit=True):
+                - answer (str): Cached answer
+                - confidence (float): Confidence score
+                - docs (List[str]): Document IDs
+                - cache_reason (str): Reason for hit
     """
+    
+    INPUT_CONTRACT = {
+        "required": ["question"],
+        "optional": []
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["cache_hit", "cache_key"],
+        "conditional": ["answer", "confidence", "docs", "cache_reason"]
+    }
     
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """

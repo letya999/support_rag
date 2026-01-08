@@ -63,17 +63,37 @@ class CacheSimilarityNode(BaseNode):
     Check semantic similarity against cached queries.
     
     Contracts:
-        - Required Inputs: `question` (str)
-        - Optional Inputs: `translated_query` (str), `cache_hit` (bool)
-        - Guaranteed Outputs: `cache_hit` (bool)
-        - Conditional Outputs: `answer` (str), `confidence` (float), 
-                               `docs` (List[str]), `cache_reason` (str)
+        Input:
+            Required:
+                - question (str): User's question
+            Optional:
+                - translated_query (str): English translation
+                - cache_hit (bool): Skip if already hit (exact match)
+        
+        Output:
+            Guaranteed:
+                - cache_hit (bool): Whether semantic cache hit occurred
+            Conditional (when cache_hit=True):
+                - answer (str): Cached answer
+                - confidence (float): Similarity score
+                - docs (List[str]): Document IDs
+                - cache_reason (str): Reason for hit
     
     Note: This node only executes if cache_hit is False (skip if exact match found).
     """
     
+    INPUT_CONTRACT = {
+        "required": ["question"],
+        "optional": ["translated_query", "cache_hit"]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["cache_hit"],
+        "conditional": ["answer", "confidence", "docs", "cache_reason"]
+    }
+    
     def __init__(self):
-        super().__init__()
+        super().__init__("cache_similarity")
         # Load node-specific config
         node_cfg = get_node_config("cache_similarity")
         params = node_cfg.get("parameters", {})

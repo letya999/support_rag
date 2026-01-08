@@ -35,7 +35,51 @@ class PromptRoutingNode(BaseNode):
     
     Selects and builds the system prompt based on dialog state and state behavior
     from the State Machine Rules Engine.
+    
+    Contracts:
+        Input:
+            Required:
+                - question (str): User question
+            Optional:
+                - dialog_state (str): Current dialog state
+                - state_behavior (Dict): Behavior hints from state machine
+                - conversation_history (List[Dict]): Message history
+                - session_history (List[Dict]): Alias for history
+                - _session_history_loader (Callable): Lazy history loader
+                - detected_language (str): User's language
+                - docs (List[str]): Retrieved documents
+                - aggregated_query (str): Enhanced query
+                - user_profile (Dict): User profile data
+                - extracted_entities (Dict): Extracted entities
+        
+        Output:
+            Guaranteed:
+                - system_prompt (str): Built system prompt
+                - human_prompt (str): Built human prompt with context
+            Conditional:
+                - prompt_hint (str): State-specific hints
     """
+    
+    INPUT_CONTRACT = {
+        "required": ["question"],
+        "optional": [
+            "dialog_state",
+            "state_behavior",
+            "conversation_history",
+            "session_history",
+            "_session_history_loader",
+            "detected_language",
+            "docs",
+            "aggregated_query",
+            "user_profile",
+            "extracted_entities"
+        ]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["system_prompt", "human_prompt"],
+        "conditional": ["prompt_hint"]
+    }
     
     # Default tone modifiers (fallback if config is missing)
     DEFAULT_TONE_MODIFIERS = {

@@ -9,25 +9,55 @@ from app.nodes._shared_config.history_filter import filter_conversation_history
 from app.services.config_loader.loader import get_node_params
 
 class SessionStarterNode(BaseNode):
+    """
+    Session loading node with lazy loading optimizations.
+    
+    Contracts:
+        Input:
+            Required:
+                - user_id (str): User identifier
+                - session_id (str): Session identifier
+            Optional: None
+        
+        Output:
+            Guaranteed:
+                - conversation_history (List[Dict]): Messages from current session
+            Conditional:
+                - user_profile (Dict): User profile if enabled
+                - _session_history_loader (Callable): Lazy loader for previous sessions
+                - attempt_count (int): Counter for processing attempts
+                - extracted_entities (Dict): Extracted entities from session
+                - _session_metadata (Dict): Session metadata for debugging
+    """
+    
+    INPUT_CONTRACT = {
+        "required": ["user_id", "session_id"],
+        "optional": []
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["conversation_history"],
+        "conditional": [
+            "user_profile",
+            "_session_history_loader", 
+            "attempt_count",
+            "extracted_entities",
+            "_session_metadata"
+        ]
+    }
+    
     def __init__(self):
         super().__init__("session_starter")
         params = get_node_params("session_starter")
         self.params = params if params is not None else {}
 
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Session loading logic with lazy loading optimizations.
-
-        Contracts:
-            - Required Inputs: `user_id` (str), `session_id` (str)
-            - Optional Inputs: None
-            - Guaranteed Outputs: `conversation_history` (List[Dict]), `user_profile` (Dict, if enabled), `_session_history_loader` (Callable), `attempt_count` (int, if persisted), `extracted_entities` (optional), `_session_metadata` (optional)
-        """
+        """Execute session loading logic."""
         user_id = state.get("user_id")
         session_id = state.get("session_id")
         
         if not user_id:
-            return {}
+            return {"conversation_history": []}
 
         updates = {}
         

@@ -5,6 +5,35 @@ from app.nodes.classification.classifier import ClassificationService
 from app.observability.tracing import observe
 
 class ClassificationNode(BaseNode):
+    """
+    Classifies user query for intent and category.
+    
+    Contracts:
+        Input:
+            Required: None
+            Optional:
+                - question (str): User question
+                - aggregated_query (str): Enhanced query
+        
+        Output:
+            Guaranteed:
+                - intent (str): Detected intent
+                - category (str): Detected category
+            Conditional:
+                - intent_confidence (float): Intent confidence
+                - category_confidence (float): Category confidence
+    """
+    
+    INPUT_CONTRACT = {
+        "required": [],
+        "optional": ["question", "aggregated_query"]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["intent", "category"],
+        "conditional": ["intent_confidence", "category_confidence"]
+    }
+    
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         question = state.get("aggregated_query") or state.get("question", "")
         service = ClassificationService()

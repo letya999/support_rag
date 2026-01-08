@@ -18,9 +18,67 @@ class StateMachineNode(BaseNode):
     Uses a declarative Rules Engine (rules.yaml) to evaluate dialog analysis
     signals and determine the next state. Falls back to Python-based rules
     if the YAML configuration is unavailable.
+    
+    Contracts:
+        Input:
+            Required:
+                - dialog_analysis (Dict): Analysis signals from dialog_analysis node
+            Optional:
+                - dialog_state (str): Current state (default: INITIAL)
+                - attempt_count (int): Attempt counter
+                - escalation_decision (str): Override from routing
+                - safety_violation (bool): Safety check flag
+                - sentiment (Dict): Sentiment analysis result
+                - guardrails_blocked (bool): Whether guardrails blocked
+                - docs (List[str]): Retrieved documents
+                - confidence (float): Answer confidence
+                - confidence_threshold (float): Threshold for auto-reply
+                - vector_results (List): Search results with metadata
+                - best_doc_metadata (Dict): Best document metadata
+        
+        Output:
+            Guaranteed:
+                - dialog_state (str): New conversation state
+                - attempt_count (int): Updated attempt counter
+                - action_recommendation (str): 'auto_reply', 'handoff', 'block'
+                - escalation_reason (str/None): Reason if escalating
+            Conditional:
+                - state_behavior (Dict): Behavior hints for prompt_routing
+                - transition_source (str): Rule that triggered transition
     """
     
+    INPUT_CONTRACT = {
+        "required": ["dialog_analysis"],
+        "optional": [
+            "dialog_state",
+            "attempt_count",
+            "escalation_decision",
+            "safety_violation",
+            "sentiment",
+            "guardrails_blocked",
+            "docs",
+            "confidence",
+            "confidence_threshold",
+            "vector_results",
+            "best_doc_metadata"
+        ]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": [
+            "dialog_state",
+            "attempt_count",
+            "action_recommendation",
+            "escalation_reason"
+        ],
+        "conditional": [
+            "state_behavior",
+            "transition_source"
+        ]
+    }
+    
     def __init__(self):
+        super().__init__("state_machine")
         self._rules_engine: RulesEngine = get_rules_engine()
     
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:

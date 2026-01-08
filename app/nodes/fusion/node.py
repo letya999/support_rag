@@ -4,6 +4,35 @@ from app.storage.models import SearchResult
 from app.observability.tracing import observe
 
 class FusionNode(BaseNode):
+    """
+    Fuses vector and lexical search results using Reciprocal Rank Fusion.
+    
+    Contracts:
+        Input:
+            Required:
+                - vector_results (List[SearchResult]): Vector search results
+                - lexical_results (List[SearchResult]): Lexical search results
+            Optional: None
+        
+        Output:
+            Guaranteed:
+                - docs (List[str]): Fused document contents
+                - rerank_scores (List[float]): RRF scores
+                - confidence (float): Top score
+                - best_doc_metadata (Dict): Metadata of best document
+            Conditional: None
+    """
+    
+    INPUT_CONTRACT = {
+        "required": ["vector_results", "lexical_results"],
+        "optional": []
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["docs", "rerank_scores", "confidence", "best_doc_metadata"],
+        "conditional": []
+    }
+    
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Fusion logic.

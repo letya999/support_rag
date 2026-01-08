@@ -1,9 +1,9 @@
 from typing import List, Optional, Union
-from langfuse import observe
 from qdrant_client.http import models
 from app.storage.connection import get_db_connection
 from app.storage.qdrant_client import get_async_qdrant_client
 from app.storage.models import SearchResult
+from app.observability.tracing import observe, langfuse_context
 
 @observe(as_type="span")
 async def vector_search(
@@ -13,7 +13,20 @@ async def vector_search(
 ) -> List[SearchResult]:
     """
     Search for documents using Qdrant vector search, then fetch content from Postgres.
+    
+    Contracts:
+        Input:
+            Required: query_embedding (List[float])
+            Optional: top_k (int), category_filter (str/List[str])
+        Output:
+            Guaranteed: List[SearchResult]
     """
+    # Log inputs explicitly (not the full embedding)
+    if langfuse_context:
+        langfuse_context.update_current_observation(
+            input={"embedding_dim": len(query_embedding), "top_k": top_k, "category_filter": category_filter}
+        )
+    
     client = get_async_qdrant_client()
     
     # Construct filter
@@ -35,11 +48,6 @@ async def vector_search(
 
     # Search Qdrant
     try:
-        # Note: AsyncQdrantClient v1.16+ might not expose 'search' directly or prefers 'query_points'.
-        # We use query_points which maps to the new Query API.
-        # query: The vector (or Query object)
-        # filter: The filter (was query_filter in search)
-        
         result = await client.query_points(
             collection_name="documents",
             query=query_embedding,
@@ -51,6 +59,8 @@ async def vector_search(
     except Exception as e:
         # Handle cases where Qdrant is not ready or collection missing
         print(f"Qdrant search error: {e}")
+        if langfuse_context:
+            langfuse_context.update_current_observation(output={"error": str(e), "results_count": 0})
         return []
 
     if not points:
@@ -89,5 +99,14 @@ async def vector_search(
                         score=float(point.score),
                         metadata=metadata
                     ))
+    
+    # Log output explicitly
+    if langfuse_context:
+        langfuse_context.update_current_observation(
+            output={
+                "results_count": len(results),
+                "top_score": results[0].score if results else 0.0
+            }
+        )
     
     return results

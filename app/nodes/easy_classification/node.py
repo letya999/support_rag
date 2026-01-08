@@ -6,6 +6,37 @@ from app.observability.tracing import observe
 from app.services.config_loader.loader import get_node_params
 
 class SemanticClassificationNode(BaseNode):
+    """
+    Classifies user query using semantic classification.
+    
+    Contracts:
+        Input:
+            Required: None
+            Optional:
+                - question (str): User question
+                - translated_query (str): Translated query
+                - aggregated_query (str): Enhanced query
+        
+        Output:
+            Guaranteed:
+                - semantic_intent (str): Detected intent
+                - semantic_category (str): Detected category
+                - semantic_time (float): Classification time
+            Conditional:
+                - semantic_intent_confidence (float): Intent confidence
+                - semantic_category_confidence (float): Category confidence
+    """
+    
+    INPUT_CONTRACT = {
+        "required": [],
+        "optional": ["question", "translated_query", "aggregated_query"]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["semantic_intent", "semantic_category", "semantic_time"],
+        "conditional": ["semantic_intent_confidence", "semantic_category_confidence"]
+    }
+    
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         # Use translated_query if available (from query_translation node)
         # This ensures classification happens in document language

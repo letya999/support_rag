@@ -30,6 +30,67 @@ def _get_config() -> Dict[str, Any]:
 
 
 class RoutingNode(BaseNode):
+    """
+    Routing node - executes State Machine decision.
+    
+    Contracts:
+        Input:
+            Required:
+                - action_recommendation (str): Decision from state_machine
+            Optional:
+                - escalation_reason (str): Reason for escalation
+                - best_doc_metadata (Dict): Metadata from best document
+                - confidence (float): Answer confidence
+                - confidence_threshold (float): Threshold for auto-reply
+                - detected_language (str): User's language
+                - answer (str): Existing answer if blocked
+                - escalation_requested (bool): User requested escalation
+                - safety_violation (bool): Safety violation flag
+                - dialog_state (str): Current dialog state
+        
+        Output:
+            Guaranteed:
+                - action (str): Final action (auto_reply, handoff, block)
+            Conditional:
+                - matched_intent (str): Detected intent
+                - matched_category (str): Detected category
+                - routing_reason (str): Reason for routing decision
+                - routing_confidence (float): Confidence used
+                - routing_threshold (float): Threshold used
+                - escalation_triggered (bool): Was escalation triggered
+                - escalation_message (str): Message for user on escalation
+                - answer (str): Escalation message as answer
+    """
+    
+    INPUT_CONTRACT = {
+        "required": ["action_recommendation"],
+        "optional": [
+            "escalation_reason",
+            "best_doc_metadata",
+            "confidence",
+            "confidence_threshold",
+            "detected_language",
+            "answer",
+            "escalation_requested",
+            "safety_violation",
+            "dialog_state"
+        ]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["action"],
+        "conditional": [
+            "matched_intent",
+            "matched_category",
+            "routing_reason",
+            "routing_confidence",
+            "routing_threshold",
+            "escalation_triggered",
+            "escalation_message",
+            "answer"
+        ]
+    }
+    
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Routing executor - выполняет решение State Machine.

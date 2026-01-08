@@ -35,6 +35,7 @@ from app.nodes.input_guardrails.node import input_guardrails_node
 from app.nodes.output_guardrails.node import output_guardrails_node
 from app.pipeline.config_proxy import conversation_config
 from app.services.config_loader.loader import load_pipeline_config, get_node_enabled, get_cache_config
+from app.pipeline.schema_generator import generate_node_schema
 
 # Optional: Import multihop node if available
 try:
@@ -129,14 +130,28 @@ def should_fast_escalate(state: State):
     return "continue"
 
 
+def check_guardrails_outcome(state: State):
+    """
+    Conditional edge logic for input_guardrails.
+    Determines whether to proceed or block based on guardrails output.
+    """
+    if state.get("guardrails_blocked"):
+        return "blocked"
+    return "continue"
+
+
 # Build graph
 workflow = StateGraph(State)
 
 # CACHE LAYER: Always add cache nodes if enabled
 cache_enabled = get_node_enabled("check_cache")
 if cache_enabled:
-    workflow.add_node("check_cache", NODE_FUNCTIONS["check_cache"])
-    workflow.add_node("store_in_cache", NODE_FUNCTIONS["store_in_cache"])
+    # Generate schemas for cache nodes
+    check_cache_schema = generate_node_schema("check_cache", NODE_FUNCTIONS["check_cache"])
+    store_cache_schema = generate_node_schema("store_in_cache", NODE_FUNCTIONS["store_in_cache"])
+    
+    workflow.add_node("check_cache", NODE_FUNCTIONS["check_cache"], input_schema=check_cache_schema)
+    workflow.add_node("store_in_cache", NODE_FUNCTIONS["store_in_cache"], input_schema=store_cache_schema)
 
 # Get pipeline nodes from config
 config = load_pipeline_config()
@@ -189,7 +204,9 @@ validate_pipeline_structure(active_node_names)
 for name in active_node_names:
     if name in NODE_FUNCTIONS and name not in ["check_cache", "store_in_cache"]:
         print(f"DEBUG: Adding node {name}")
-        workflow.add_node(name, NODE_FUNCTIONS[name])
+        # Generate schema for this node
+        node_schema = generate_node_schema(name, NODE_FUNCTIONS[name])
+        workflow.add_node(name, NODE_FUNCTIONS[name], input_schema=node_schema)
     elif name not in NODE_FUNCTIONS:
         print(f"DEBUG: Warning: Node {name} enabled in config but missing in NODE_FUNCTIONS")
 
@@ -234,9 +251,10 @@ if pipeline_nodes:
     # Connect input_guardrails → cache (if not blocked) or state_machine (if blocked)
     if input_guardrails_enabled:
         if cache_enabled:
+            # Connect input_guardrails → cache (if not blocked) or state_machine (if blocked)
             workflow.add_conditional_edges(
                 "input_guardrails",
-                lambda state: "blocked" if state.get("guardrails_blocked") else "continue",
+                check_guardrails_outcome,
                 {
                     "blocked": "state_machine" if "state_machine" in active_node_names else first_pipeline_node,
                     "continue": "check_cache"
@@ -255,7 +273,7 @@ if pipeline_nodes:
             # No cache, guardrails goes to first pipeline node or state_machine if blocked
             workflow.add_conditional_edges(
                 "input_guardrails",
-                lambda state: "blocked" if state.get("guardrails_blocked") else "continue",
+                check_guardrails_outcome,
                 {
                     "blocked": "state_machine" if "state_machine" in active_node_names else first_pipeline_node,
                     "continue": first_pipeline_node

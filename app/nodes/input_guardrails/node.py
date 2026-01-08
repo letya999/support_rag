@@ -31,7 +31,44 @@ class InputGuardrailsNode(BaseNode):
     - Token limits
     - Language validation
     - Secrets/credentials
+    
+    Contracts:
+        Input:
+            Required:
+                - question (str): User's input text to scan
+            Optional:
+                - detected_language (str): Language hint for scanner
+        
+        Output:
+            Guaranteed:
+                - guardrails_risk_score (float): Risk score 0.0-1.0
+            Conditional (when threat detected):
+                - guardrails_passed (bool): True if safe
+                - guardrails_blocked (bool): True if blocked
+                - guardrails_warning (bool): True if suspicious but allowed
+                - guardrails_sanitized (bool): True if text was sanitized
+                - guardrails_triggered (List[str]): List of triggered scanners
+                - answer (str): Rejection message if blocked
+                - action (str): 'auto_reply' if blocked
     """
+    
+    INPUT_CONTRACT = {
+        "required": ["question"],
+        "optional": ["detected_language"]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["guardrails_risk_score"],
+        "conditional": [
+            "guardrails_passed",
+            "guardrails_blocked",
+            "guardrails_warning",
+            "guardrails_sanitized",
+            "guardrails_triggered",
+            "answer",
+            "action"
+        ]
+    }
     
     def __init__(self):
         super().__init__("input_guardrails")
@@ -153,17 +190,25 @@ class InputGuardrailsNode(BaseNode):
         
         # Handle threats (with support-context override)
         if not scan_result.is_safe:
-            return await self._handle_threat(state, scan_result, is_whitelisted)
+            return await self._handle_threat(scan_result, is_whitelisted, state.get("detected_language", "en"))
         
         # Safe input - continue processing
-        state["guardrails_passed"] = True
-        state["guardrails_risk_score"] = scan_result.risk_score
-        
-        return state
+        # Return ONLY the changes, not the whole state (fixes State Bloat)
+        return {
+            "guardrails_passed": True,
+            "guardrails_risk_score": scan_result.risk_score
+        }
     
-    async def _handle_threat(self, state: State, scan_result: ScanResult, is_whitelisted: bool = False) -> State:
+    async def _handle_threat(
+        self, 
+        scan_result: ScanResult, 
+        is_whitelisted: bool = False,
+        detected_language: str = "en"
+    ) -> Dict[str, Any]:
         """
         Handle detected security threat based on action_mode.
+        
+        Returns ONLY the fields to update (not the whole state).
         """
         # Override: If whitelisted support query, downgrade non-critical threats to warnings
         if is_whitelisted:
@@ -173,31 +218,31 @@ class InputGuardrailsNode(BaseNode):
             if not remaining_threats:
                 # Only non-critical scanners triggered - treat as warning
                 print(f"🟡 Support query flagged but whitelisted: {scan_result.triggered_scanners} (Risk: {scan_result.risk_score:.2f})")
-                state["guardrails_warning"] = True
-                state["guardrails_risk_score"] = scan_result.risk_score
-                state["guardrails_triggered"] = scan_result.triggered_scanners
-                return state
+                return {
+                    "guardrails_warning": True,
+                    "guardrails_risk_score": scan_result.risk_score,
+                    "guardrails_triggered": scan_result.triggered_scanners
+                }
         
         if self.action_mode == "block":
             # Block request and return safe message
-            state["guardrails_blocked"] = True
-            state["guardrails_risk_score"] = scan_result.risk_score
-            state["guardrails_triggered"] = scan_result.triggered_scanners
-            
-            # Set safe rejection message
-            language = state.get("detected_language", "en")
             rejection_msg = self.rejection_messages.get(
-                language,
+                detected_language,
                 self.rejection_messages.get("default", "I cannot process this request.")
             )
-            
-            state["answer"] = rejection_msg
-            state["action"] = "auto_reply"  # Skip to generation
             
             # Log blocked request
             if self.logging_config.get("log_blocked_requests", True):
                 print(f"🛡️ Blocked malicious request. Risk: {scan_result.risk_score:.2f}, "
                       f"Triggers: {', '.join(scan_result.triggered_scanners)}")
+            
+            return {
+                "guardrails_blocked": True,
+                "guardrails_risk_score": scan_result.risk_score,
+                "guardrails_triggered": scan_result.triggered_scanners,
+                "answer": rejection_msg,
+                "action": "auto_reply"
+            }
         
         elif self.action_mode == "log":
             # Check for critical threats that MUST be blocked regardless of mode
@@ -208,39 +253,45 @@ class InputGuardrailsNode(BaseNode):
                 # Force block for critical security threats
                 print(f"🛑 CRITICAL THREAT DETECTED in 'log' mode. Enforcing block. Triggers: {scan_result.triggered_scanners}")
                 
-                state["guardrails_blocked"] = True
-                state["guardrails_risk_score"] = scan_result.risk_score
-                state["guardrails_triggered"] = scan_result.triggered_scanners
-                
-                # Set safe rejection message
-                language = state.get("detected_language", "en")
                 rejection_msg = self.rejection_messages.get(
-                    language,
+                    detected_language,
                     self.rejection_messages.get("default", "I cannot process this request.")
                 )
                 
-                state["answer"] = rejection_msg
-                state["action"] = "auto_reply"
-                return state
+                return {
+                    "guardrails_blocked": True,
+                    "guardrails_risk_score": scan_result.risk_score,
+                    "guardrails_triggered": scan_result.triggered_scanners,
+                    "answer": rejection_msg,
+                    "action": "auto_reply"
+                }
 
             # Log but continue processing for non-critical threats (Toxicity, BanTopics)
-            state["guardrails_warning"] = True
-            state["guardrails_risk_score"] = scan_result.risk_score
-            state["guardrails_triggered"] = scan_result.triggered_scanners
-            
             print(f"⚠️ Suspicious request detected (Allowed in log mode). Risk: {scan_result.risk_score:.2f}, "
                   f"Triggers: {', '.join(scan_result.triggered_scanners)}")
+            
+            return {
+                "guardrails_warning": True,
+                "guardrails_risk_score": scan_result.risk_score,
+                "guardrails_triggered": scan_result.triggered_scanners
+            }
         
         elif self.action_mode == "sanitize":
             # Sanitize and continue
             if scan_result.sanitized_text:
-                state["user_input"] = scan_result.sanitized_text
-                state["guardrails_sanitized"] = True
-                
                 if self.logging_config.get("log_sanitized_requests", True):
                     print(f"🧹 Sanitized request. Risk: {scan_result.risk_score:.2f}")
+                
+                return {
+                    "question": scan_result.sanitized_text,  # Update question with sanitized text
+                    "guardrails_sanitized": True,
+                    "guardrails_risk_score": scan_result.risk_score
+                }
         
-        return state
+        # Default fallback - pass through
+        return {
+            "guardrails_risk_score": scan_result.risk_score
+        }
     
     def _log_scan_result(self, scan_result: ScanResult, original_text: str):
         """Log scan results for monitoring"""

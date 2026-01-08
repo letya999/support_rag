@@ -4,6 +4,35 @@ from app.nodes.reranking.ranker import get_reranker
 from app.observability.tracing import observe
 
 class RerankingNode(BaseNode):
+    """
+    Reranks retrieved documents for better relevance ordering.
+    
+    Contracts:
+        Input:
+            Required:
+                - question (str): User question for scoring
+                - docs (List[str]): Documents to rerank
+            Optional: None
+        
+        Output:
+            Guaranteed:
+                - docs (List[str]): Reordered documents
+                - rerank_scores (List[float]): New scores
+            Conditional:
+                - best_rerank_score (float): Top score
+                - confidence (float): Confidence from best score
+    """
+    
+    INPUT_CONTRACT = {
+        "required": ["question", "docs"],
+        "optional": []
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["docs", "rerank_scores"],
+        "conditional": ["best_rerank_score", "confidence"]
+    }
+    
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Reranking logic.

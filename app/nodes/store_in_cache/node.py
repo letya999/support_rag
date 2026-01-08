@@ -20,11 +20,43 @@ class StoreInCacheNode(BaseNode):
     Store the generated answer in cache (Redis + optionally Qdrant).
     
     Contracts:
-        - Required Inputs: `question` (str), `answer` (str), `cache_key` (str)
-        - Optional Inputs: `confidence` (float), `docs` (List[str]), 
-                          `translated_query` (str), `question_embedding` (List[float])
-        - Guaranteed Outputs: None (side effects only)
+        Input:
+            Required:
+                - question (str): Original question
+                - answer (str): Generated answer
+                - cache_key (str): Normalized cache key
+            Optional:
+                - confidence (float): Answer confidence score
+                - docs (List[str]): Document IDs used
+                - translated_query (str): Translated query
+                - question_embedding (List[float]): Pre-computed embedding
+                - cache_hit (bool): Skip if already cached
+        
+        Output:
+            Guaranteed: None (side effects only)
+            Conditional:
+                - cached (bool): Whether caching succeeded
+    
+    State Impact:
+        - No state fields are modified
+        - Side effect: stores data in Redis and Qdrant
     """
+    
+    INPUT_CONTRACT = {
+        "required": ["question", "answer", "cache_key"],
+        "optional": [
+            "confidence", 
+            "docs", 
+            "translated_query", 
+            "question_embedding",
+            "cache_hit"
+        ]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": [],
+        "conditional": ["cached"]
+    }
     
     def __init__(self):
         super().__init__()

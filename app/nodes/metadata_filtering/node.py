@@ -4,7 +4,37 @@ from app.observability.tracing import observe
 from app.nodes.metadata_filtering.filtering import MetadataFilteringService
 
 class MetadataFilteringNode(BaseNode):
+    """
+    Determines metadata filters for retrieval based on classification.
+    
+    Contracts:
+        Input:
+            Required: None
+            Optional:
+                - semantic_category (str): Detected category
+                - semantic_category_confidence (float): Category confidence
+        
+        Output:
+            Guaranteed:
+                - filter_used (bool): Whether filter was applied
+                - fallback_triggered (bool): Whether fallback was used
+                - filtering_reason (str): Explanation of decision
+            Conditional:
+                - matched_category (str): Category filter applied
+    """
+    
+    INPUT_CONTRACT = {
+        "required": [],
+        "optional": ["semantic_category", "semantic_category_confidence"]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["filter_used", "fallback_triggered", "filtering_reason"],
+        "conditional": ["matched_category"]
+    }
+    
     def __init__(self):
+        super().__init__("metadata_filtering")
         self.service = MetadataFilteringService(confidence_threshold=0.4)
 
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:

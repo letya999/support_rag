@@ -10,6 +10,48 @@ from app.integrations.embeddings import get_embedding
 from app.services.config_loader.loader import get_node_params
 
 class HybridSearchNode(BaseNode):
+    """
+    Performs hybrid search combining vector and lexical search.
+    
+    Contracts:
+        Input:
+            Required: None
+            Optional:
+                - question (str): User question
+                - translated_query (str): Translated query
+                - aggregated_query (str): Enhanced query
+                - queries (List[str]): Multiple queries
+                - matched_category (str): Category filter
+                - filter_used (bool): Whether to apply filter
+                - detected_language (str): User's language
+        
+        Output:
+            Guaranteed:
+                - docs (List[str]): Retrieved documents
+                - scores (List[float]): RRF scores
+                - confidence (float): Top score
+                - best_doc_metadata (Dict): Metadata of best document
+            Conditional: None
+    """
+    
+    INPUT_CONTRACT = {
+        "required": [],
+        "optional": [
+            "question",
+            "translated_query",
+            "aggregated_query",
+            "queries",
+            "matched_category",
+            "filter_used",
+            "detected_language"
+        ]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["docs", "scores", "confidence", "best_doc_metadata"],
+        "conditional": []
+    }
+    
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Logic for hybrid search.

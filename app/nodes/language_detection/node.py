@@ -10,7 +10,31 @@ except ImportError:
     LANGDETECT_AVAILABLE = False
 
 class LanguageDetectionNode(BaseNode):
-    """Определяет язык запроса пользователя."""
+    """
+    Detects language of user query.
+    
+    Contracts:
+        Input:
+            Required:
+                - question (str): User's question text
+            Optional: None
+        
+        Output:
+            Guaranteed:
+                - detected_language (str): ISO language code (en, ru, etc.)
+                - language_confidence (float): Detection confidence 0.0-1.0
+            Conditional: None
+    """
+    
+    INPUT_CONTRACT = {
+        "required": ["question"],
+        "optional": []
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["detected_language", "language_confidence"],
+        "conditional": []
+    }
     
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """Execute language detection."""

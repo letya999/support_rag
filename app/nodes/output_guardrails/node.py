@@ -20,7 +20,43 @@ class OutputGuardrailsNode(BaseNode):
     - Toxicity
     - Relevance to query
     - Hallucinations
+    
+    Contracts:
+        Input:
+            Required:
+                - final_answer (str): LLM response to validate
+            Optional:
+                - user_input (str): Original user query
+                - detected_language (str): User's language
+        
+        Output:
+            Guaranteed:
+                - output_risk_score (float): Risk score 0.0-1.0
+            Conditional:
+                - output_guardrails_passed (bool): True if safe
+                - output_guardrails_blocked (bool): True if blocked
+                - output_guardrails_warning (bool): True if suspicious
+                - output_guardrails_sanitized (bool): True if sanitized
+                - output_triggers (List[str]): Triggered scanners
+                - final_answer (str): Modified/fallback answer
     """
+    
+    INPUT_CONTRACT = {
+        "required": ["final_answer"],
+        "optional": ["user_input", "detected_language"]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["output_risk_score"],
+        "conditional": [
+            "output_guardrails_passed",
+            "output_guardrails_blocked",
+            "output_guardrails_warning",
+            "output_guardrails_sanitized",
+            "output_triggers",
+            "final_answer"
+        ]
+    }
     
     def __init__(self):
         super().__init__("output_guardrails")

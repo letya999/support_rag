@@ -7,6 +7,8 @@ from app.storage.connection import get_sync_db_connection
 from app.observability.tracing import observe
 from app.observability.langfuse_client import get_langfuse_client
 from app.observability.callbacks import get_langfuse_callback_handler
+from app.observability.callbacks import get_langfuse_callback_handler
+from app.observability.filtered_handler import FilteredLangfuseHandler
 from app.pipeline.graph import rag_graph
 from app.nodes.retrieval.search import retrieve_context
 
@@ -108,7 +110,8 @@ async def ask(
     if not q:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
     
-    langfuse_handler = get_langfuse_callback_handler()
+    # Use Filtered Langfuse Handler to reduce trace bloat
+    langfuse_handler = FilteredLangfuseHandler()
     
     # Get global confidence threshold from pipeline config
     from app.services.config_loader.loader import load_shared_config
@@ -176,7 +179,8 @@ async def rag_query(request: RAGRequestBody):
     if not question:
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
-    langfuse_handler = get_langfuse_callback_handler()
+    # Use Filtered Langfuse Handler to reduce trace bloat
+    langfuse_handler = FilteredLangfuseHandler()
 
     # Get global confidence threshold from pipeline config
     from app.services.config_loader.loader import load_shared_config
@@ -196,6 +200,8 @@ async def rag_query(request: RAGRequestBody):
             }
 
             # Run RAG graph
+            # FilteredLangfuseHandler logs filtered state inputs/outputs.
+            # BaseNode.update_current_observation() also logs specific data.
             result = await rag_graph.ainvoke(
                 input_state,
                 config={

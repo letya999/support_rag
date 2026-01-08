@@ -59,6 +59,7 @@ class State(TypedDict):
     
     # Reducers for docs and retrieval
     docs: Annotated[List[str], keep_latest]
+    scores: Annotated[Optional[List[float]], overwrite]
     rerank_scores: Annotated[Optional[List[float]], overwrite]
     
     answer: Annotated[Optional[str], overwrite]
@@ -119,6 +120,7 @@ class State(TypedDict):
     
     # Phase 4: Prompt Routing & Localization
     system_prompt: Annotated[Optional[str], overwrite]
+    human_prompt: Annotated[Optional[str], overwrite]
     generation_strategy: Annotated[Optional[str], overwrite]
     detected_language: Annotated[Optional[str], overwrite]
     language_confidence: Annotated[Optional[float], overwrite]

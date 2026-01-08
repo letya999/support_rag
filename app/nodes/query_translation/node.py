@@ -12,7 +12,46 @@ from app.observability.tracing import observe
 from app.services.config_loader.loader import get_global_param
 
 class QueryTranslationNode(BaseNode):
-    """Переводит запрос на язык документов если требуется."""
+    """
+    Translates user query to document language for unified search.
+    
+    Critical for:
+    - Vector search (embeddings work better within one language)
+    - Lexical search (requires exact language match with documents)
+    
+    Contracts:
+        Input:
+            Required:
+                - question (str): Original user question
+            Optional:
+                - detected_language (str): Detected language of question
+                - language_confidence (float): Confidence of detection
+                - aggregated_query (str): Pre-processed query
+        
+        Output:
+            Guaranteed:
+                - translated_query (str): Translated query (or original if no translation needed)
+            Conditional:
+                - translation_performed (bool): Whether translation was done
+                - source_language (str): Original language
+                - target_language (str): Target language
+                - translation_error (str): Error message if failed
+    """
+    
+    INPUT_CONTRACT = {
+        "required": ["question"],
+        "optional": ["detected_language", "language_confidence", "aggregated_query"]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["translated_query"],
+        "conditional": [
+            "translation_performed",
+            "source_language",
+            "target_language",
+            "translation_error"
+        ]
+    }
     
     def __init__(self, name: str = "query_translation"):
         super().__init__(name)

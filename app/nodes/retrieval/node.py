@@ -4,6 +4,38 @@ from app.nodes.retrieval.search import retrieve_context
 from app.observability.tracing import observe
 
 class RetrievalNode(BaseNode):
+    """
+    Retrieves relevant documents using vector search.
+    
+    Contracts:
+        Input:
+            Required: None (uses aggregated_query or question)
+            Optional:
+                - aggregated_query (str): Enhanced query
+                - question (str): Original question
+                - matched_category (str): Category filter
+                - filter_used (bool): Whether to apply filter
+        
+        Output:
+            Guaranteed:
+                - docs (List[str]): Retrieved document contents
+                - scores (List[float]): Relevance scores
+                - confidence (float): Top score as confidence
+                - best_doc_metadata (Dict): Metadata of best document
+            Conditional:
+                - vector_results (List[SearchResult]): Raw search results
+    """
+    
+    INPUT_CONTRACT = {
+        "required": [],
+        "optional": ["aggregated_query", "question", "matched_category", "filter_used"]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["docs", "scores", "confidence", "best_doc_metadata"],
+        "conditional": ["vector_results"]
+    }
+    
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Logic for simple retrieval.
@@ -26,6 +58,37 @@ class RetrievalNode(BaseNode):
         }
 
 class RetrievalExpandedNode(BaseNode):
+    """
+    Retrieves documents using multiple expanded queries.
+    
+    Contracts:
+        Input:
+            Required: None
+            Optional:
+                - aggregated_query (str): Enhanced query
+                - question (str): Original question
+                - queries (List[str]): Expanded queries
+        
+        Output:
+            Guaranteed:
+                - docs (List[str]): Retrieved document contents
+                - scores (List[float]): Relevance scores
+                - confidence (float): Top score
+                - best_doc_metadata (Dict): Metadata of best document
+            Conditional:
+                - vector_results (List[SearchResult]): Raw results
+    """
+    
+    INPUT_CONTRACT = {
+        "required": [],
+        "optional": ["aggregated_query", "question", "queries"]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["docs", "scores", "confidence", "best_doc_metadata"],
+        "conditional": ["vector_results"]
+    }
+    
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Logic for expanded retrieval (multiple queries).

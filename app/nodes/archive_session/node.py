@@ -90,6 +90,61 @@ def _generate_summary(state: Dict[str, Any], answer: str) -> str:
 
 
 class ArchiveSessionNode(BaseNode):
+    """
+    Archives session data to PostgreSQL and updates Redis.
+    
+    Contracts:
+        Input:
+            Required:
+                - user_id (str): User identifier
+                - session_id (str): Session identifier
+                - question (str): Current question
+                - answer (str): Generated answer
+            Optional:
+                - escalation_triggered (bool): Whether escalation happened
+                - escalation_reason (str): Reason for escalation
+                - confidence (float): Answer confidence
+                - attempt_count (int): Number of attempts
+                - detected_language (str): Detected language
+                - sentiment (Dict): Sentiment analysis
+                - translated_query (str): Translated query
+                - matched_intent (str): Matched intent
+                - docs (List[str]): Retrieved documents
+                - safety_violation (bool): Safety flag
+                - extracted_entities (Dict): Entities to persist
+                - dialog_state (str): Current state
+        
+        Output:
+            Guaranteed:
+                - session_archived (bool): Whether archiving succeeded
+            Conditional:
+                - error (str): Error message if failed
+    """
+    
+    INPUT_CONTRACT = {
+        "required": ["user_id", "session_id", "question", "answer"],
+        "optional": [
+            "escalation_triggered",
+            "escalation_reason",
+            "confidence",
+            "attempt_count",
+            "detected_language",
+            "sentiment",
+            "translated_query",
+            "matched_intent",
+            "docs",
+            "safety_violation",
+            "extracted_entities",
+            "dialog_state",
+            "conversation_history"
+        ]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": ["session_archived"],
+        "conditional": ["error"]
+    }
+    
     def __init__(self):
         super().__init__("archive_session")
 

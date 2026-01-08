@@ -3,8 +3,12 @@ from typing import Optional
 try:
     from langfuse.decorators import observe, langfuse_context
 except ImportError:
-    from langfuse import observe
-    langfuse_context = None
+    try:
+        from langfuse import observe, langfuse_context
+    except ImportError:
+        # Fallback if langfuse_context doesn't exist
+        from langfuse import observe
+        langfuse_context = None
 
 # Re-export observe decorator and context
 __all__ = ["observe", "langfuse_context"]

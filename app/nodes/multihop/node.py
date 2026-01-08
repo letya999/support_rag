@@ -34,6 +34,52 @@ def _get_params() -> Dict[str, Any]:
 
 
 class MultihopNode(BaseNode):
+    """
+    Multi-hop reasoning for complex queries requiring multiple documents.
+    
+    Contracts:
+        Input:
+            Required:
+                - question (str): User question
+            Optional:
+                - docs (List[str]): Initial retrieved documents
+                - scores (List[float]): Document scores
+                - rerank_scores (List[float]): Reranking scores
+                - best_doc_metadata (Dict): Metadata of best document
+                - confidence (float): Current confidence
+        
+        Output:
+            Guaranteed:
+                - complexity_level (str): 'simple', 'medium', 'complex'
+                - complexity_score (float): Complexity score 0.0-1.0
+                - multihop_used (bool): Whether multi-hop was applied
+                - hops_performed (int): Number of hops
+                - merged_context (str): Combined context
+                - docs (List[str]): Output documents
+            Conditional:
+                - confidence (float): Updated confidence
+                - primary_doc (str): Main document
+                - related_docs (List[str]): Related documents
+                - hop_chain (List): Chain of reasoning steps
+    """
+    
+    INPUT_CONTRACT = {
+        "required": ["question"],
+        "optional": ["docs", "scores", "rerank_scores", "best_doc_metadata", "confidence"]
+    }
+    
+    OUTPUT_CONTRACT = {
+        "guaranteed": [
+            "complexity_level",
+            "complexity_score",
+            "multihop_used",
+            "hops_performed",
+            "merged_context",
+            "docs"
+        ],
+        "conditional": ["confidence", "primary_doc", "related_docs", "hop_chain"]
+    }
+    
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Multi-hop reasoning logic.
