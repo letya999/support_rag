@@ -8,7 +8,7 @@ Does NOT perform semantic similarity search.
 from typing import Dict, Any
 from app.nodes.base_node import BaseNode
 from app.services.cache.manager import get_cache_manager
-from app.cache.query_normalizer import get_normalizer
+from app.services.cache.query_normalizer import get_normalizer
 from app.observability.tracing import observe
 
 

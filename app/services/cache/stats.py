@@ -12,7 +12,7 @@ import time
 from collections import defaultdict
 from typing import Optional, Dict, Any
 from datetime import datetime
-from app.cache.models import CacheStats
+from app.services.cache.models import CacheStats
 
 
 class CacheMetrics:

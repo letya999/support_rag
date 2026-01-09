@@ -9,7 +9,7 @@ from typing import Dict, Any
 from app.nodes.base_node import BaseNode
 from app.services.cache.manager import get_cache_manager
 from app.services.cache.similarity import store_in_semantic_cache
-from app.cache.models import CacheEntry
+from app.services.cache.models import CacheEntry
 from app.services.config_loader.loader import get_node_config
 from app.observability.tracing import observe
 from app.integrations.embeddings import get_embedding

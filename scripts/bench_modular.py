@@ -42,7 +42,8 @@ from app.nodes.dialog_analysis.evaluator import evaluator as da_evaluator
 # Import all node instances
 from app.nodes.session_starter.node import load_session_node
 from app.nodes.input_guardrails.node import input_guardrails_node
-from app.cache.nodes import check_cache_node, store_in_cache_node
+from app.nodes.check_cache.node import check_cache_node
+from app.nodes.store_in_cache.node import store_in_cache_node
 from app.nodes.language_detection.node import language_detection_node
 from app.nodes.dialog_analysis.node import dialog_analysis_node
 from app.nodes.state_machine.node import state_machine_node
@@ -62,6 +63,7 @@ from app.nodes.prompt_routing.node import route_prompt_node
 from app.nodes.generation.node import generate_node
 from app.nodes.output_guardrails.node import output_guardrails_node
 from app.nodes.archive_session.node import archive_session_node
+from app.nodes.cache_similarity.node import cache_similarity_node
 
 # Optional: multihop
 try:
@@ -85,6 +87,7 @@ NODE_INSTANCES = {
     "session_starter": load_session_node,
     "input_guardrails": input_guardrails_node,
     "check_cache": check_cache_node,
+    "cache_similarity": cache_similarity_node,
     "language_detection": language_detection_node,
     "dialog_analysis": dialog_analysis_node,
     "state_machine": state_machine_node,
@@ -133,6 +136,7 @@ async def run_modular_bench(args, config):
         "session_starter": args.use_session_loader,
         "dialog_analysis": args.use_dialog_analysis,
         "prompt_routing": args.use_prompt_routing,
+        "cache_similarity": args.use_cache_similarity,
     }
     
     # Initialize enabled set from config.json
@@ -215,7 +219,20 @@ async def run_modular_bench(args, config):
                 }
 
                 # Execution Loop following pipeline_order
+                import io
+                import contextlib
+                
+                skip_to_node = None
+                nodes_actually_executed = []
+
                 for node_name in pipeline_order:
+                    # Handle skipping
+                    if skip_to_node:
+                        if node_name == skip_to_node:
+                            skip_to_node = None
+                        else:
+                            continue
+                    
                     if node_name not in enabled_nodes:
                         continue
                     
@@ -223,18 +240,52 @@ async def run_modular_bench(args, config):
                     if not node_inst:
                         continue
                     
-                    # Execute node (handle both class instances and functions via __call__)
-                    updates = await node_inst(state)
+                    nodes_actually_executed.append(node_name)
+                    
+                    # Execute node
+                    if not args.verbose:
+                        with contextlib.redirect_stdout(io.StringIO()):
+                            updates = await node_inst(state)
+                    else:
+                        updates = await node_inst(state)
+
                     if updates:
                         state.update(updates)
                     
-                    # Special logic for cache hit
-                    if node_name == "check_cache" and state.get("cache_hit"):
-                        # If cache hit, skip to store (or end of logic)
-                        # We follow the same logic as graph.py
+                    # --- BRANCHING LOGIC (Synced with graph.py) ---
+                    
+                    # 1. Guardrails Block → Skip to state_machine
+                    if node_name == "input_guardrails" and state.get("guardrails_blocked"):
+                        if "state_machine" in enabled_nodes:
+                            skip_to_node = "state_machine"
+                            continue
+                    
+                    # 2. Cache Hit → Skip to store_in_cache
+                    if node_name in ["check_cache", "cache_similarity"] and state.get("cache_hit"):
                         if "store_in_cache" in enabled_nodes:
-                            await NODE_INSTANCES["store_in_cache"](state)
-                        break
+                            skip_to_node = "store_in_cache"
+                            continue
+                        else:
+                            break # Done
+                            
+                    # 3. Dialog Analysis Early Exit (Fast Escalate)
+                    if node_name == "dialog_analysis":
+                        if state.get("safety_violation") or state.get("escalation_requested"):
+                            if "state_machine" in enabled_nodes:
+                                skip_to_node = "state_machine"
+                                continue
+                            
+                    # 4. Routing Decision → Skip generation if not auto_reply
+                    if node_name == "routing":
+                        if state.get("action") != "auto_reply":
+                            # Skip to archive or store or end
+                            if "archive_session" in enabled_nodes:
+                                skip_to_node = "archive_session"
+                            elif "store_in_cache" in enabled_nodes:
+                                skip_to_node = "store_in_cache"
+                            else:
+                                break
+                            continue
 
                 # Retrieval Results
                 output_docs = state.get("docs", [])
@@ -273,7 +324,7 @@ async def run_modular_bench(args, config):
                     metadata={
                         "search_type": search_type,
                         "cache_hit": state.get("cache_hit", False),
-                        "nodes_executed": active_sequence,
+                        "nodes_executed": nodes_actually_executed,
                         "category_filter": state.get("matched_category"),
                         "selected_prompt": state.get("dialog_state") if "prompt_routing" in enabled_nodes else "N/A"
                     }
@@ -301,7 +352,10 @@ async def run_modular_bench(args, config):
                         print(f"⚠️ Dialog analysis metrics error: {e}")
                 
                 all_metrics.append(metrics)
-                print(f"[{search_type}] Hit: {metrics['hit_rate']:.2f} | MRR: {metrics['mrr']:.2f}")
+                if args.verbose:
+                    print(f"[{search_type}] Hit: {metrics['hit_rate']:.2f} | MRR: {metrics['mrr']:.2f}")
+                else:
+                    print("✅")
 
             except Exception as e:
                 print(f"⚠️ Error: {e}")
@@ -374,6 +428,9 @@ if __name__ == "__main__":
     parser.add_argument("--use_session_loader", action="store_true", default=get_enabled_default("load_session"))
     parser.add_argument("--use_dialog_analysis", action="store_true", default=get_enabled_default("analyze_dialog"))
     parser.add_argument("--use_prompt_routing", action="store_true", default=get_enabled_default("prompt_routing"))
+    parser.add_argument("--use_cache_similarity", action="store_true", default=get_enabled_default("cache_similarity"))
+    
+    parser.add_argument("--verbose", action="store_true", help="Show all node logs and detailed results")
     
     parser.add_argument("--top_k_retrieval", type=int, default=config.get("top_k_retrieval", 10))
     parser.add_argument("--top_k_rerank", type=int, default=config.get("top_k_rerank", 5))

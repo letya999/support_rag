@@ -5,7 +5,7 @@ from app.settings import settings
 from app.api.routes import router
 from app.api.exceptions import validation_exception_handler
 from fastapi.exceptions import RequestValidationError
-from app.cache.cache_layer import get_cache_manager
+from app.services.cache.manager import get_cache_manager
 from app.services.config_loader.loader import get_cache_config
 from app.nodes.reranking.ranker import get_reranker
 from app.nodes.easy_classification.semantic_classifier import SemanticClassificationService
@@ -110,7 +110,7 @@ async def root():
 @app.get("/cache/status")
 async def cache_status():
     """Get cache status and statistics."""
-    from app.cache.cache_layer import get_cache_manager
+    from app.services.cache.manager import get_cache_manager
     try:
         cache = await get_cache_manager()
         health = await cache.health_check()

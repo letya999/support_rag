@@ -35,8 +35,8 @@ from datetime import timedelta
 from redis import asyncio as aioredis
 from redis.asyncio import Redis
 
-from app.cache.models import CacheEntry
-from app.cache.cache_stats import CacheMetrics
+from app.services.cache.models import CacheEntry
+from app.services.cache.stats import CacheMetrics
 
 
 class CacheManager:

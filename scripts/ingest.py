@@ -13,13 +13,28 @@ from app.integrations.embeddings_opensource import get_embeddings_batch
 from app.settings import settings
 from app.storage.qdrant_client import get_async_qdrant_client
 
+# --- Auto-fix URLs for local execution (outside Docker) ---
+def _fix_local_urls():
+    # Check if we are running outside Docker
+    if not os.path.exists("/.dockerenv"):
+        # Update settings object directly as it is already initialized
+        if "qdrant:6333" in settings.QDRANT_URL:
+            settings.QDRANT_URL = settings.QDRANT_URL.replace("qdrant:6333", "localhost:6333")
+            os.environ["QDRANT_URL"] = settings.QDRANT_URL
+            
+        if "redis:6379" in settings.REDIS_URL:
+            settings.REDIS_URL = settings.REDIS_URL.replace("redis:6379", "localhost:6379")
+            os.environ["REDIS_URL"] = settings.REDIS_URL
+
+_fix_local_urls()
+
 def load_data(file_path):
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
     with open(file_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
-async def ingest_documents(file_path: str):
+async def ingest_documents(file_path: str, append: bool = False):
     """
     Ingest Q&A documents into Postgres and Qdrant.
     """
@@ -39,19 +54,30 @@ async def ingest_documents(file_path: str):
     qdrant = get_async_qdrant_client()
     collection_name = "documents"
     
-    # Recreate collection
+    # Initialize Qdrant Collection
     try:
-        # Try to delete if exists
+        # Check if collection exists
+        col_exists = False
         try:
-            await qdrant.delete_collection(collection_name)
+            await qdrant.get_collection(collection_name)
+            col_exists = True
         except Exception:
-            pass # Collection might not exist
+            col_exists = False
+
+        if not append or not col_exists:
+            if col_exists and not append:
+                try:
+                    await qdrant.delete_collection(collection_name)
+                except Exception:
+                    pass
             
-        await qdrant.create_collection(
-            collection_name=collection_name,
-            vectors_config=models.VectorParams(size=384, distance=models.Distance.COSINE)
-        )
-        print(f"Recreated Qdrant collection: {collection_name}")
+            await qdrant.create_collection(
+                collection_name=collection_name,
+                vectors_config=models.VectorParams(size=384, distance=models.Distance.COSINE)
+            )
+            print(f"{'Recreated' if not append else 'Created'} Qdrant collection: {collection_name}")
+        else:
+            print(f"Using existing Qdrant collection: {collection_name} (append mode)")
     except Exception as e:
         print(f"Error initializing Qdrant: {e}")
         return
@@ -71,25 +97,27 @@ async def ingest_documents(file_path: str):
                 """)
 
                 # Add FTS columns and indices if they don't exist
-                # English FTS
+                # ... [FTS logic remains same as it uses IF NOT EXISTS] ...
                 try:
                     await cur.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS fts_en tsvector GENERATED ALWAYS AS (to_tsvector('english', content)) STORED;")
                     await cur.execute("CREATE INDEX IF NOT EXISTS idx_documents_fts_en ON documents USING GIN (fts_en);")
                 except Exception as e:
                     print(f"Warning: Could not setup English FTS: {e}")
 
-                # Russian FTS
                 try:
                     await cur.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS fts_ru tsvector GENERATED ALWAYS AS (to_tsvector('russian', content)) STORED;")
                     await cur.execute("CREATE INDEX IF NOT EXISTS idx_documents_fts_ru ON documents USING GIN (fts_ru);")
                 except Exception as e:
                     print(f"Warning: Could not setup Russian FTS: {e}")
 
-                # Clear existing documents for idempotency
-                # RESTART IDENTITY to reset serial ID to 1
-                await cur.execute("TRUNCATE TABLE documents RESTART IDENTITY;")
+                # Handle Clear vs Append
+                if not append:
+                    print("Clearing existing documents (idempotency)...")
+                    await cur.execute("TRUNCATE TABLE documents RESTART IDENTITY;")
+                else:
+                    print("Appending to existing documents...")
                 
-                # Ensure correct vector size for Open Source model
+                # Ensure correct vector size
                 try:
                     await cur.execute("ALTER TABLE documents ALTER COLUMN embedding TYPE vector(384);")
                 except Exception as e:
@@ -110,7 +138,6 @@ async def ingest_documents(file_path: str):
                         answer = item.get('answer', '') or item.get('expected_chunk_answer', '')
                         
                         metadata = item.get('metadata', {})
-                        # Add standard fields to metadata if they exist in item
                         for field in ['intent', 'category', 'requires_handoff', 'confidence_threshold']:
                             if field in item:
                                 metadata[field] = item[field]
@@ -119,15 +146,12 @@ async def ingest_documents(file_path: str):
                         batch_contents.append(content)
                         batch_metadatas.append(metadata)
                     
-                    # Generate embeddings in batch
                     embeddings = await get_embeddings_batch(batch_contents)
-                    
                     points = []
                     
                     for j, (content, embedding, metadata) in enumerate(zip(batch_contents, embeddings, batch_metadatas)):
                         metadata_json = json.dumps(metadata)
                         
-                        # Insert into Postgres and get ID
                         await cur.execute(
                             """
                             INSERT INTO documents 
@@ -140,7 +164,6 @@ async def ingest_documents(file_path: str):
                         row = await cur.fetchone()
                         doc_id = row[0]
                         
-                        # Prepare Qdrant point
                         qdrant_payload = {
                             "category": metadata.get("category"),
                             "source": "ingest"
@@ -148,28 +171,22 @@ async def ingest_documents(file_path: str):
                         
                         points.append(
                             models.PointStruct(
-                                id=doc_id, # Use Postgres ID
+                                id=doc_id, 
                                 vector=embedding,
                                 payload=qdrant_payload
                             )
                         )
                     
-                    # Upsert batch to Qdrant
                     if points:
                         await qdrant.upsert(
                             collection_name=collection_name,
                             points=points
                         )
                 
-        print(f"Ingestion complete! {len(data)} documents stored in Postgres and Qdrant.")
+        print(f"Ingestion complete! {len(data)} documents processed.")
     except Exception as e:
         print(f"Error during ingestion: {e}")
     finally:
-        # Clean up Qdrant client
-        # AsyncQdrantClient might need closing if it holds connection, 
-        # but the method close() is not always required depending on version. 
-        # Recent versions use http client which closes automatically or via context manager.
-        # But let's be safe if it has close.
         if hasattr(qdrant, 'close'):
             await qdrant.close()
 
@@ -180,12 +197,17 @@ if __name__ == "__main__":
         type=str, 
         nargs='?',
         default="datasets/qa_data.json",
-        help="Path to the JSON file containing Q&A data"
+        help="Path to the JSON file"
+    )
+    parser.add_argument(
+        "--append",
+        action="store_true",
+        help="Append to existing data instead of clearing"
     )
     parser.add_argument(
         "--qdrant-url",
         type=str,
-        help="Override Qdrant URL (e.g., http://localhost:6333)"
+        help="Override Qdrant URL"
     )
     args = parser.parse_args()
     
@@ -195,4 +217,4 @@ if __name__ == "__main__":
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         
-    asyncio.run(ingest_documents(args.file))
+    asyncio.run(ingest_documents(args.file, append=args.append))

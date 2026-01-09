@@ -455,7 +455,7 @@ async def analyze_qa_metadata(file: UploadFile = None):
     import json
     import uuid
     from app.services.metadata_generation import AutoClassificationPipeline, HandoffDetector
-    from app.cache.cache_layer import get_cache_manager
+    from app.services.cache.manager import get_cache_manager
 
     if not file:
         raise HTTPException(status_code=400, detail="No file provided")
@@ -605,7 +605,7 @@ async def review_qa_metadata(request: dict):
     Returns validation status.
     """
     import json
-    from app.cache.cache_layer import get_cache_manager
+    from app.services.cache.manager import get_cache_manager
 
     analysis_id = request.get("analysis_id")
     corrections = request.get("corrections", [])
@@ -671,7 +671,7 @@ async def confirm_qa_metadata(request: dict):
     the intents registry.
     """
     import json
-    from app.cache.cache_layer import get_cache_manager
+    from app.services.cache.manager import get_cache_manager
     from app.services.document_loaders import ProcessedQAPair
     from app.services.ingestion import DocumentIngestionService
 

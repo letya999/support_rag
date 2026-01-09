@@ -8,7 +8,7 @@ import json
 import time
 from typing import Optional
 from redis.asyncio import Redis
-from app.cache.models import UserSession
+from app.services.cache.models import UserSession
 from app.pipeline.config_proxy import conversation_config
 
 

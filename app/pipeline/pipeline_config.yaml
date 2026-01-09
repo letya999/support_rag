@@ -25,6 +25,8 @@ pipeline:
   enabled: true
 - name: check_cache
   enabled: true
+- name: cache_similarity
+  enabled: false
 - name: dialog_analysis
   enabled: true
 - name: aggregation
@@ -104,6 +106,18 @@ details:
       max_summary_length: 200
     config:
       summary_method: rule_based
+  cache_similarity:
+    parameters:
+      max_candidates: 5
+      use_english_translation: true
+      validate_doc_relevance: true
+      relevance_threshold: 0.3
+    config:
+      collection_name: semantic_cache
+      distance_metric: cosine
+  check_cache:
+    parameters: {}
+    config: {}
   dialog_analysis:
     parameters:
       negative_sentiment_threshold: -0.3
@@ -477,3 +491,7 @@ details:
         ESCALATE: handoff
         RESOLVED: auto_reply
         BLOCKED: block
+  store_in_cache:
+    parameters:
+      store_in_semantic: true
+    config: {}
