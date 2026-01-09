@@ -9,12 +9,13 @@
 ## 📋 Содержание
 
 1. [Критические документы](#1-критические-документы)
-2. [Метаданные проекта](#2-метаданные-проекта)
+2. [Конфигурация проекта](#2-конфигурация-проекта)
 3. [Документация для разработчиков](#3-документация-для-разработчиков)
-4. [Процесс контрибьютинга](#4-процесс-контрибьютинга)
-5. [Улучшение качества кода](#5-улучшение-качества-кода)
-6. [Примеры и демонстрация](#6-примеры-и-демонстрация)
-7. [Безопасность и правовые документы](#7-безопасность-и-правовые-документы)
+4. [REST API и Webhooks документация](#4-rest-api-и-webhooks-документация)
+5. [Процесс контрибьютинга](#5-процесс-контрибьютинга)
+6. [Улучшение качества кода](#6-улучшение-качества-кода)
+7. [Примеры и демонстрация](#7-примеры-и-демонстрация)
+8. [Безопасность и правовые документы](#8-безопасность-и-правовые-документы)
 
 ---
 
@@ -36,9 +37,9 @@
 - [ ] Примеры использования (2-3 практических примера)
 - [ ] Требования (Requirements): Python версия, зависимости
 - [ ] Установка (Installation):
-  - Через pip (после pyproject.toml)
-  - Через Docker
-  - Из исходников (с git clone)
+  - Через Docker (рекомендуется)
+  - Из исходников с requirements.txt (для локальной разработки)
+  - Системные зависимости (PostgreSQL, Redis для полного функционала)
 - [ ] Использование (Usage):
   - Как запустить API
   - Как запустить Telegram бот
@@ -90,83 +91,9 @@ README.md
 
 ---
 
-## 2. Метаданные проекта
+## 2. Конфигурация проекта
 
-### 2.1 pyproject.toml (ПРИОРИТЕТ: 🟠 ВЫСОКИЙ)
-
-**Цель:** Стандартизация Python пакета, возможность `pip install`
-
-**Содержит:**
-- [ ] Метаданные проекта:
-  ```toml
-  [project]
-  name = "support-rag"
-  version = "0.1.0"  # semantic versioning
-  description = "RAG system with semantic caching, guardrails, and Telegram integration"
-  authors = [{name = "...", email = "..."}]
-  readme = "README.md"
-  requires-python = ">=3.9,<3.13"
-  license = {text = "MIT"}
-  keywords = ["rag", "nlp", "semantic-search", "llm", "langgraph"]
-  classifiers = [
-    "Development Status :: 4 - Beta",
-    "Environment :: Web Environment",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Text Processing :: Linguistic",
-  ]
-  ```
-
-- [ ] Зависимости (из requirements.txt):
-  ```toml
-  dependencies = [
-    "langgraph>=1.0.5",
-    "langchain>=1.2.0",
-    "fastapi>=0.128.0",
-    # ... остальное
-  ]
-  ```
-
-- [ ] Optional зависимости (extras):
-  ```toml
-  [project.optional-dependencies]
-  telegram = ["aiogram>=3.0"]
-  dev = ["pytest>=7.0", "black>=22.0"]
-  docs = ["sphinx>=4.0", "sphinx-rtd-theme"]
-  ```
-
-- [ ] URLs (в проекте):
-  ```toml
-  [project.urls]
-  "Homepage" = "https://github.com/letya999/support_rag"
-  "Documentation" = "https://github.com/letya999/support_rag/blob/main/README.md"
-  "Repository" = "https://github.com/letya999/support_rag.git"
-  "Issues" = "https://github.com/letya999/support_rag/issues"
-  ```
-
-- [ ] Entry points (если нужны CLI команды):
-  ```toml
-  [project.scripts]
-  support-rag-ingest = "app.scripts.ingest:main"
-  support-rag-server = "app.main:run_server"
-  ```
-
-- [ ] Build system:
-  ```toml
-  [build-system]
-  requires = ["setuptools>=45", "wheel"]
-  build-backend = "setuptools.build_meta"
-  ```
-
----
-
-### 2.2 .editorconfig (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
+### 2.1 .editorconfig (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
 
 **Цель:** Единообразное форматирование кода в разных редакторах
 
@@ -208,7 +135,7 @@ trim_trailing_whitespace = false
   cd support_rag
   python -m venv venv
   source venv/bin/activate
-  pip install -e .  # из pyproject.toml
+  pip install -r requirements.txt  # Все зависимости
   cp .env.example .env
   # Заполнить .env файл
   ```
@@ -427,9 +354,309 @@ trim_trailing_whitespace = false
 
 ---
 
-## 4. Процесс контрибьютинга
+## 4. REST API и Webhooks документация
 
-### 4.1 CONTRIBUTING.md (ПРИОРИТЕТ: 🟠 ВЫСОКИЙ)
+### 4.1 docs/API.md - REST API (ПРИОРИТЕТ: 🟠 ВЫСОКИЙ)
+
+**Цель:** Полная документация всех REST API endpoints
+
+**Содержит:**
+- [ ] Base URL и общая информация
+- [ ] Для каждого endpoint (GET, POST, DELETE и т.д.):
+  ```markdown
+  ### POST /rag/query
+
+  **Description:** Execute RAG query with conversation history
+
+  **Request Body:**
+  ```json
+  {
+    "question": "string (required)",
+    "session_id": "string (optional)",
+    "history": [{"role": "user|assistant", "content": "..."}],
+    "search_type": "hybrid|lexical|vector"
+  }
+  ```
+
+  **Response (200):**
+  ```json
+  {
+    "answer": "string",
+    "sources": [{"title": "...", "content": "...", "score": 0.95}],
+    "session_id": "uuid",
+    "execution_time_ms": 1234,
+    "confidence": 0.92
+  }
+  ```
+
+  **Error Responses:**
+  - 400: Invalid input
+  - 429: Rate limited
+  - 500: Internal error
+
+  **Example cURL:**
+  ```bash
+  curl -X POST http://localhost:8000/rag/query \
+    -H "Content-Type: application/json" \
+    -d '{"question": "How to install?"}'
+  ```
+  ```
+
+- [ ] Все существующие endpoints с примерами
+- [ ] Rate limiting и throttling информация
+- [ ] Authentication (если применимо)
+- [ ] Возможные ошибки и их коды
+- [ ] Версионирование API (если несколько версий)
+
+**Формат:** Markdown с JSON примерами (более простой чем Swagger для быстрого чтения)
+
+---
+
+### 4.2 docs/WEBHOOKS.md - Webhook Events (ПРИОРИТЕТ: 🟠 ВЫСОКИЙ)
+
+**Цель:** Документация webhook событий, когда они срабатывают, как их интегрировать
+
+**Содержит:**
+
+#### Основная информация:
+- [ ] Что такое webhooks в этом проекте
+- [ ] Как их включить/отключить
+- [ ] Процесс регистрации webhook URL
+- [ ] Аутентификация (HMAC署名, API ключ или другое)
+- [ ] Retry стратегия (как часто пытаться отправить при failure)
+- [ ] Timeout настройки
+
+#### Для каждого webhook события:
+```markdown
+### Event: document.processed
+
+**Когда срабатывает:** После успешной обработки и индексации документа
+
+**Payload:**
+```json
+{
+  "event": "document.processed",
+  "timestamp": "2026-01-09T10:30:45Z",
+  "document_id": "uuid",
+  "document_title": "string",
+  "status": "success|failed",
+  "metadata": {
+    "chunks_created": 42,
+    "embeddings_generated": 42,
+    "qa_pairs_extracted": 15,
+    "processing_time_ms": 1234
+  },
+  "error": "nullable string"
+}
+```
+
+**Retry Policy:**
+- Up to 5 retries
+- Exponential backoff: 1s, 2s, 4s, 8s, 16s
+
+**Example Webhook Handler (Python):**
+```python
+from fastapi import FastAPI, Request, HTTPException
+import hmac
+import hashlib
+
+app = FastAPI()
+
+@app.post("/webhook/support-rag")
+async def handle_webhook(request: Request):
+    # Verify signature
+    signature = request.headers.get("X-Webhook-Signature")
+    body = await request.body()
+
+    expected_sig = hmac.new(
+        b"your-secret-key",
+        body,
+        hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(signature, expected_sig):
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    payload = await request.json()
+
+    # Process event
+    if payload["event"] == "document.processed":
+        handle_document_processed(payload)
+
+    return {"status": "received"}
+
+def handle_document_processed(payload):
+    print(f"Document {payload['document_id']} processed with {payload['metadata']['chunks_created']} chunks")
+    # Your custom logic here
+```
+```
+
+**Events List:**
+- [ ] `document.uploaded` - При загрузке файла
+- [ ] `document.processing_started` - Начало обработки
+- [ ] `document.processed` - Успешная обработка
+- [ ] `document.processing_failed` - Ошибка обработки
+- [ ] `qa_pair.created` - Создание пары вопрос-ответ
+- [ ] `session.started` - Начало новой сессии (Telegram)
+- [ ] `session.ended` - Завершение сессии
+
+---
+
+### 4.3 Webhook Specification (AsyncAPI) - (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
+
+**Файл:** `docs/webhooks-spec.yaml` - Машиночитаемая спецификация webhook событий
+
+**Формат:** AsyncAPI 3.0 (стандарт как OpenAPI для асинхронных API)
+
+**Цель:** Для автоматического генерирования SDK и клиентов
+
+**Содержит:**
+```yaml
+asyncapi: '3.0.0'
+info:
+  title: Support RAG Webhooks API
+  version: '1.0.0'
+  description: Real-time events from Support RAG system
+
+servers:
+  production:
+    url: 'https://api.support-rag.example.com'
+    description: Production environment
+
+channels:
+  # Webhook subscription endpoint
+  webhooks:
+    address: '/webhooks/subscribe'
+    description: 'Subscribe to webhook events'
+    subscribe:
+      operationId: subscribeToWebhooks
+      message:
+        contentType: application/json
+        payload:
+          type: object
+          properties:
+            url:
+              type: string
+              format: uri
+              description: 'Your webhook URL'
+            events:
+              type: array
+              items:
+                type: string
+                enum:
+                  - document.uploaded
+                  - document.processed
+                  - document.processing_failed
+                  - qa_pair.created
+                  - session.started
+                  - session.ended
+            secret:
+              type: string
+              description: 'Optional secret for HMAC signature'
+
+  # Webhook delivery channels (events sent to your URL)
+  documentProcessed:
+    address: 'https://your-webhook-url.com/webhook'
+    description: 'Webhook event: document processed'
+    publish:
+      operationId: onDocumentProcessed
+      message:
+        contentType: application/json
+        headers:
+          type: object
+          properties:
+            X-Webhook-Signature:
+              type: string
+              description: 'HMAC-SHA256 signature for verification'
+            X-Webhook-Delivery-Id:
+              type: string
+              format: uuid
+              description: 'Unique delivery ID for idempotency'
+        payload:
+          type: object
+          properties:
+            event:
+              type: string
+              enum: [document.processed]
+            timestamp:
+              type: string
+              format: date-time
+            document_id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [success, failed]
+            metadata:
+              type: object
+              properties:
+                chunks_created:
+                  type: integer
+                embeddings_generated:
+                  type: integer
+                processing_time_ms:
+                  type: integer
+```
+
+**Инструменты для просмотра AsyncAPI:**
+- Online editor: https://studio.asyncapi.com/ (вставить YAML)
+- CLI: `npm install -g @asyncapi/cli` → `asyncapi generate fromTemplate webhooks-spec.yaml @asyncapi/html-template -o docs/webhooks-html`
+
+---
+
+### 4.4 REST API OpenAPI Spec - (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
+
+**Файл:** `docs/api-spec.yaml` - Машиночитаемая спецификация REST API
+
+**Формат:** OpenAPI 3.0 (стандартный формат для REST API документации)
+
+**Цель:**
+- Автоматическое генерирование Swagger UI
+- Поддержка IDE для автодополнения
+- Генерирование клиентских SDK
+
+**Генерирование из FastAPI:**
+```python
+# app/main.py
+from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
+
+app = FastAPI(
+    title="Support RAG API",
+    description="RAG system with semantic caching and webhooks",
+    version="1.0.0"
+)
+
+# Endpoints будут автоматически добавлены в OpenAPI схему
+
+# Экспорт спецификации
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title="Support RAG",
+        version="1.0.0",
+        description="Full documentation at /docs",
+        routes=app.routes,
+    )
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
+```
+
+**Автоматический доступ:**
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+- Raw OpenAPI JSON: `http://localhost:8000/openapi.json`
+
+---
+
+## 5. Процесс контрибьютинга
+
+### 5.1 CONTRIBUTING.md (ПРИОРИТЕТ: 🟠 ВЫСОКИЙ)
 
 **Цель:** Четкие правила для контрибьюторов
 
@@ -478,7 +705,7 @@ trim_trailing_whitespace = false
 
 ---
 
-### 4.2 .github/pull_request_template.md (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
+### 5.2 .github/pull_request_template.md (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
 
 **Цель:** Стандартизация PR описания
 
@@ -509,7 +736,7 @@ Describe the tests you ran
 
 ---
 
-### 4.3 .github/ISSUE_TEMPLATE/ (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
+### 5.3 .github/ISSUE_TEMPLATE/ (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
 
 **Шаблоны для трех типов issues:**
 
@@ -565,9 +792,9 @@ Steps you've taken
 
 ---
 
-## 5. Улучшение качества кода
+## 6. Улучшение качества кода
 
-### 5.1 Заменить print() на structured logging (ПРИОРИТЕТ: 🔴 КРИТИЧЕСКИЙ)
+### 6.1 Заменить print() на structured logging (ПРИОРИТЕТ: 🔴 КРИТИЧЕСКИЙ)
 
 **Проблема:** Множество `print("🚀 Starting...")` по всему коду
 
@@ -594,7 +821,7 @@ Steps you've taken
 
 ---
 
-### 5.2 Добавить comprehensive docstrings (ПРИОРИТЕТ: 🟠 ВЫСОКИЙ)
+### 6.2 Добавить comprehensive docstrings (ПРИОРИТЕТ: 🟠 ВЫСОКИЙ)
 
 **Цель:** Все публичные функции и классы должны иметь docstrings
 
@@ -646,7 +873,7 @@ class BaseNode(ABC):
 
 ---
 
-### 5.3 Добавить type hints аннотации (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
+### 6.3 Добавить type hints аннотации (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
 
 **Хорошая новость:** Type hints уже широко используются
 
@@ -658,7 +885,7 @@ class BaseNode(ABC):
 
 ---
 
-### 5.4 Code quality improvements (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
+### 6.4 Code quality improvements (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
 
 - [ ] Удалить все TODO комментарии (закончить или создать issues)
 - [ ] Удалить закомментированный dead code
@@ -675,9 +902,9 @@ class BaseNode(ABC):
 
 ---
 
-## 6. Примеры и демонстрация
+## 7. Примеры и демонстрация
 
-### 6.1 examples/ папка (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
+### 7.1 examples/ папка (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
 
 **Структура:**
 ```
@@ -698,7 +925,7 @@ examples/
 
 ---
 
-### 6.2 docs/QUICKSTART.md (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
+### 7.2 docs/QUICKSTART.md (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
 
 **5-минутный старт:**
 1. Docker Compose up
@@ -708,9 +935,9 @@ examples/
 
 ---
 
-## 7. Безопасность и правовые документы
+## 8. Безопасность и правовые документы
 
-### 7.1 SECURITY.md (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
+### 8.1 SECURITY.md (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
 
 **Цель:** Как сообщать об уязвимостях ответственно
 
@@ -723,7 +950,7 @@ examples/
 
 ---
 
-### 7.2 CODE_OF_CONDUCT.md (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
+### 8.2 CODE_OF_CONDUCT.md (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
 
 **Цель:** Создать приветливую среду для всех
 
@@ -731,7 +958,7 @@ examples/
 
 ---
 
-### 7.3 CHANGELOG.md (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
+### 8.3 CHANGELOG.md (ПРИОРИТЕТ: 🟡 СРЕДНИЙ)
 
 **Цель:** История изменений для каждой версии
 
@@ -766,12 +993,14 @@ examples/
 | README.md | 🔴 КРИТИЧЕСКИЙ | Средняя | 2-3 |
 | LICENSE | 🔴 КРИТИЧЕСКИЙ | Низкая | 0.25 |
 | DEVELOPMENT.md | 🔴 КРИТИЧЕСКИЙ | Низкая | 1-2 |
-| pyproject.toml | 🟠 ВЫСОКИЙ | Низкая | 1 |
 | Replace print() with logging | 🔴 КРИТИЧЕСКИЙ | Средняя | 2-3 |
 | docs/ARCHITECTURE.md | 🟠 ВЫСОКИЙ | Средняя | 2-3 |
-| docs/API.md | 🟠 ВЫСОКИЙ | Средняя | 2-3 |
+| docs/API.md (REST API docs) | 🟠 ВЫСОКИЙ | Средняя | 2-3 |
+| docs/WEBHOOKS.md (Events documentation) | 🟠 ВЫСОКИЙ | Средняя | 2 |
 | CONTRIBUTING.md | 🟠 ВЫСОКИЙ | Низкая | 1 |
 | Add docstrings | 🟠 ВЫСОКИЙ | Высокая | 4-6 |
+| docs/webhooks-spec.yaml (AsyncAPI) | 🟡 СРЕДНИЙ | Средняя | 1-2 |
+| docs/api-spec.yaml (OpenAPI) | 🟡 СРЕДНИЙ | Низкая | 1 |
 | docs/DATABASE_SCHEMA.md | 🟡 СРЕДНИЙ | Низкая | 1-2 |
 | docs/DEPLOYMENT.md | 🟡 СРЕДНИЙ | Средняя | 1-2 |
 | docs/CONFIGURATION.md | 🟡 СРЕДНИЙ | Низкая | 1 |
@@ -792,22 +1021,25 @@ examples/
 1. Добавить LICENSE
 2. Написать README.md
 3. Написать DEVELOPMENT.md
-4. Создать pyproject.toml
-5. Заменить print() на logging
+4. Заменить print() на structured logging
 
-### Волна 2 (День 3-5) - Основная документация:
-6. Написать CONTRIBUTING.md
-7. Создать docs/ARCHITECTURE.md
-8. Создать docs/API.md
+### Волна 2 (День 3-5) - Основная документация для API:
+5. Написать CONTRIBUTING.md
+6. Создать docs/ARCHITECTURE.md
+7. Создать docs/API.md (REST API endpoints)
+8. Создать docs/WEBHOOKS.md (Webhook events documentation)
 9. Добавить comprehensive docstrings
 10. Создать .github/pull_request_template.md
 
-### Волна 3 (День 6-7) - Дополнительно:
-11. Написать docs/DEPLOYMENT.md
-12. Написать docs/DATABASE_SCHEMA.md
-13. Создать examples/
-14. Добавить SECURITY.md, CODE_OF_CONDUCT.md
-15. Создать CHANGELOG.md
+### Волна 3 (День 6-7) - Спецификации и дополнительно:
+11. Создать docs/webhooks-spec.yaml (AsyncAPI спец)
+12. Создать docs/api-spec.yaml (OpenAPI спец - генерируется из FastAPI)
+13. Написать docs/DEPLOYMENT.md
+14. Написать docs/DATABASE_SCHEMA.md
+15. Создать examples/
+16. Добавить SECURITY.md, CODE_OF_CONDUCT.md
+17. Создать CHANGELOG.md
+18. Создать .editorconfig
 
 ---
 
@@ -820,10 +1052,11 @@ examples/
 - [ ] Все публичные функции имеют docstrings с примерами
 - [ ] Логирование структурировано (JSON, не print statements)
 - [ ] CONTRIBUTING.md четко объясняет процесс
-- [ ] docs/ папка содержит полную документацию
+- [ ] docs/ папка содержит полную документацию (API, WEBHOOKS, ARCHITECTURE и т.д.)
+- [ ] REST API полностью документирована (docs/API.md + docs/api-spec.yaml)
+- [ ] Webhook события полностью документированы (docs/WEBHOOKS.md + docs/webhooks-spec.yaml AsyncAPI)
 - [ ] examples/ показывают реальные сценарии использования
 - [ ] LICENSE определяет условия использования
-- [ ] pyproject.toml позволяет установить как pip пакет
 - [ ] SECURITY.md объясняет как сообщать об уязвимостях
 
 ---
@@ -834,14 +1067,22 @@ examples/
 - ❌ CI/CD (GitHub Actions)
 - ❌ Автотесты (pytest, coverage)
 - ❌ Линтеры (flake8, pylint, black)
+- ❌ pyproject.toml (используется requirements.txt для простоты)
 - ❌ Semantic versioning tags
 - ❌ Автоматизированный release процесс
+
+**Ключевые решения:**
+- ✅ Requirements.txt как основной способ управления зависимостями
+- ✅ REST API документирована в docs/API.md (Markdown) + docs/api-spec.yaml (OpenAPI из FastAPI)
+- ✅ Webhooks документированы в docs/WEBHOOKS.md (примеры) + docs/webhooks-spec.yaml (AsyncAPI)
+- ✅ Structured logging вместо print() - JSON логирование
 
 **Если позже понадобится добавить:**
 - `.github/workflows/tests.yml` для автотестов
 - `.flake8`, `mypy.ini` для инструментов качества
+- pyproject.toml для публикации на PyPI
 - Semantic versioning для releases
-- бейджи в README для этого
+- бейджи в README для статусов
 
 ---
 
