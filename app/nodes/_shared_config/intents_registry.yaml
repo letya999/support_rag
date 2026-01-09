@@ -8,46 +8,43 @@
 # ============================================================
 
 _meta:
-  generated_at: '2026-01-07T22:03:06.872526+00:00'
+  generated_at: '2026-01-09T16:46:55.122605+00:00'
   source_db: postgres:documents
-  total_categories: 5
-  total_intents: 22
+  total_categories: 8
+  total_intents: 10
   warning: ⚠️ АВТОГЕНЕРИРУЕМЫЙ ФАЙЛ - не редактируйте вручную!
 categories:
-- name: Account
-  description: Account access, password reset, and profile management
+- name: Account Access
+  description: Questions related to Account Access
   intents:
-  - account_security
-  - email_change
-  - login_help
-  - profile_update
   - reset_password
+- name: Account Management
+  description: Questions related to Account Management
+  intents:
+  - cancel_subscription
 - name: Billing
   description: Payment, invoices, and subscription billing
   intents:
-  - invoice_help
-  - payment_issue
-  - refund_request
-  - subscription_help
-  - upgrade_plan
-- name: Features
-  description: Questions related to Features
+  - check_payment_methods
+- name: General Info
+  description: Questions related to General Info
   intents:
-  - feature_availability
-  - feature_limitation
-  - feature_tutorial
-- name: Getting Started
-  description: Questions related to Getting Started
+  - company_info
+- name: Order Management
+  description: Questions related to Order Management
   intents:
-  - documentation
-  - first_steps
-  - onboarding_help
-  - setup_guide
-- name: Technical
-  description: Questions related to Technical
+  - view_history
+- name: Returns & Refunds
+  description: Questions related to Returns & Refunds
   intents:
-  - api_help
-  - compatibility
-  - error_troubleshooting
-  - integration_support
-  - performance_issue
+  - check_policy
+- name: Shipping
+  description: Shipping, delivery, and logistics
+  intents:
+  - change_address
+  - check_shipping_availability
+  - track_order
+- name: Support
+  description: Customer support and assistance
+  intents:
+  - contact_support
