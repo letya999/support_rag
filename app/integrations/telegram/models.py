@@ -6,7 +6,7 @@ Pydantic models for user sessions, messages, and RAG pipeline communication.
 
 from pydantic import BaseModel
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from enum import Enum
 
 
@@ -40,6 +40,7 @@ class RAGRequest(BaseModel):
     conversation_history: List[dict]  # [{"role": "user", "content": "..."}, ...]
     user_id: str
     session_id: str
+    user_metadata: Optional[Dict[str, Any]] = {}
 
 
 class RAGResponse(BaseModel):

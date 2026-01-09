@@ -162,16 +162,9 @@ class SupportRAGBot:
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Main message handler.
-
-        Flow:
-        1. Get/create user session
-        2. Add user message to history
-        3. Get conversation context (last N messages)
-        4. Query RAG pipeline with question and context
-        5. Save assistant response to history
-        6. Send response to user
         """
-        user_id = update.effective_user.id
+        user = update.effective_user
+        user_id = user.id
         query = update.message.text
 
         logger.info(f"User {user_id}: {query[:50]}...")
@@ -185,7 +178,7 @@ class SupportRAGBot:
 
             if not session:
                 # Auto-create session if doesn't exist
-                username = update.effective_user.username or "User"
+                username = user.username or "User"
                 session = UserSession(
                     user_id=user_id,
                     username=username,
@@ -212,12 +205,23 @@ class SupportRAGBot:
 
             # 5. Query RAG pipeline
             logger.info(f"Querying RAG pipeline for user {user_id}")
+            
+            # Extract User Metadata
+            user_metadata = {
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "language_code": user.language_code,
+                "is_premium": getattr(user, "is_premium", False),
+                "is_bot": user.is_bot
+            }
 
             rag_response = await self.rag_client.query_rag(
                 question=query,
                 conversation_history=conversation_context,
                 user_id=user_id,
-                session_id=f"{user_id}_{session.created_at.timestamp()}"
+                session_id=f"{user_id}_{session.created_at.timestamp()}",
+                user_metadata=user_metadata
             )
 
             # 6. Add assistant response to history

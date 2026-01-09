@@ -6,7 +6,7 @@ HTTP client for communicating with the RAG pipeline API.
 
 import aiohttp
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from app.integrations.telegram.models import RAGRequest, RAGResponse
 
@@ -50,7 +50,8 @@ class RAGPipelineClient:
         question: str,
         conversation_history: List[dict],
         user_id: int,
-        session_id: str
+        session_id: str,
+        user_metadata: Dict[str, Any] = {}
     ) -> RAGResponse:
         """
         Query RAG pipeline with question and conversation context.
@@ -60,6 +61,7 @@ class RAGPipelineClient:
             conversation_history: Previous messages for context [{"role": "user/assistant", "content": "..."}, ...]
             user_id: Telegram user ID
             session_id: Session identifier
+            user_metadata: Extra user info (username, language, etc.)
 
         Returns:
             RAGResponse with answer, sources, and confidence
@@ -69,7 +71,8 @@ class RAGPipelineClient:
             question=question,
             conversation_history=conversation_history,
             user_id=str(user_id),
-            session_id=session_id
+            session_id=session_id,
+            user_metadata=user_metadata
         )
 
         try:
