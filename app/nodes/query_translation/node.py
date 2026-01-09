@@ -60,7 +60,7 @@ class QueryTranslationNode(BaseNode):
         """
         Translate query to document language if needed.
         """
-        from app.nodes.query_translation.translator import translator
+        from app.services.translation.translator import translator
         from app.services.config_loader.loader import get_node_params
         
         # Получаем параметры именно этой ноды

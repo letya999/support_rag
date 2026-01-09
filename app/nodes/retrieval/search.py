@@ -1,7 +1,7 @@
 import asyncio
 from typing import List, Dict, Any, Optional
 from app.integrations.embeddings import get_embedding
-from app.nodes.retrieval.storage import vector_search as search_documents
+from app.storage.vector_operations import vector_search as search_documents
 from app.nodes.retrieval.models import RetrievalOutput
 from app.nodes.query_expansion.expander import QueryExpander
 from app.nodes.reranking.ranker import get_reranker

@@ -4,7 +4,7 @@ Wraps the singleton QueryTranslator for async usage.
 """
 import asyncio
 import logging
-from app.nodes.query_translation.translator import translator
+from app.services.translation.translator import translator
 
 logger = logging.getLogger(__name__)
 

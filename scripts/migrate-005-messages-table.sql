@@ -38,6 +38,8 @@ ALTER TABLE messages
 -- Update escalations to reference sessions instead of sessions_archive
 ALTER TABLE escalations 
     DROP CONSTRAINT IF EXISTS escalations_session_id_fkey;
+ALTER TABLE escalations 
+    DROP CONSTRAINT IF EXISTS fk_escalations_session;
 -- We need to ensure the session exists in sessions table before adding FK if escalations table already has data.
 -- Since this is a dev migration/fix, we will assume we can add the constraint or that existing data might be an issue. 
 -- However, for robustness, we should be careful. 

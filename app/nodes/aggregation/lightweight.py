@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Any, List
 from app.pipeline.state import State
-from app.pipeline.config_proxy import conversation_config
+from app.services.config_loader.conversation_config import conversation_config
 
 def extract_entities(text: str) -> Dict[str, List[str]]:
     """

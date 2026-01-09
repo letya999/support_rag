@@ -11,7 +11,7 @@ services pattern (business logic) + nodes pattern (wrappers).
 """
 
 from .manager import CacheManager, get_cache_manager
-from .session import SessionManager
+from .session_manager import SessionManager
 from .similarity import (
     check_semantic_similarity,
     store_in_semantic_cache,

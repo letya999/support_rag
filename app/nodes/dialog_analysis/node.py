@@ -3,7 +3,7 @@ import re
 from app.nodes.base_node import BaseNode
 from app.pipeline.state import State
 from app.observability.tracing import observe
-from app.pipeline.config_proxy import conversation_config
+from app.services.config_loader.conversation_config import conversation_config
 from app.services.config_loader.loader import get_node_params
 from app.nodes.dialog_analysis.llm import llm_dialog_analysis_node
 from app.nodes.state_machine.states_config import (

@@ -18,7 +18,7 @@ import os
 from pathlib import Path
 from functools import lru_cache
 from typing import Any, Optional, Dict
-
+from app.services.config_loader.node_registry import node_registry
 
 def env_var_constructor(loader, node):
     """
@@ -45,12 +45,8 @@ SHARED_CONFIG_DIR = NODES_DIR / "_shared_config"
 
 @lru_cache(maxsize=64)
 def load_node_config(node_name: str) -> dict:
-    """Load a node's local config.yaml with caching."""
-    config_path = NODES_DIR / node_name / "config.yaml"
-    if not config_path.exists():
-        return {}
-    with open(config_path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+    """Load a node's local config.yaml with caching via NodeRegistry."""
+    return node_registry.get_node_config(node_name)
 
 
 @lru_cache(maxsize=16)
@@ -85,6 +81,7 @@ def clear_config_cache():
     load_node_config.cache_clear()
     load_shared_config.cache_clear()
     load_pipeline_config.cache_clear()
+    node_registry.refresh()
 
 
 def get_node_enabled(node_name: str, pipeline_config: Optional[dict] = None) -> bool:
@@ -96,9 +93,8 @@ def get_node_enabled(node_name: str, pipeline_config: Optional[dict] = None) -> 
         if entry.get("name") == node_name:
             return entry.get("enabled", True)
     
-    # Fallback to node's own config
-    node_config = load_node_config(node_name)
-    return node_config.get("node", {}).get("enabled", True)
+    # Fallback to node's own config via registry
+    return node_registry.is_node_enabled(node_name)
 
 
 def get_node_params(node_name: str, pipeline_config: Optional[dict] = None) -> dict:
@@ -121,7 +117,7 @@ def get_node_params(node_name: str, pipeline_config: Optional[dict] = None) -> d
         return result
     
     # Fallback to node's own config - merge both parameters and config
-    node_config = load_node_config(node_name)
+    node_config = node_registry.get_node_config(node_name)
     result = {}
     result.update(node_config.get("parameters") or {})
     result.update(node_config.get("config") or {})
@@ -138,11 +134,14 @@ def get_node_detail(node_name: str, section: str = "parameters") -> dict:
     return node_details.get(section) or {}
 
 
-def get_node_config(node_name: str) -> dict:
+def get_node_config_section(node_name: str) -> dict:
     """
     Get only the 'config' section for a node.
     """
     return get_node_detail(node_name, "config")
+
+# Alias for backward compatibility
+get_node_config = get_node_config_section
 
 
 def get_global_param(param_name: str, default: Any = None) -> Any:
@@ -174,7 +173,7 @@ def _get_nested(data: dict, path: str, default: Any = None) -> Any:
 
 def get_param(node_name: str, param_path: str, default: Any = None) -> Any:
     """Get a nested parameter from node config using dot notation."""
-    config = load_node_config(node_name)
+    config = node_registry.get_node_config(node_name)
     return _get_nested(config, param_path, default)
 
 

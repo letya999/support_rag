@@ -7,7 +7,7 @@ into categories and intents without any model training.
 
 import asyncio
 from typing import Dict, List, Optional
-from app.nodes.easy_classification.semantic_classifier import SemanticClassificationService
+from app.services.classification.semantic_service import SemanticClassificationService
 from app.integrations.embeddings import get_embedding
 from .models import ClassificationResult, MetadataConfig
 

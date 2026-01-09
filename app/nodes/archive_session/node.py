@@ -7,8 +7,8 @@ Filters system messages before saving to keep history clean.
 from typing import Dict, Any
 from app.nodes.base_node import BaseNode
 from app.storage.persistence import PersistenceManager
-from app.cache.session_manager import SessionManager
-from app.cache.cache_layer import get_cache_manager
+from app.services.cache.session_manager import SessionManager
+from app.services.cache.manager import get_cache_manager
 from app.observability.tracing import observe
 
 
@@ -223,8 +223,8 @@ class ArchiveSessionNode(BaseNode):
         # 6. Update Redis session state (optional cache layer)
         try:
             cache_manager = await get_cache_manager()
-            if cache_manager.redis_client:
-                session_manager = SessionManager(cache_manager.redis_client)
+            if cache_manager.redis.is_available():
+                session_manager = SessionManager(cache_manager.redis.client)
                 await session_manager.update_state(session_id, {
                     "dialog_state": state.get("dialog_state"),
                     "attempt_count": state.get("attempt_count", 0),

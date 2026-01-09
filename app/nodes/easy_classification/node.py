@@ -1,7 +1,7 @@
 import time
 from typing import Dict, Any
 from app.nodes.base_node import BaseNode
-from app.nodes.easy_classification.semantic_classifier import SemanticClassificationService
+from app.services.classification.semantic_service import SemanticClassificationService
 from app.observability.tracing import observe
 from app.services.config_loader.loader import get_node_params
 

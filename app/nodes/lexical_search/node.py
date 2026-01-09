@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 from app.observability.tracing import observe
 from app.storage.models import SearchResult
-from app.nodes.lexical_search.storage import lexical_search_db
+from app.storage.lexical_operations import lexical_search_db
 from app.nodes.base_node import BaseNode
 
 class LexicalSearchNode(BaseNode):

@@ -9,7 +9,7 @@ import time
 from typing import Optional
 from redis.asyncio import Redis
 from app.services.cache.models import UserSession
-from app.pipeline.config_proxy import conversation_config
+from app.services.config_loader.conversation_config import conversation_config
 
 
 class SessionManager:

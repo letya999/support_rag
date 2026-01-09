@@ -1,8 +1,8 @@
 from typing import List, Dict, Any, Optional
 from app.nodes.base_node import BaseNode
 from app.storage.persistence import PersistenceManager
-from app.cache.session_manager import SessionManager
-from app.cache.cache_layer import get_cache_manager
+from app.services.cache.session_manager import SessionManager
+from app.services.cache.manager import get_cache_manager
 from app.observability.tracing import observe
 from app.nodes._shared_config.history_filter import filter_conversation_history
 
@@ -145,8 +145,8 @@ class SessionStarterNode(BaseNode):
     async def _ensure_redis_session(self, user_id: str, session_id: str) -> Optional[Any]:
         try:
             cache_manager = await get_cache_manager()
-            if cache_manager.redis_client:
-                session_manager = SessionManager(cache_manager.redis_client)
+            if cache_manager.redis.is_available():
+                session_manager = SessionManager(cache_manager.redis.client)
                 current_session = await session_manager.get_session(user_id, session_id)
                 
                 if not current_session and session_id:

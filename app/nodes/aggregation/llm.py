@@ -4,7 +4,7 @@ from langchain_core.output_parsers import StrOutputParser
 from app.integrations.llm import get_llm
 from app.pipeline.state import State
 from app.observability.tracing import observe
-from app.pipeline.config_proxy import conversation_config
+from app.services.config_loader.conversation_config import conversation_config
 from app.services.config_loader.loader import get_node_config, get_node_params
 
 from app.nodes.base_node import BaseNode

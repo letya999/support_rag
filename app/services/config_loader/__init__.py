@@ -11,6 +11,7 @@ from .loader import (
     get_param,
     get_shared_param,
 )
+from .config_manager import ConfigManager
 
 __all__ = [
     "load_node_config",
@@ -24,4 +25,5 @@ __all__ = [
     "get_cache_config",
     "get_param",
     "get_shared_param",
+    "ConfigManager",
 ]

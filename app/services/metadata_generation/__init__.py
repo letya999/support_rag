@@ -10,10 +10,12 @@ CPU-first automatic Q&A metadata generation:
 
 from .auto_classifier import AutoClassificationPipeline, ClassificationResult, CategoryInfo
 from .handoff_detector import HandoffDetector
+from .metadata_analyzer import MetadataAnalyzerService
 
 __all__ = [
     "AutoClassificationPipeline",
     "ClassificationResult", 
     "CategoryInfo",
     "HandoffDetector",
+    "MetadataAnalyzerService",
 ]
