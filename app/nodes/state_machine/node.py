@@ -124,6 +124,9 @@ class StateMachineNode(BaseNode):
         # Extract inputs from state
         analysis = state.get("dialog_analysis", {})
         current_state = state.get("dialog_state") or INITIAL
+        # Inject current state into analysis for rules engine to access
+        analysis["current_state"] = current_state
+        
         attempt_count = state.get("attempt_count") or 0
         escalation_decision = state.get("escalation_decision", "auto_reply")
         safety_violation = state.get("safety_violation", False)
@@ -193,22 +196,33 @@ class StateMachineNode(BaseNode):
         analysis["confidence_below_threshold"] = confidence < threshold
 
         # Check for requires_handoff in docs metadata
-        # Note: docs is a list of strings (content only), so we need to check vector_results or best_doc_metadata
-        vector_results = state.get("vector_results", [])
-        best_doc_metadata = state.get("best_doc_metadata", {})
+        # Logic: If any of the top N documents (default 3) flag requires_handoff, we treat it as critical.
+        # This check runs for standard docs AND after clarification is complete.
+        # If we are in active clarification (NEEDS_CLARIFICATION), we skip this to prevent early exit.
         
-        if vector_results:
-            # Check all documents if vector_results is available
-            analysis["requires_handoff"] = any(
-                getattr(result, 'metadata', {}).get("requires_handoff", False) 
-                for result in vector_results
-            )
-        elif best_doc_metadata:
-            # Fall back to checking only the best document
-            analysis["requires_handoff"] = best_doc_metadata.get("requires_handoff", False)
-        else:
-            # No metadata available
-            analysis["requires_handoff"] = False
+        analysis["requires_handoff"] = False
+        
+        # Only check for handoff if we are NOT currently clarifying
+        if current_state != "NEEDS_CLARIFICATION": 
+            vector_results = state.get("vector_results", [])
+            best_doc_metadata = state.get("best_doc_metadata", {})
+            
+            params = get_node_params("state_machine")
+            top_n_check = params.get("handoff_check_top_n", 3)
+            
+            handoff_flagged = False
+            if vector_results:
+                # Check top N documents
+                top_docs = vector_results[:top_n_check]
+                for res in top_docs:
+                    if getattr(res, 'metadata', {}).get("requires_handoff", False):
+                        handoff_flagged = True
+                        break
+            elif best_doc_metadata:
+                 # Fallback
+                 handoff_flagged = best_doc_metadata.get("requires_handoff", False)
+            
+            analysis["requires_handoff"] = handoff_flagged
         
         # 2. Evaluate rules
         result, new_attempt_count = self._rules_engine.evaluate(
@@ -260,6 +274,22 @@ class StateMachineNode(BaseNode):
                 else:
                     escalation_reason = "state_machine_decision"
         
+        # Soft Handoff Interception:
+        # If we are escalating due to KB requirements ("requires_handoff" rule) or Low Confidence,
+        # we often want to provide the best possible answer FIRST, then escalate.
+        # Strict 'handoff' action usually skips Generation. We want 'auto_reply' to Generate -> then Escalate.
+        if new_state == ESCALATION_NEEDED:
+             # Check if this is a "soft" reason (KB flag or Low Confidence) vs "hard" (Safety/User Request)
+             is_kb_handoff = (rule_matched == "kb_requires_handoff")
+             is_low_conf = (escalation_reason == "low_confidence" or rule_matched == "low_confidence_escalation")
+             
+             if is_kb_handoff or is_low_conf:
+                 action_recommendation = "auto_reply"
+                 # Override hint to tell PromptRouting to construct an "Answer + Escalation" prompt
+                 state_behavior = state_behavior.copy()
+                 state_behavior["prompt_hint"] = "answer_and_handoff"
+                 escalation_reason = escalation_reason or "soft_handoff"
+        
         return {
             "dialog_state": new_state,
             "attempt_count": new_attempt_count,
@@ -302,6 +332,8 @@ class StateMachineNode(BaseNode):
                 "action_recommendation": "handoff",
                 "escalation_reason": "safety_violation"
             }
+
+
 
         new_state = current_state
         

@@ -72,7 +72,9 @@ class PromptRoutingNode(BaseNode):
             "docs",
             "aggregated_query",
             "user_profile",
-            "extracted_entities"
+            "extracted_entities",
+            "collected_slots",
+            "clarification_context"
         ]
     }
     
@@ -110,182 +112,132 @@ class PromptRoutingNode(BaseNode):
                 "ESCALATION_REQUESTED": self._load_prompt("prompt_instruction_escalation_requested.txt"),
                 "EMPATHY_MODE": self._load_prompt("prompt_instruction_empathy.txt"),
                 "SAFETY_VIOLATION": self._load_prompt("prompt_instruction_safety_violation.txt"),
+                "NEEDS_CLARIFICATION": self._load_prompt("prompt_instruction_clarify.txt"),  # Add exact match
                 "CLARIFY": self._load_prompt("prompt_instruction_clarify.txt"),
+                "answer_and_handoff": self._load_prompt("prompt_instruction_answer_and_handoff.txt"),
                 "DEFAULT": self._load_prompt("prompt_instruction_default.txt")
             }
         return self._instructions.get(state_name, self._instructions["DEFAULT"])
 
-    def _get_tone_modifiers(self) -> Dict[str, str]:
-        """Lazy load tone modifiers from config."""
-        if self._tone_modifiers is None:
-            params = _get_params()
-            # Try to load from config, fallback to defaults
-            config_modifiers = params.get("tone_modifiers", {})
-            if config_modifiers:
-                self._tone_modifiers = config_modifiers
-            else:
-                self._tone_modifiers = self.DEFAULT_TONE_MODIFIERS
-        return self._tone_modifiers
-
-    def _get_tone_modifier(self, state_behavior: Dict[str, Any]) -> str:
-        """Get tone modifier based on state behavior."""
-        tone = state_behavior.get("tone", "professional")
-        modifiers = self._get_tone_modifiers()
-        return modifiers.get(tone, "")
-
-    def _count_tokens(self, messages: List[BaseMessage]) -> int:
-        """Simple token counter based on characters."""
-        total = 0
-        for m in messages:
-            if isinstance(m.content, str):
-                total += len(m.content) // 4
-        return total
-
-    def _prepare_history(self, history: List[Any], max_tokens: int = MAX_HISTORY_TOKENS) -> str:
-        """Prepare history with trimming using langchain_core."""
-        if not history:
-            return ""
-
-        # Convert to LangChain messages
-        messages = []
-        for m in history:
-            if isinstance(m, BaseMessage):
-                messages.append(m)
-                continue
-
-            if isinstance(m, dict):
-                role = m.get("role")
-                content = m.get("content", "")
-                if role == "user":
-                    messages.append(HumanMessage(content=content))
-                elif role == "assistant" or role == "system":
-                    # Treat system messages as AI messages for history context or skip
-                    # Assuming assistant for context
-                    messages.append(AIMessage(content=content))
-        
-        # Trim messages
-        try:
-            trimmed = trim_messages(
-                messages,
-                max_tokens=max_tokens,
-                strategy="last",
-                token_counter=self._count_tokens,
-                include_system=False,
-                start_on="human"
-            )
-        except Exception:
-             # Fallback if trim fails or not configured
-             trimmed = messages[-5:]
-
-        return self._format_messages(trimmed)
-
-    def _format_messages(self, messages: List[BaseMessage]) -> str:
-        """Format LangChain messages to string."""
-        lines = []
-        for msg in messages:
-            role = "USER" if isinstance(msg, HumanMessage) else "ASSISTANT"
-            content = msg.content
-            if len(content) > DEFAULT_MAX_MESSAGE_LENGTH:
-                 content = content[:DEFAULT_MAX_MESSAGE_LENGTH] + "..."
-            lines.append(f"{role}: {content}")
-        return "\n".join(lines)
-
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Selects and builds the system prompt based on dialog state.
-        Uses state_behavior from State Machine for tone selection.
-        Uses conversation_history (correct format) instead of session_history.
+        Execute the prompt routing logic.
+        
+        Args:
+            state: The current conversation state.
+            
+        Returns:
+            Dict containing system_prompt, human_prompt, and prompt_hint.
         """
-        params = _get_params()
-        
-        # Resolve lazy session history if needed (though we prefer conversation_history)
-        # Note: Priority is conversation_history (current flow), then session_history (archived)
-        # Check if we need to load session_history fallback
-        session_history = state.get("session_history")
-        if not session_history and "_session_history_loader" in state:
-            loader = state["_session_history_loader"]
-            if callable(loader):
-                try:
-                    coro_or_val = loader()
-                    if inspect.isawaitable(coro_or_val):
-                        session_history = await coro_or_val
-                    else:
-                        session_history = coro_or_val
-                except Exception as e:
-                    print(f"Failed to lazy load session history: {e}")
-        
-        include_profile = params.get("include_user_profile", True)
-        include_entities = params.get("include_entities", True)
-        use_tone_modifiers = params.get("use_tone_modifiers", True)
-        max_history_tokens = params.get("max_history_tokens", MAX_HISTORY_TOKENS)
-        
+        question = state.get("question")
         dialog_state = state.get("dialog_state", "INITIAL")
         state_behavior = state.get("state_behavior", {})
+        user_profile = state.get("user_profile", {})
+        extracted_entities = state.get("extracted_entities", {})
+        collected_slots = state.get("collected_slots", {})
+        # Use aggregated query if available, else original question
+        current_query = state.get("aggregated_query") or question
         
-        # Load instruction using base class utility via helper
-        instruction = self._get_instruction(dialog_state)
+        # 1. Get base instruction based on state
+        system_prompt = self._get_instruction(dialog_state)
         
-        # Add tone modifier if enabled
-        tone_modifier = ""
-        if use_tone_modifiers and state_behavior:
-            tone_modifier = self._get_tone_modifier(state_behavior)
+        # 2. Append User Profile if present
+        if user_profile:
+            profile_str = _format_profile(user_profile)
+            if profile_str:
+                system_prompt += f"\n\nUser Profile:\n{profile_str}"
+                
+        # 3. Append Entities
+        if extracted_entities:
+            entities_str = _format_entities(extracted_entities)
+            if entities_str:
+                system_prompt += f"\n\nContext Entities:\n{entities_str}"
+                
+        # 4. Append Collected Slots & Clarification Answers
+        clarification_context = state.get("clarification_context", {})
+        all_details = collected_slots.copy()
         
-        # Get clean history
-        # Priority: conversation_history > session_history
-        conv_history = state.get("conversation_history", [])
-        if not conv_history and session_history:
-            # Adapt session_history to dict format if needed
-             # Assuming session_history is strictly List[Dict]
-             conv_history = session_history
-        
-        history_str = self._prepare_history(conv_history, max_tokens=max_history_tokens)
-        
-        # Format additional context
-        entities_str = _format_entities(state.get("extracted_entities", {})) if include_entities else ""
-        profile_str = _format_profile(state.get("user_profile", {})) if include_profile else ""
-        
-        # Build final system block
-        system_prompt = ""
-        
-        # Add tone modifier at the beginning
-        if tone_modifier:
-            system_prompt += f"{tone_modifier}\n\n"
-        
-        system_prompt += f"{instruction}\n\n"
-        
-        if profile_str:
-            system_prompt += f"--- User Profile ---\n{profile_str}\n\n"
+        if clarification_context and clarification_context.get("answers"):
+            all_details.update(clarification_context["answers"])
             
-        if entities_str:
-            system_prompt += f"--- Extracted Data ---\n{entities_str}\n\n"
-        
-        if history_str:
-            system_prompt += f"--- Conversation History ---\n{history_str}\n\n"
+        if all_details:
+             slots_str = "\n".join([f"- {k}: {v}" for k, v in all_details.items()])
+             system_prompt += f"\n\nKnown Details:\n{slots_str}"
 
-        # Localization Directive - always enforce detected language
-        lang = state.get("detected_language", "ru")
-        lang_map = {
-            "en": "English",
-            "ru": "Russian (русский)",
-            "es": "Spanish (español)",
-            "de": "German (Deutsch)",
-            "fr": "French (français)",
-            "it": "Italian (italiano)",
-            "pt": "Portuguese (português)",
-            "uk": "Ukrainian (українська)"
-        }
-        lang_name = lang_map.get(lang, f"the user's language ({lang})")
-        system_prompt += f"\n\nIMPORTANT: You MUST respond in {lang_name} language."
+        # 5. Append Conversation History
+        if get_clean_history_for_prompt:
+            history_msgs = get_clean_history_for_prompt(state, max_messages=DEFAULT_MAX_HISTORY_MESSAGES)
+            if history_msgs:
+                history_str = ""
+                for msg in history_msgs:
+                    role = msg.get("role", "unknown")
+                    content = msg.get("content", "")
+                    history_str += f"{role.capitalize()}: {content}\n"
+                
+                if history_str:
+                    system_prompt += f"\n\nConversation History:\n{history_str}"
 
-        # Build human prompt with docs
-        question = state.get("aggregated_query") or state.get("question")
+        # 6. Build human prompt with docs
         docs = state.get("docs", [])
-        docs_str = "\n\n".join(docs)
-        human_prompt = f"Context:\n{docs_str}\n\nQuestion: {question}"
+        
+        if dialog_state in ["NEEDS_CLARIFICATION", "CLARIFY"]:
+             # If we are clarifying, DO NOT include docs.
+             docs_str = ""
+             
+             # Check for pending questions (Strict Mode)
+             # Try legacy pending_questions OR new clarification_context
+             active_questions = state.get("pending_questions")
+             if not active_questions:
+                 ctx = state.get("clarification_context", {})
+                 if ctx.get("active"):
+                     idx = ctx.get("current_index", 0)
+                     qs = ctx.get("questions", [])
+                     if idx < len(qs):
+                         active_questions = [qs[idx]]
+             
+             if active_questions:
+                 # STRICT MODE: Force LLM to just ask the specific question
+                 target_question = active_questions[0]
+                 detected_lang = state.get("detected_language", "en")
+                 
+                 system_prompt = (
+                     "You are a precise technical assistant. "
+                     "Your ONLY task is to ask the specific question provided below. "
+                     f"Translate the question to '{detected_lang}' (Russian/Spanish/etc) to match the user. "
+                     "Do NOT answer the question. Do NOT add pleasantries. Do NOT hallucinate new questions."
+                 )
+                 
+                 # We include the user's last input purely for context, but explicitly tell LLM to ignore it for generation
+                 human_prompt = (
+                     f"User's previous input: {current_query}\n"
+                     "--------------------------------------------------\n"
+                     f"TASK: Ask this EXACT question: \"{target_question}\"\n"
+                     "Output:"
+                 )
+             else:
+                 # Fallback to standard clarification flow (if node didn't run or list empty)
+                 human_prompt = f"User's previous input: {current_query}"
+                 
+                 clarification_task = state.get("clarification_task", {})
+                 questions = clarification_task.get("clarifying_questions", [])
+                 if not questions:
+                     best_doc = state.get("best_doc_metadata", {})
+                     questions = best_doc.get("clarifying_questions", [])
+                 
+                 system_prompt = self._get_instruction("NEEDS_CLARIFICATION")
+                 if questions:
+                     questions_str = "\n".join([f"- {q}" for q in questions])
+                     system_prompt += f"\n\nRequired Clarifying Questions:\n{questions_str}"
+        else:
+             docs_str = "\n\n".join(docs) if docs else ""
+             if docs_str:
+                 human_prompt = f"Context:\n{docs_str}\n\nQuestion: {current_query}"
+             else:
+                 human_prompt = f"Question: {current_query}"
 
         return {
             "system_prompt": system_prompt,
-            "human_prompt": human_prompt,  # NEW
+            "human_prompt": human_prompt,
             "prompt_hint": state_behavior.get("prompt_hint", "standard")
         }
 

@@ -118,5 +118,35 @@
             "confidence_threshold": 1.0,
             "clarifying_questions": []
         }
+    },
+    {
+        "question": "Why was my payment declined?",
+        "answer": "Payments can be declined for various reasons including insufficient funds, incorrect card details, or bank security checks. Please check with your bank.",
+        "metadata": {
+            "category": "Billing",
+            "intent": "payment_issue",
+            "requires_handoff": false,
+            "confidence_threshold": 0.85,
+            "clarifying_questions": [
+                "What payment method did you use (Card, PayPal)?",
+                "When did you attempt the payment?",
+                "Did you see a specific error code?"
+            ]
+        }
+    },
+    {
+        "question": "I have a technical issue with the app",
+        "answer": "Please try clearing your cache or reinstalling the application. If the problem persists, contact support.",
+        "metadata": {
+            "category": "Technical Support",
+            "intent": "technical_issue",
+            "requires_handoff": true,
+            "confidence_threshold": 0.8,
+            "clarifying_questions": [
+                "Which device are you using (iOS, Android, Web)?",
+                "What version of the app do you have?",
+                "Can you describe the error or behavior?"
+            ]
+        }
     }
 ]

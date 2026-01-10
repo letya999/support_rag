@@ -25,6 +25,7 @@ from app.nodes.language_detection.node import language_detection_node
 from app.nodes.query_translation.node import query_translation_node
 from app.nodes.input_guardrails.node import input_guardrails_node
 from app.nodes.output_guardrails.node import output_guardrails_node
+from app.nodes.clarification_questions.node import clarification_questions_node
 
 # Optional: Import multihop node if available
 try:
@@ -60,6 +61,7 @@ NODE_FUNCTIONS = {
     "query_translation": query_translation_node,
     "input_guardrails": input_guardrails_node,
     "output_guardrails": output_guardrails_node,
+    "clarification_questions": clarification_questions_node,
 }
 
 if MULTIHOP_AVAILABLE:

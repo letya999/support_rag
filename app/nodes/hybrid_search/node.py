@@ -49,7 +49,7 @@ class HybridSearchNode(BaseNode):
     
     OUTPUT_CONTRACT = {
         "guaranteed": ["docs", "scores", "confidence", "best_doc_metadata"],
-        "conditional": []
+        "conditional": ["dialog_state", "clarification_task"]
     }
     
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -96,11 +96,24 @@ class HybridSearchNode(BaseNode):
         docs = [r.content for r in unique_results]
         scores = [r.score for r in unique_results]
         
+        best_doc_metadata = unique_results[0].metadata if unique_results else {}
+        
+        # Check for clarifying questions (Phase 1: Clarification Flow)
+        if best_doc_metadata.get("clarifying_questions"):
+            return {
+                "docs": docs,
+                "scores": scores,
+                "confidence": scores[0] if scores else 0.0,
+                "best_doc_metadata": best_doc_metadata,
+                "dialog_state": "NEEDS_CLARIFICATION",
+                "clarification_task": best_doc_metadata
+            }
+        
         return {
             "docs": docs,
             "scores": scores,
             "confidence": scores[0] if scores else 0.0,
-            "best_doc_metadata": unique_results[0].metadata if unique_results else {}
+            "best_doc_metadata": best_doc_metadata
         }
 
 @observe(as_type="span")

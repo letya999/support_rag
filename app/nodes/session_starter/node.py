@@ -42,7 +42,8 @@ class SessionStarterNode(BaseNode):
             "_session_history_loader", 
             "attempt_count",
             "extracted_entities",
-            "_session_metadata"
+            "_session_metadata",
+            "clarification_context"
         ]
     }
     
@@ -116,6 +117,10 @@ class SessionStarterNode(BaseNode):
             
             if active_session.extracted_entities:
                 updates["extracted_entities"] = active_session.extracted_entities
+            
+            # Restore Clarification Context
+            if active_session.clarification_context:
+                updates["clarification_context"] = active_session.clarification_context
             
             # Store session metadata for debugging and context (not operational state)
             updates["_session_metadata"] = {

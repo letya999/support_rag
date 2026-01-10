@@ -11,6 +11,7 @@ from app.pipeline.routing_logic import (
     should_fast_escalate, 
     check_guardrails_outcome
 )
+from app.pipeline.routing_logic_clarification import route_after_retrieval, check_guardrails_and_clarification
 from app.pipeline.validators import validate_pipeline_structure
 from app.services.config_loader.loader import load_pipeline_config, get_node_enabled
 from app.pipeline.schema_generator import generate_node_schema
@@ -103,16 +104,28 @@ def build_graph():
         if input_guardrails_enabled:
             target_if_blocked = "state_machine" if "state_machine" in active_node_names else first_pipeline_node
             
+            # Determine target for normal continuation
+            target_continue = "check_cache" if cache_enabled else first_pipeline_node
+
+            # Select routing logic (support clarification bypass if enabled)
+            if "clarification_questions" in active_node_names:
+                gw_logic = check_guardrails_and_clarification
+                gw_map = {
+                    "blocked": target_if_blocked,
+                    "clarification_mode": "clarification_questions",
+                    "continue": target_continue
+                }
+            else:
+                gw_logic = check_guardrails_outcome
+                gw_map = {
+                    "blocked": target_if_blocked,
+                    "continue": target_continue
+                }
+
+            workflow.add_conditional_edges("input_guardrails", gw_logic, gw_map)
+            pipeline_logger.log_conditional_edge_added("input_guardrails", gw_logic.__name__, gw_map)
+
             if cache_enabled:
-                workflow.add_conditional_edges(
-                    "input_guardrails",
-                    check_guardrails_outcome,
-                    {
-                        "blocked": target_if_blocked,
-                        "continue": "check_cache"
-                    }
-                )
-                pipeline_logger.log_conditional_edge_added("input_guardrails", "check_guardrails_outcome", {"blocked": target_if_blocked, "continue": "check_cache"})
                 # Cache logic
                 workflow.add_conditional_edges(
                     "check_cache",
@@ -123,17 +136,7 @@ def build_graph():
                     }
                 )
                 pipeline_logger.log_conditional_edge_added("check_cache", "cache_hit_logic", {"store_in_cache": "store_in_cache", "miss": first_pipeline_node})
-            else:
-                # No cache
-                workflow.add_conditional_edges(
-                    "input_guardrails",
-                    check_guardrails_outcome,
-                    {
-                        "blocked": target_if_blocked,
-                        "continue": first_pipeline_node
-                    }
-                )
-                pipeline_logger.log_conditional_edge_added("input_guardrails", "check_guardrails_outcome", {"blocked": target_if_blocked, "continue": first_pipeline_node})
+
         elif cache_enabled:
             # No guardrails, just cache
             workflow.add_conditional_edges(
@@ -191,6 +194,29 @@ def build_graph():
             elif current_node == "state_machine" and "routing" in active_node_names:
                 workflow.add_edge("state_machine", "routing")
                 pipeline_logger.log_edge_added("state_machine", "routing")
+            # Special logic: Clarification Flow (Phase 1)
+            elif next_node == "clarification_questions":
+                # Determine skip target (node after clarification)
+                if i + 2 < len(pipeline_nodes):
+                    skip_target = pipeline_nodes[i+2]
+                else:
+                    # Fallback if clarification is last 
+                    if "archive_session" in active_node_names:
+                        skip_target = "archive_session"
+                    elif cache_enabled:
+                         skip_target = "store_in_cache"
+                    else:
+                         skip_target = END
+                
+                workflow.add_conditional_edges(
+                    current_node,
+                    route_after_retrieval,
+                    {
+                        "clarification_questions": "clarification_questions",
+                        "continue": skip_target
+                    }
+                )
+                pipeline_logger.log_conditional_edge_added(current_node, "route_after_retrieval", {"clarification": "clarification_questions", "continue": skip_target})
             else:
                 workflow.add_edge(current_node, next_node)
                 pipeline_logger.log_edge_added(current_node, next_node)

@@ -7,6 +7,7 @@ parameters:
   use_rules_engine: true
   max_attempts_before_handoff: 4
   reset_on_gratitude: true
+  handoff_check_top_n: 3
 
 # Текстовые настройки и словари
 config:

@@ -8,10 +8,10 @@
 # ============================================================
 
 _meta:
-  generated_at: '2026-01-09T16:46:55.122605+00:00'
+  generated_at: '2026-01-09T19:15:48.345964+00:00'
   source_db: postgres:documents
-  total_categories: 8
-  total_intents: 10
+  total_categories: 9
+  total_intents: 12
   warning: ⚠️ АВТОГЕНЕРИРУЕМЫЙ ФАЙЛ - не редактируйте вручную!
 categories:
 - name: Account Access
@@ -26,6 +26,7 @@ categories:
   description: Payment, invoices, and subscription billing
   intents:
   - check_payment_methods
+  - payment_issue
 - name: General Info
   description: Questions related to General Info
   intents:
@@ -48,3 +49,7 @@ categories:
   description: Customer support and assistance
   intents:
   - contact_support
+- name: Technical Support
+  description: Technical issues, API errors, and troubleshooting
+  intents:
+  - technical_issue

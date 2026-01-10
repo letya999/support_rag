@@ -7,6 +7,8 @@ TASK: Classify user's latest support message into 4 categories.
    - {SIGNAL_ESCALATION_REQ}: Requests human ("оператор", "agent", "человек", "менеджер")
    - {SIGNAL_QUESTION}: Asks for help or information (ends with "?", seeks answer)
    - {SIGNAL_REPEATED}: Same issue mentioned in history
+   - refusal: User refuses to answer or says "I don't know" / "Skip"
+   - topic_shift: User changes subject completely (e.g. from "tech issue" to "pricing")
 
 2. SENTIMENT (emotion):
    - positive: Happy, satisfied, grateful
@@ -39,7 +41,12 @@ Output: {{"signals":{{{SIGNAL_GRATITUDE}:false,{SIGNAL_ESCALATION_REQ}:true,{SIG
 
 Example 3:
 User: "Вы тупые, ничего не работает!!!"
-Output: {{"signals":{{{SIGNAL_GRATITUDE}:false,{SIGNAL_ESCALATION_REQ}:false,{SIGNAL_QUESTION}:false,{SIGNAL_REPEATED}:false}},"sentiment":{{"label":"angry","score":0.9}},"safety":{{"violation":true,"reason":"insult to staff"}},"escalation":{{"decision":"escalate","reason":"safety violation + high anger"}}}}
+Output: {{"signals":{{{SIGNAL_GRATITUDE}:false,{SIGNAL_ESCALATION_REQ}:false,{SIGNAL_QUESTION}:false,{SIGNAL_REPEATED}:false,"refusal":false,"topic_shift":false}},"sentiment":{{"label":"angry","score":0.9}},"safety":{{"violation":true,"reason":"insult to staff"}},"escalation":{{"decision":"escalate","reason":"safety violation + high anger"}}}}
+
+Example 4:
+AI: "What is your device?"
+User: "I don't know, stop asking."
+Output: {{"signals":{{{SIGNAL_GRATITUDE}:false,{SIGNAL_ESCALATION_REQ}:false,{SIGNAL_QUESTION}:false,{SIGNAL_REPEATED}:false,"refusal":true,"topic_shift":false}},"sentiment":{{"label":"frustrated","score":0.6}},"safety":{{"violation":false,"reason":null}},"escalation":{{"decision":"auto_reply","reason":null}}}}
 
 === INPUT DATA ===
 
@@ -52,6 +59,6 @@ Latest user message:
 === OUTPUT FORMAT ===
 
 Output ONLY valid JSON matching this EXACT structure:
-{{"signals":{{{SIGNAL_GRATITUDE}:bool,{SIGNAL_ESCALATION_REQ}:bool,{SIGNAL_QUESTION}:bool,{SIGNAL_REPEATED}:bool}},"sentiment":{{"label":"positive|neutral|negative|frustrated|angry","score":0.0-1.0}},"safety":{{"violation":bool,"reason":"string or null"}},"escalation":{{"decision":"escalate|auto_reply","reason":"string or null"}}}}
+{{"signals":{{{SIGNAL_GRATITUDE}:bool,{SIGNAL_ESCALATION_REQ}:bool,{SIGNAL_QUESTION}:bool,{SIGNAL_REPEATED}:bool,"refusal":bool,"topic_shift":bool}},"sentiment":{{"label":"positive|neutral|negative|frustrated|angry","score":0.0-1.0}},"safety":{{"violation":bool,"reason":"string or null"}},"escalation":{{"decision":"escalate|auto_reply","reason":"string or null"}}}}
 
 CRITICAL: Output JSON only. No markdown. No explanation. No prefix text.

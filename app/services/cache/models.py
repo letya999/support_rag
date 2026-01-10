@@ -110,6 +110,9 @@ class UserSession(BaseModel):
     last_emotion_detected: Optional[str] = None
     extracted_entities: Dict[str, Any] = Field(default_factory=dict)
     
+    # Clarification Flow Persistence
+    clarification_context: Optional[Dict] = None  # Stores the ClarificationContext dict
+    
     # History (transient)
     message_count: int = 0
     

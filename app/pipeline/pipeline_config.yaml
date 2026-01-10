@@ -51,6 +51,8 @@ pipeline:
   enabled: true
 - name: multihop
   enabled: true
+- name: clarification_questions
+  enabled: true
 - name: state_machine
   enabled: true
 - name: routing
@@ -118,6 +120,16 @@ details:
   check_cache:
     parameters: {}
     config: {}
+  clarification_questions:
+    parameters:
+      max_turns: 5
+    config:
+      template: 'I need a few more details to help you:
+
+        {questions}'
+      answers_delimiter_regex: '[,
+
+        ;]'
   dialog_analysis:
     parameters:
       negative_sentiment_threshold: -0.3
@@ -390,7 +402,7 @@ details:
         log_to_langfuse: true
   prompt_routing:
     parameters:
-      max_history_messages: 3
+      max_history_messages: 6
       max_message_length: 300
       include_user_profile: true
       include_entities: true
@@ -479,6 +491,7 @@ details:
       use_rules_engine: true
       max_attempts_before_handoff: 4
       reset_on_gratitude: true
+      handoff_check_top_n: 3
     config:
       default_state: INITIAL
       state_actions:

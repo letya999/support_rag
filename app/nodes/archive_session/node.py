@@ -136,7 +136,8 @@ class ArchiveSessionNode(BaseNode):
             "safety_violation",
             "extracted_entities",
             "dialog_state",
-            "conversation_history"
+            "conversation_history",
+            "clarification_context"
         ]
     }
     
@@ -160,7 +161,16 @@ class ArchiveSessionNode(BaseNode):
         
         try:
             # 1. Update session metadata (Ensure session exists first)
-            status = "escalated" if state.get("escalation_triggered") else "active"
+            should_escalate = state.get("escalation_triggered")
+            
+            # Check for post-clarification handoff
+            if not should_escalate:
+                ctx = state.get("clarification_context", {})
+                # If handoff required AND loop is finished (active=False)
+                if ctx and ctx.get("requires_handoff") and ctx.get("active") is False:
+                    should_escalate = True
+            
+            status = "escalated" if should_escalate else "active"
             await PersistenceManager.update_session(
                 session_id=session_id,
                 user_id=user_id,
@@ -225,11 +235,20 @@ class ArchiveSessionNode(BaseNode):
             cache_manager = await get_cache_manager()
             if cache_manager.redis.is_available():
                 session_manager = SessionManager(cache_manager.redis.client)
+                
+                # Debug logging for Clarification Persistence
+                ctx_to_save = state.get("clarification_context")
+                print(f"💾 ArchiveSession: Saving to Redis. Session: {session_id}")
+                print(f"   Context present: {bool(ctx_to_save)}")
+                if ctx_to_save:
+                    print(f"   Context Active: {ctx_to_save.get('active')}, Index: {ctx_to_save.get('current_index')}")
+                
                 await session_manager.update_state(session_id, {
                     "dialog_state": state.get("dialog_state"),
                     "attempt_count": state.get("attempt_count", 0),
                      # Add extracted entities to Redis for continuity
-                    "extracted_entities": state.get("extracted_entities")
+                    "extracted_entities": state.get("extracted_entities"),
+                    "clarification_context": ctx_to_save
                 })
         except Exception as e:
             print(f"⚠️ Redis update failed (non-critical): {e}")

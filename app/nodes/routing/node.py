@@ -181,7 +181,7 @@ class RoutingNode(BaseNode):
                 # Fallback - @observe decorator будет логировать
                 print(f"   (Langfuse event logging failed: {e})")
         
-        return {
+        result = {
             "action": action_recommendation,
             "matched_intent": metadata.get("intent"),
             "matched_category": metadata.get("category"),
@@ -189,9 +189,14 @@ class RoutingNode(BaseNode):
             "routing_confidence": confidence,
             "routing_threshold": threshold,
             "escalation_triggered": escalation_triggered,
-            "escalation_message": escalation_message,
-            "answer": escalation_message if escalation_triggered else None
+            "escalation_message": escalation_message
         }
+        
+        # Explicitly update answer ONLY if we are escalating (replacing generation)
+        if escalation_triggered:
+             result["answer"] = escalation_message
+             
+        return result
     
     def _fallback_decision(self, state: Dict[str, Any], params: Dict[str, Any]) -> str:
         """

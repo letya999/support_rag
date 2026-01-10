@@ -35,7 +35,9 @@ class GenerationNode(BaseNode):
             "docs",
             "question",
             "aggregated_query",
-            "escalation_message"
+            "escalation_message",
+            "answer",
+            "dialog_state"
         ]
     }
     
@@ -63,6 +65,18 @@ class GenerationNode(BaseNode):
         escalation_message = state.get("escalation_message")
         if escalation_message:
             return {"answer": escalation_message}
+            
+        # Optimization: If answer is already provided (e.g. by clarification node), skip generation
+        existing_answer = state.get("answer")
+        dialog_state = state.get("dialog_state")
+        
+        # DEBUG LOGGING (Temporary)
+        print(f"DEBUG: GenerationNode - Existing Answer: '{existing_answer}'")
+        print(f"DEBUG: GenerationNode - Dialog State: '{dialog_state}'")
+        
+        if existing_answer and dialog_state == "NEEDS_CLARIFICATION":
+            print("DEBUG: SKIPPING Generation (Answer already provided)")
+            return {"answer": existing_answer}
             
         # Use pre-built prompts from prompt_routing
         system_prompt = state.get("system_prompt")

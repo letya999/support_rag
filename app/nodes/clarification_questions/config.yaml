@@ -1,0 +1,7 @@
+name: clarification_questions
+enabled: true
+parameters: 
+  max_turns: 5
+config:
+  template: "I need a few more details to help you:\n{questions}"
+  answers_delimiter_regex: "[,\n;]"

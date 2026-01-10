@@ -3,6 +3,8 @@ import operator
 from langgraph.graph import add_messages
 
 def overwrite(left, right):
+    if right is None:
+        return left
     return right
 
 def keep_latest(existing: list | None, new: list | None) -> list:
@@ -23,6 +25,20 @@ def merge_unique(existing: list | None, new: list | None) -> list:
             seen.add(key)
             result.append(item)
     return result
+
+class ClarificationContext(TypedDict):
+    """
+    State for the multi-turn clarification loop.
+    Persisted in Redis to survive across request/response cycles.
+    """
+    active: bool                # Is the clarification loop currently active?
+    questions: List[str]        # Strict ordered list of questions to ask
+    current_index: int          # Index of the question currently being asked (or waiting for answer)
+    answers: Dict[str, str]     # Map of {Question Text: User Answer}
+    original_doc_id: Optional[str]   # ID of the document that triggered clarification
+    original_doc_content: Optional[str] # Content of the doc (to avoid re-fetching)
+    requires_handoff: bool      # If True, trigger escalation AFTER generation
+    target_language: Optional[str] # Language to translate questions into
 
 class State(TypedDict):
     question: Annotated[str, overwrite]
@@ -111,6 +127,14 @@ class State(TypedDict):
     cache_stats: Annotated[Optional[Dict[str, Any]], overwrite]
     cache_reason: Annotated[Optional[str], overwrite]  # "exact_match", "semantic_match"
     question_embedding: Annotated[Optional[List[float]], overwrite]  # Cached embedding for storage
+
+    # Clarification Flow (Phase 1)
+    collected_slots: Annotated[Optional[Dict[str, str]], overwrite]
+    clarification_task: Annotated[Optional[Dict[str, Any]], overwrite]
+    pending_questions: Annotated[Optional[List[str]], overwrite]
+    
+    # New Robust Clarification Context
+    clarification_context: Annotated[Optional[ClarificationContext], overwrite]
 
     # Phase 3: State Machine
     dialog_state: Annotated[Optional[str], overwrite]

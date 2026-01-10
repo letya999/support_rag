@@ -24,6 +24,7 @@ pipeline_order:
   - fusion            # CRITICAL: Requires 'retrieve' AND 'lexical_search'. No graceful degradation.
   - reranking
   - multihop
+  - clarification_questions  # Phase 1: Clarifying Questions Flow
   - state_machine  # Moved here to have access to final confidence from reranking
   - routing
   - prompt_routing

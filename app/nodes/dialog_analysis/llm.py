@@ -111,7 +111,9 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
                 SIGNAL_QUESTION: signals.get(SIGNAL_QUESTION, True),
                 SIGNAL_REPEATED: signals.get(SIGNAL_REPEATED, False),
                 SIGNAL_FRUSTRATION: sentiment.get("label") in ["frustrated", "angry"],
-                "topic_loop_detected": topic_loop_detected  # NEW!
+                "topic_loop_detected": topic_loop_detected,
+                "refusal": signals.get("refusal", False),
+                "topic_shift": signals.get("topic_shift", False)
             },
             # Phase 5 & 6 State Extensions
             "sentiment": sentiment,
@@ -134,7 +136,9 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
                 SIGNAL_QUESTION: True,
                 SIGNAL_FRUSTRATION: False,
                 SIGNAL_REPEATED: False,
-                "topic_loop_detected": False  # NEW!
+                "topic_loop_detected": False,
+                "refusal": False,
+                "topic_shift": False
             },
             "sentiment": {"label": "neutral", "score": 0.0},
             "safety_violation": False,
