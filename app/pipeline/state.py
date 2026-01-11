@@ -44,6 +44,7 @@ class State(TypedDict):
     question: Annotated[str, overwrite]
     user_id: Annotated[Optional[str], overwrite]
     session_id: Annotated[Optional[str], overwrite]
+    last_user_message: Annotated[Optional[str], overwrite]
     
     # Input Guardrails
     guardrails_passed: Annotated[Optional[bool], overwrite]
@@ -135,6 +136,7 @@ class State(TypedDict):
     
     # New Robust Clarification Context
     clarification_context: Annotated[Optional[ClarificationContext], overwrite]
+    clarified_doc_ids: Annotated[List[str], merge_unique]
 
     # Phase 3: State Machine
     dialog_state: Annotated[Optional[str], overwrite]

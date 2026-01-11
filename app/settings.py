@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     LANGFUSE_SECRET_KEY: Optional[str] = None
     LANGFUSE_HOST: Optional[str] = "https://cloud.langfuse.com"
 
+    # Telegram
+    TELEGRAM_TOKEN: Optional[str] = None
+
     model_config = SettingsConfigDict(
         env_file=".env", 
         env_file_encoding="utf-8",

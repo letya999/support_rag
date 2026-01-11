@@ -137,7 +137,9 @@ class ArchiveSessionNode(BaseNode):
             "extracted_entities",
             "dialog_state",
             "conversation_history",
-            "clarification_context"
+            "conversation_history",
+            "clarification_context",
+            "clarified_doc_ids"
         ]
     }
     
@@ -243,13 +245,19 @@ class ArchiveSessionNode(BaseNode):
                 if ctx_to_save:
                     print(f"   Context Active: {ctx_to_save.get('active')}, Index: {ctx_to_save.get('current_index')}")
                 
-                await session_manager.update_state(session_id, {
+                updates = {
                     "dialog_state": state.get("dialog_state"),
                     "attempt_count": state.get("attempt_count", 0),
                      # Add extracted entities to Redis for continuity
                     "extracted_entities": state.get("extracted_entities"),
                     "clarification_context": ctx_to_save
-                })
+                }
+                
+                # Persist Clarified Doc IDs
+                if state.get("clarified_doc_ids"):
+                    updates["clarified_doc_ids"] = state.get("clarified_doc_ids")
+                
+                await session_manager.update_state(session_id, updates)
         except Exception as e:
             print(f"⚠️ Redis update failed (non-critical): {e}")
         

@@ -43,7 +43,9 @@ class SessionStarterNode(BaseNode):
             "attempt_count",
             "extracted_entities",
             "_session_metadata",
-            "clarification_context"
+            "_session_metadata",
+            "clarification_context",
+            "clarified_doc_ids"
         ]
     }
     
@@ -121,6 +123,10 @@ class SessionStarterNode(BaseNode):
             # Restore Clarification Context
             if active_session.clarification_context:
                 updates["clarification_context"] = active_session.clarification_context
+            
+            # Restore Clarified Doc IDs
+            if active_session.clarified_doc_ids:
+                updates["clarified_doc_ids"] = active_session.clarified_doc_ids
             
             # Store session metadata for debugging and context (not operational state)
             updates["_session_metadata"] = {

@@ -1,0 +1,151 @@
+from datetime import datetime, timezone
+from typing import Dict, List, Any, Optional
+import os
+import yaml
+import psycopg
+import asyncio
+from app.settings import settings
+
+# Default output path for the registry
+DEFAULT_REGISTRY_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "nodes", "_shared_config", "intents_registry.yaml"
+)
+
+class RegistryGenerator:
+    @staticmethod
+    async def fetch_categories_and_intents(db_url: str) -> Dict[str, List[str]]:
+        """Fetch unique categories and their associated intents from the documents table."""
+        categories_intents: Dict[str, List[str]] = {}
+        
+        async with await psycopg.AsyncConnection.connect(db_url, autocommit=True) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    SELECT 
+                        COALESCE(metadata->>'category', 'unknown') as category,
+                        COALESCE(metadata->>'intent', 'unknown') as intent,
+                        COUNT(*) as doc_count
+                    FROM documents
+                    WHERE metadata IS NOT NULL
+                    GROUP BY 
+                        metadata->>'category',
+                        metadata->>'intent'
+                    ORDER BY category, intent
+                """)
+                
+                rows = await cur.fetchall()
+                
+                for row in rows:
+                    category = row[0] or "unknown"
+                    intent = row[1] or "unknown"
+                    
+                    if category.lower() in ('unknown', 'null', ''):
+                        continue
+                    if intent.lower() in ('unknown', 'null', ''):
+                        if category not in categories_intents:
+                            categories_intents[category] = []
+                        continue
+                    
+                    if category not in categories_intents:
+                        categories_intents[category] = []
+                    
+                    if intent not in categories_intents[category]:
+                        categories_intents[category].append(intent)
+        
+        return categories_intents
+
+    @staticmethod
+    def get_category_description(category: str, intents: List[str]) -> str:
+        """
+        Generate a description for a category based on its name and intents.
+        """
+        # Base description from category name
+        readable_name = category.replace("_", " ").replace("-", " ").title()
+        description = f"Questions related to {readable_name}"
+        
+        # Enrich with intents if available
+        if intents:
+            # Take up to 3 intents to form a summary
+            top_intents = [
+                i.replace("_", " ").replace("-", " ").lower() 
+                for i in intents[:3]
+                if i and i != "unknown"
+            ]
+            if top_intents:
+                intent_summary = ", ".join(top_intents)
+                description += f", including {intent_summary}"
+                if len(intents) > 3:
+                    description += ", and others"
+                    
+        return description + "."
+
+    @staticmethod
+    def build_registry_yaml(categories_intents: Dict[str, List[str]], source_db: str = "postgres:documents") -> Dict[str, Any]:
+        registry = {
+            "_meta": {
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "source_db": source_db,
+                "total_categories": len(categories_intents),
+                "total_intents": sum(len(intents) for intents in categories_intents.values()),
+                "warning": "⚠️ АВТОГЕНЕРИРУЕМЫЙ ФАЙЛ - не редактируйте вручную!"
+            },
+            "categories": []
+        }
+        
+        for category_name, intents in sorted(categories_intents.items()):
+            # Sort intents for consistent descriptions
+            sorted_intents = sorted(intents) if intents else []
+            
+            category_entry = {
+                "name": category_name,
+                "description": RegistryGenerator.get_category_description(category_name, sorted_intents),
+                "intents": sorted_intents
+            }
+            registry["categories"].append(category_entry)
+        
+        return registry
+
+    @staticmethod
+    def save_registry(registry: Dict[str, Any], output_path: str) -> None:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write("# ============================================================\n")
+            f.write("# Intent Registry - AUTO-GENERATED FILE\n")
+            f.write("# ============================================================\n")
+            f.write("# This file is automatically generated by app.services.metadata_generation.registry_generator\n")
+            f.write("# DO NOT EDIT MANUALLY - changes will be overwritten!\n")
+            f.write("# ============================================================\n\n")
+            
+            yaml.dump(
+                registry, 
+                f, 
+                default_flow_style=False, 
+                allow_unicode=True,
+                sort_keys=False,
+                width=120
+            )
+
+    @staticmethod
+    async def refresh_intents(output_path: str = DEFAULT_REGISTRY_PATH) -> bool:
+        if not settings.DATABASE_URL:
+            print("❌ Error: DATABASE_URL is not set.")
+            return False
+            
+        try:
+            categories_intents = await RegistryGenerator.fetch_categories_and_intents(settings.DATABASE_URL)
+            
+            if not categories_intents:
+                # Empty
+                categories_intents = {}
+            
+            registry = RegistryGenerator.build_registry_yaml(categories_intents)
+            RegistryGenerator.save_registry(registry, output_path)
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error refreshing intents: {e}")
+            import traceback
+            traceback.print_exc()
+            return False

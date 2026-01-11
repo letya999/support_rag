@@ -24,13 +24,14 @@ class ClarificationQuestionsNode(BaseNode):
             "clarification_context", 
             "detected_language",
             "last_user_message",
-            "dialog_state"
+            "dialog_state",
+            "clarified_doc_ids"
         ]
     }
     
     OUTPUT_CONTRACT = {
         "guaranteed": ["answer", "clarification_context"],
-        "conditional": ["dialog_state"]
+        "conditional": ["dialog_state", "clarified_doc_ids"]
     }
     
     @observe(as_type="span")
@@ -76,6 +77,17 @@ class ClarificationQuestionsNode(BaseNode):
                  "answer": "",
                  "clarification_context": {"active": False}
              }
+
+        # 2a. Check if already clarified
+        doc_id = best_doc.get("id")
+        clarified_ids = state.get("clarified_doc_ids", [])
+        if doc_id and doc_id in clarified_ids:
+            logger.info(f"Document {doc_id} already clarified. Skipping.")
+            return {
+                "dialog_state": current_state if current_state else "ANSWER_PROVIDED",
+                "answer": "",
+                "clarification_context": {"active": False}
+            }
 
         # 3. Create Context
         context = {
@@ -136,7 +148,8 @@ class ClarificationQuestionsNode(BaseNode):
             return {
                 "answer": "", 
                 "clarification_context": context,
-                "dialog_state": "ANSWER_PROVIDED" 
+                "dialog_state": "ANSWER_PROVIDED",
+                "clarified_doc_ids": [context.get("original_doc_id")]
             }
         else:
             # 4. Ask Next Question

@@ -66,9 +66,16 @@ class SectionQAExtractor(BaseQAExtractor):
                 if block.type == BlockType.HEADING:
                     break
 
-                # Collect text/list content
-                if block.type in (BlockType.TEXT, BlockType.LIST):
-                    if isinstance(block.content, str):
+                # Collect text/list/table content
+                if block.type in (BlockType.TEXT, BlockType.LIST, BlockType.TABLE):
+                    if block.type == BlockType.TABLE and isinstance(block.content, list):
+                        # Flatten table to text
+                        table_text = "\n".join(
+                            " | ".join(str(cell) for cell in row) 
+                            for row in block.content
+                        )
+                        answer_parts.append(table_text)
+                    elif isinstance(block.content, str):
                         answer_parts.append(block.content)
 
             if not answer_parts:

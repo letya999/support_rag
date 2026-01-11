@@ -40,73 +40,121 @@ class PDFLoader(BaseDocumentLoader):
 
                 for page_idx, page in enumerate(pdf.pages):
                     logger.debug(f"Processing PDF page {page_idx + 1}/{len(pdf.pages)}")
-
-                    # 1. Skip table extraction - pdfplumber often misidentifies formatted text as tables
-                    # We'll rely on text extraction with font metadata instead
                     
-                    # 2. Extract words with formatting metadata
-                    words = page.extract_words(extra_attrs=["fontname", "size"])
-                    if not words:
-                        continue
+                    page_blocks = []
 
-                    # Analyze fonts to find "Body" font (most common)
+                    # 1. Extract tables
+                    tables = page.find_tables()
+                    table_rects = []
+                    
+                    if tables:
+                        logger.info(f"Page {page_idx+1}: Found {len(tables)} tables")
+                        for i, table in enumerate(tables):
+                            table_data = table.extract()
+                            if not table_data or len(table_data) < 2:
+                                continue
+                            
+                            # Clean table data
+                            clean_table = [[(cell or "").strip() for cell in row] for row in table_data]
+                            
+                            # Use top position for sorting
+                            top_pos = table.bbox[1]
+                            
+                            page_blocks.append(Block(
+                                type=BlockType.TABLE,
+                                content=clean_table,
+                                metadata={
+                                    "page": page_idx + 1, 
+                                    "table_index": i, 
+                                    "top": top_pos
+                                },
+                                original_index=0 # Will update later
+                            ))
+                            
+                            table_rects.append(table.bbox)
+
+                    # 2. Extract words (filtering out tables)
+                    if table_rects:
+                        def not_inside_tables(obj):
+                            """Check if object is inside any identified table."""
+                            # Use object center to check inclusion
+                            x0 = obj.get("x0", 0)
+                            top = obj.get("top", 0)
+                            x1 = obj.get("x1", 0)
+                            bottom = obj.get("bottom", 0)
+                            
+                            cx = (x0 + x1) / 2
+                            cy = (top + bottom) / 2
+                            
+                            for (tx0, ttop, tx1, tbottom) in table_rects:
+                                if tx0 <= cx <= tx1 and ttop <= cy <= tbottom:
+                                    return False
+                            return True
+
+                        page_for_text = page.filter(not_inside_tables)
+                    else:
+                        page_for_text = page
+                    
+                    words = page_for_text.extract_words(extra_attrs=["fontname", "size", "top"])
+                    
+                    # Analyze fonts on the filtered page
                     font_stats = {}
                     for w in words:
                         key = (w["fontname"], round(w["size"], 1))
                         font_stats[key] = font_stats.get(key, 0) + len(w["text"])
                     
-                    if not font_stats:
-                        body_font = None
-                        logger.warning("No font stats collected.")
-                    else:
-                        # Body font is the one with the most characters
+                    body_font = None
+                    if font_stats:
                         body_font = max(font_stats.items(), key=lambda x: x[1])[0]
-                        logger.warning(f"Detected body font: {body_font} (stats: {len(font_stats)} variants)")
-                        print(f"DEBUG: Body Font: {body_font}")
 
-                    # Group words into lines/blocks based on vertical position and formatting
+                    # Group words into lines/blocks
                     current_line = []
-                    current_line_headings = []  # Track which words are headings
+                    current_line_headings = []
                     last_top = -1
                     
                     for word in words:
-                        # Determine if this word is a heading/bold text
+                        # Determine if heading
                         w_font = (word["fontname"], round(word["size"], 1))
-                        
+                        is_heading = False
                         if body_font:
-                            has_bold_in_name = "bold" in word["fontname"].lower()
-                            size_diff = w_font[1] - body_font[1]
-                            is_larger = size_diff > 0.1
-                            is_heading = has_bold_in_name or is_larger
-                        else:
-                            is_heading = False
+                             has_bold = "bold" in word["fontname"].lower()
+                             is_larger = (w_font[1] - body_font[1]) > 0.1
+                             is_heading = has_bold or is_larger
 
-                        # If vertical position changed significantly, it's a new line
+                        # Verify line break
                         if last_top != -1 and abs(word["top"] - last_top) > 3:
-                            # Process the completed line
+                            # Process completed line
                             if current_line:
                                 line_text = " ".join(w["text"] for w in current_line)
-                                
-                                # Determine block type by majority vote
-                                heading_count = sum(current_line_headings)
-                                is_heading_line = heading_count > len(current_line_headings) / 2
-                                
+                                is_heading_line = sum(current_line_headings) > len(current_line_headings) / 2
                                 b_type = BlockType.HEADING if is_heading_line else BlockType.TEXT
                                 
-                                # Try to merge with previous block if same type
-                                if doc.blocks and doc.blocks[-1].type == b_type and doc.blocks[-1].metadata.get("page") == page_idx + 1:
-                                    doc.blocks[-1].content += " " + line_text
+                                # Use top of the first word as block position
+                                block_top = current_line[0]["top"]
+
+                                # Merge with previous block if same type AND contiguous (small vertical gap)
+                                # Only merge if we haven't inserted a table in between (checked via sorting later, 
+                                # but here we are only processing text. Merging text blocks is fine).
+                                # However, since we sort purely by 'top' later, merging here simplifies things.
+                                
+                                # Actually, don't merge across large gaps.
+                                if page_blocks and page_blocks[-1].type == b_type and \
+                                   page_blocks[-1].metadata.get("page") == page_idx + 1 and \
+                                   page_blocks[-1].type != BlockType.TABLE:
+                                    page_blocks[-1].content += " " + line_text
+                                    # Don't update top, keep original top
                                 else:
-                                    doc.blocks.append(Block(
+                                    page_blocks.append(Block(
                                         type=b_type,
                                         content=line_text,
-                                        metadata={"page": page_idx + 1, "is_header": is_heading_line},
-                                        original_index=len(doc.blocks)
+                                        metadata={
+                                            "page": page_idx + 1, 
+                                            "is_header": is_heading_line,
+                                            "top": block_top
+                                        },
+                                        original_index=0
                                     ))
-                                
-                                raw_text_parts.append(line_text)
-                            
-                            # Start new line
+
                             current_line = [word]
                             current_line_headings = [is_heading]
                         else:
@@ -118,26 +166,44 @@ class PDFLoader(BaseDocumentLoader):
                     # Handle last line
                     if current_line:
                         line_text = " ".join(w["text"] for w in current_line)
-                        heading_count = sum(current_line_headings)
-                        is_heading_line = heading_count > len(current_line_headings) / 2
-                        
+                        is_heading_line = sum(current_line_headings) > len(current_line_headings) / 2
                         b_type = BlockType.HEADING if is_heading_line else BlockType.TEXT
-                        
-                        # Try to merge with previous block if same type
-                        if doc.blocks and doc.blocks[-1].type == b_type and doc.blocks[-1].metadata.get("page") == page_idx + 1:
-                            doc.blocks[-1].content += " " + line_text
+                        block_top = current_line[0]["top"]
+
+                        if page_blocks and page_blocks[-1].type == b_type and \
+                           page_blocks[-1].metadata.get("page") == page_idx + 1 and \
+                           page_blocks[-1].type != BlockType.TABLE:
+                            page_blocks[-1].content += " " + line_text
                         else:
-                            doc.blocks.append(Block(
+                            page_blocks.append(Block(
                                 type=b_type,
                                 content=line_text,
-                                metadata={"page": page_idx + 1, "is_header": is_heading_line},
-                                original_index=len(doc.blocks)
+                                metadata={
+                                    "page": page_idx + 1, 
+                                    "is_header": is_heading_line,
+                                    "top": block_top
+                                },
+                                original_index=0
                             ))
+
+                    # Sort extracted blocks (tables + text) by vertical position
+                    page_blocks.sort(key=lambda b: b.metadata.get("top", 0) or 0)
+                    
+                    # Add to document
+                    for pb in page_blocks:
+                        pb.original_index = len(doc.blocks)
+                        doc.blocks.append(pb)
                         
-                        raw_text_parts.append(line_text)
+                        # Update raw text
+                        if isinstance(pb.content, str):
+                            raw_text_parts.append(pb.content)
+                        elif isinstance(pb.content, list):
+                            # Stringify table for raw_text
+                            table_str = "\n".join(" | ".join(cell) for cell in pb.content)
+                            raw_text_parts.append(table_str)
 
                 doc.raw_text = "\n".join(raw_text_parts)
-                logger.info(f"Extracted {len(doc.blocks)} blocks from PDF (with formatting detection)")
+                logger.info(f"Extracted {len(doc.blocks)} blocks from PDF (text + tables)")
 
         except Exception as e:
             logger.error(f"Error loading PDF: {e}")

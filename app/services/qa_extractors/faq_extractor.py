@@ -31,6 +31,18 @@ class FAQExtractor(BaseQAExtractor):
         for block in blocks:
             if isinstance(block.content, str):
                 text_parts.append(block.content)
+            elif isinstance(block.content, list):
+                # Handle Table blocks: Flatten content to text for pattern matching
+                # Join cells with space, rows with newline
+                try:
+                    # Filter None values and join
+                    table_text = "\n".join(
+                        " ".join((str(cell or "").strip()) for cell in row if cell)
+                        for row in block.content
+                    )
+                    text_parts.append(table_text)
+                except Exception:
+                    continue
 
         if not text_parts:
             return pairs

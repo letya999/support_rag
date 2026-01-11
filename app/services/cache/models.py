@@ -112,6 +112,7 @@ class UserSession(BaseModel):
     
     # Clarification Flow Persistence
     clarification_context: Optional[Dict] = None  # Stores the ClarificationContext dict
+    clarified_doc_ids: List[str] = Field(default_factory=list)
     
     # History (transient)
     message_count: int = 0
