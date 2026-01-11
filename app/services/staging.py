@@ -107,6 +107,39 @@ class StagingService:
         finally:
             await redis.close()
 
+    async def update_chunk_metadata_batch(self, draft_id: str, updates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """
+        Batch update metadata for multiple chunks.
+        updates: List of dicts with 'chunk_id' and 'metadata' keys.
+        """
+        redis = await self._get_redis()
+        try:
+            key = f"{self.PREFIX}{draft_id}"
+            data = await redis.get(key)
+            if not data:
+                return None
+            
+            draft = json.loads(data)
+            
+            # Create a map for faster lookup
+            update_map = {u['chunk_id']: u['metadata'] for u in updates}
+            
+            updates_count = 0
+            for chunk in draft["chunks"]:
+                if chunk["chunk_id"] in update_map:
+                    # Merge metadata
+                    current_meta = chunk.get("metadata", {})
+                    current_meta.update(update_map[chunk["chunk_id"]])
+                    chunk["metadata"] = current_meta
+                    updates_count += 1
+            
+            if updates_count > 0:
+                await redis.set(key, json.dumps(draft), ex=self.EXPIRY)
+                return draft
+            return draft # Return draft even if no updates happened, but it exists
+        finally:
+            await redis.close()
+
     async def add_chunks(self, draft_id: str, new_chunks_data: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         redis = await self._get_redis()
         try:

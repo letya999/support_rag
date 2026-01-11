@@ -28,11 +28,14 @@ class WarmupService:
             await loop.run_in_executor(None, ranker.rank, "warmup", ["warmup"])
             print("✅ Reranker Warmed Up")
             
-            # 2. Classifier
+            # 2. Classifier (Semantic - Multilingual)
             from app.services.classification.semantic_service import SemanticClassificationService
             svc = SemanticClassificationService()
+            # Force model load and first inference (to load weights to GPU/CPU)
             await svc._ensure_model()
-            print("✅ Classifier Warmed Up")
+            # Run dummy classification to finalize initialization
+            await svc.classify("warmup check")
+            print("✅ Classifier Warmed Up (Multilingual)")
 
             # 3. Embeddings
             await get_embedding("warmup")

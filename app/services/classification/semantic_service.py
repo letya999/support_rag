@@ -1,22 +1,13 @@
 import time
 import asyncio
-from typing import Optional, Dict, List
+import os
+from typing import Optional, Dict, List, Any
 from sentence_transformers import SentenceTransformer, util
 from app.nodes.classification.models import ClassificationOutput
 from app.nodes._shared_config.intent_registry import get_registry, IntentRegistryService
 
-# Fallback values if registry is empty or failed to load
-FALLBACK_INTENTS = [
-    "reset_password", "view_history", "contact_support", "check_policy",
-    "change_address", "check_shipping_availability", "track_order",
-    "check_payment_methods", "cancel_subscription", "company_info"
-]
-
-FALLBACK_CATEGORIES = [
-    "Account Access", "Order Management", "Support", "Returns & Refunds",
-    "Shipping", "Billing", "Account Management", "General Info"
-]
-
+# Prevent tokenizer parallelism issues (crashes uvicorn on Windows)
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class SemanticClassificationService:
     """
@@ -24,11 +15,10 @@ class SemanticClassificationService:
     
     Now uses dynamic IntentRegistryService to load categories and intents from
     the auto-generated registry (built from database metadata).
-    Fallback to hardcoded lists if registry is unavailable.
     """
     _instance = None
     _model = None
-    _model_name = "all-MiniLM-L6-v2"  # Lightweight SOTA for semantic search
+    _model_name = "paraphrase-multilingual-MiniLM-L12-v2"  # Multilingual model for RU/EN support
     
     # Cache for embedded labels
     _intent_embeddings = None
@@ -36,32 +26,6 @@ class SemanticClassificationService:
     _current_intents: List[str] = []
     _current_categories: List[str] = []
     
-    # Static enrichment maps for known labels (extends registry data)
-    # These provide additional semantic context for better matching
-    STATIC_INTENT_MAP = {
-        "reset_password": "reset password forgot password change password сброс пароля",
-        "view_history": "view order history my orders purchases история заказов",
-        "contact_support": "contact support help custom service operator поддержка оператор",
-        "check_policy": "return policy refund rules правила возврата",
-        "change_address": "change shipping address update location изменить адрес",
-        "check_shipping_availability": "shipping availability delivery countries доставка страны",
-        "track_order": "track order where is my package отследить заказ",
-        "check_payment_methods": "payment methods credit card paypal оплата карта",
-        "cancel_subscription": "cancel subscription stop billing отменить подписку",
-        "company_info": "about company contact info информация о компании"
-    }
-
-    STATIC_CATEGORY_MAP = {
-        "Account Access": "account login password auth вход аккаунт",
-        "Order Management": "orders history tracking status заказы статус",
-        "Support": "help support questions помощь поддержка",
-        "Returns & Refunds": "return money refund item возврат",
-        "Shipping": "shipping delivery logistics доставка",
-        "Billing": "billing payment invoice money оплата",
-        "Account Management": "profile settings preferences настройки",
-        "General Info": "general info about faq общее"
-    }
-
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(SemanticClassificationService, cls).__new__(cls)
@@ -70,38 +34,21 @@ class SemanticClassificationService:
     def _get_dynamic_lists(self) -> tuple:
         """
         Get intents and categories from the dynamic registry.
-        Falls back to hardcoded lists if registry is empty.
         """
         registry = get_registry()
-        
-        intents = registry.intents
-        categories = registry.categories
-        
-        # Fallback if registry is empty
-        if not intents:
-            print("[SemanticClassifier] No intents in registry, using fallback list.", flush=True)
-            intents = FALLBACK_INTENTS
-        
-        if not categories:
-            print("[SemanticClassifier] No categories in registry, using fallback list.", flush=True)
-            categories = FALLBACK_CATEGORIES
-        
-        return intents, categories
+        return registry.intents, registry.categories
     
     def _build_enrichment_maps(self, intents: List[str], categories: List[str]) -> tuple:
         """
-        Build enrichment maps combining static mappings with registry data.
-        New labels from registry get auto-generated descriptions.
+        Build enrichment maps using registry data.
         """
         registry = get_registry()
         dynamic_intent_map, dynamic_category_map = registry.get_enrichment_maps()
         
-        # Merge: static takes precedence, then dynamic, then auto-generated
+        # Merge: dynamic maps take precedence
         intent_map: Dict[str, str] = {}
         for intent in intents:
-            if intent in self.STATIC_INTENT_MAP:
-                intent_map[intent] = self.STATIC_INTENT_MAP[intent]
-            elif intent in dynamic_intent_map:
+            if intent in dynamic_intent_map:
                 intent_map[intent] = dynamic_intent_map[intent]
             else:
                 # Auto-generate from name
@@ -109,9 +56,7 @@ class SemanticClassificationService:
         
         category_map: Dict[str, str] = {}
         for category in categories:
-            if category in self.STATIC_CATEGORY_MAP:
-                category_map[category] = self.STATIC_CATEGORY_MAP[category]
-            elif category in dynamic_category_map:
+            if category in dynamic_category_map:
                 category_map[category] = dynamic_category_map[category]
             else:
                 # Auto-generate from name
@@ -223,3 +168,17 @@ class SemanticClassificationService:
         except Exception as e:
             print(f"[SemanticClassifier] Error: {e}", flush=True)
             return None
+
+    async def encode_batch(self, texts: List[str]) -> Any:
+        """
+        Helper: Get embeddings for a list of texts (for clustering).
+        """
+        await self._ensure_model()
+        if self._model is None:
+            return []
+        
+        loop = asyncio.get_running_loop()
+        embeddings = await loop.run_in_executor(
+            None, self._model.encode, texts
+        )
+        return embeddings

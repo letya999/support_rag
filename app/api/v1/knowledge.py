@@ -258,6 +258,33 @@ async def delete_file(request: Request, file_id: str):
         meta=MetaResponse(trace_id=trace_id)
     )
 
+    return Envelope(
+        data={"status": "deleted", "file_id": file_id},
+        meta=MetaResponse(trace_id=trace_id)
+    )
+
+@router.get("/knowledge/staging/{draft_id}", response_model=Envelope[KnowledgeResponse])
+async def get_staging_draft(request: Request, draft_id: str):
+    """
+    Get current content of a staging draft.
+    Useful to verify automated classification results.
+    """
+    trace_id = getattr(request.state, "trace_id", None)
+    
+    draft = await staging_service.get_draft(draft_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+        
+    return Envelope(
+        data=KnowledgeResponse(
+            file_id=draft.get("file_id"),
+            draft_id=draft.get("draft_id"),
+            extracted_pairs=draft.get("chunks"),
+            total_pairs=len(draft.get("chunks", []))
+        ),
+        meta=MetaResponse(trace_id=trace_id)
+    )
+
 @router.post("/knowledge/commit", response_model=Envelope[Dict[str, Any]])
 async def commit_staging(request: Request, body: CommitRequest):
     """
