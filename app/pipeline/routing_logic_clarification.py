@@ -37,7 +37,14 @@ def check_guardrails_and_clarification(state):
     # Check if we are in the middle of a clarification loop
     # We must bypass search to avoid hallucinations (e.g. searching for "12")
     ctx = state.get("clarification_context")
-    if ctx and ctx.get("active"):
+    
+    # Debug logging to diagnose "Stickiness" failure
+    is_active = bool(ctx and ctx.get("active"))
+    logger.debug(f"Routing Check: Context Present={bool(ctx)}, Active={is_active}")
+    if ctx:
+        logger.debug(f"Routing Context Dump: {ctx}")
+
+    if is_active:
         return "clarification_mode"
         
     return "continue"

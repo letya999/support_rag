@@ -140,6 +140,12 @@ class RoutingNode(BaseNode):
             
             # Получаем сообщение на языке пользователя
             detected_language = state.get("detected_language", "en")
+            
+            # Если есть активный контекст уточнения, используем язык из него
+            clarification_context = state.get("clarification_context", {})
+            if clarification_context.get("active") and clarification_context.get("target_language"):
+                detected_language = clarification_context["target_language"]
+            
             escalation_messages = config.get("escalation_messages", {})
             escalation_message = escalation_messages.get(
                 detected_language,

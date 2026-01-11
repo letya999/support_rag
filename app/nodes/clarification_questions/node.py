@@ -81,7 +81,11 @@ class ClarificationQuestionsNode(BaseNode):
         # 2a. Check if already clarified
         doc_id = best_doc.get("id")
         clarified_ids = state.get("clarified_doc_ids", [])
-        if doc_id and doc_id in clarified_ids:
+        
+        # Guard against documents with missing IDs (e.g. from vector store issues)
+        if not doc_id:
+             logger.warning("Clarification triggered on document with NO ID. Skipping duplication check.")
+        elif doc_id in clarified_ids:
             logger.info(f"Document {doc_id} already clarified. Skipping.")
             return {
                 "dialog_state": current_state if current_state else "ANSWER_PROVIDED",

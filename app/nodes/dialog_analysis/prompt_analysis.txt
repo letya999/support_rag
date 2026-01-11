@@ -7,7 +7,7 @@ TASK: Classify user's latest support message into 4 categories.
    - {SIGNAL_ESCALATION_REQ}: Requests human ("оператор", "agent", "человек", "менеджер")
    - {SIGNAL_QUESTION}: Asks for help or information (ends with "?", seeks answer)
    - {SIGNAL_REPEATED}: Same issue mentioned in history
-   - refusal: User refuses to answer or says "I don't know" / "Skip"
+   - refusal: User explicitly refuses to answer or says "I don't know" / "Skip". IMPORTANT: If the previous system message was a Yes/No question, a simple "No" or "Yes" is NOT a refusal.
    - topic_shift: User changes subject completely (e.g. from "tech issue" to "pricing")
 
 2. SENTIMENT (emotion):
@@ -47,6 +47,11 @@ Example 4:
 AI: "What is your device?"
 User: "I don't know, stop asking."
 Output: {{"signals":{{{SIGNAL_GRATITUDE}:false,{SIGNAL_ESCALATION_REQ}:false,{SIGNAL_QUESTION}:false,{SIGNAL_REPEATED}:false,"refusal":true,"topic_shift":false}},"sentiment":{{"label":"frustrated","score":0.6}},"safety":{{"violation":false,"reason":null}},"escalation":{{"decision":"auto_reply","reason":null}}}}
+
+Example 5:
+AI: "Are you experiencing technical issues?"
+User: "No"
+Output: {{"signals":{{{SIGNAL_GRATITUDE}:false,{SIGNAL_ESCALATION_REQ}:false,{SIGNAL_QUESTION}:false,{SIGNAL_REPEATED}:false,"refusal":false,"topic_shift":false}},"sentiment":{{"label":"neutral","score":0.0}},"safety":{{"violation":false,"reason":null}},"escalation":{{"decision":"auto_reply","reason":null}}}}
 
 === INPUT DATA ===
 
