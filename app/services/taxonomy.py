@@ -1,11 +1,15 @@
-from typing import List, Dict, Any, Optional
+"""
+Taxonomy Service
+Manages hierarchical category and intent structures
+"""
+from typing import Dict, List, Optional, Any
 import logging
 import asyncio
 import psycopg
 from qdrant_client.http import models
 
 from app.settings import settings
-from app.nodes._shared_config.intent_registry import get_registry
+from app._shared_config.intent_registry import get_registry
 from app.storage.qdrant_client import get_async_qdrant_client
 from app.services.metadata_generation.registry_generator import RegistryGenerator
 

@@ -21,6 +21,7 @@ from telegram.ext import (
 from app.integrations.telegram.models import UserSession, MessageRole
 from app.integrations.telegram.storage import SessionStorage
 from app.integrations.telegram.pipeline_client import RAGPipelineClient
+from app.services.config_loader.loader import load_shared_config
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,22 @@ class SupportRAGBot:
         self.rag_client = rag_client
 
         self.app = Application.builder().token(token).build()
+        
+        # Load phrases config
+        self.phrases_config = load_shared_config("system_phrases").get("telegram_bot_phrases", {})
+        
         self._setup_handlers()
+
+    def _get_phrase(self, key: str, **kwargs) -> str:
+        """Helper to get bilingual phrase from config formatted with kwargs"""
+        phrase_data = self.phrases_config.get(key, {})
+        if not phrase_data:
+            return f"[{key}]"
+        
+        text_en = phrase_data.get("en", "").format(**kwargs)
+        text_ru = phrase_data.get("ru", "").format(**kwargs)
+        
+        return f"{text_en}\n\n{text_ru}"
 
     def _setup_handlers(self):
         """Register command and message handlers"""
@@ -96,15 +112,12 @@ class SupportRAGBot:
                 logger.info(f"User {user_id} already has active session")
 
             await update.message.reply_text(
-                f"👋 Привет, {username}!\n\n"
-                "Я Support RAG бот. Просто пиши свои вопросы, "
-                "и я отвечу на основе документов.\n\n"
-                "Для справки введи /help"
+                self._get_phrase("start_greeting", username=username)
             )
         except Exception as e:
             logger.error(f"Error in /start command: {e}")
             await update.message.reply_text(
-                "❌ Ошибка при инициализации. Попробуйте позже."
+                self._get_phrase("error_init")
             )
 
     async def cmd_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -113,15 +126,7 @@ class SupportRAGBot:
         """
         try:
             await update.message.reply_text(
-                "📖 **Как я работаю:**\n\n"
-                "1️⃣ Просто пиши вопрос (без команд)\n"
-                "2️⃣ Я ищу ответ в документах\n"
-                "3️⃣ Если не знаю - скажу честно\n\n"
-                "**Команды:**\n"
-                "/start - начать новую сессию\n"
-                "/history - показать историю диалога\n"
-                "/help - эта справка\n\n"
-                "**Для новой сессии:** просто удали бота из чата и добавь снова",
+                self._get_phrase("help_text"),
                 parse_mode="Markdown"
             )
         except Exception as e:
@@ -137,26 +142,26 @@ class SupportRAGBot:
             session = await self.storage.get_session(user_id)
 
             if not session or len(session.messages) == 0:
-                await update.message.reply_text("📝 История диалога пуста.")
+                await update.message.reply_text(self._get_phrase("history_empty"))
                 return
 
             # Last 10 messages
             messages = session.messages[-10:]
-            text = "📝 **История диалога (последние 10):**\n\n"
+            text = self._get_phrase("history_header") + "\n\n"
 
             for msg in messages:
-                role_emoji = "👤" if msg.role == MessageRole.USER else "🤖"
+                role_msg = "User" if msg.role == MessageRole.USER else "Bot"
                 # Truncate long messages
                 content = msg.content[:150]
                 if len(msg.content) > 150:
                     content += "..."
-                text += f"{role_emoji} {content}\n\n"
+                text += f"**{role_msg}:** {content}\n\n"
 
             await update.message.reply_text(text, parse_mode="Markdown")
         except Exception as e:
             logger.error(f"Error in /history command: {e}")
             await update.message.reply_text(
-                "❌ Ошибка при получении истории. Попробуйте позже."
+                self._get_phrase("error_history")
             )
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -232,31 +237,15 @@ class SupportRAGBot:
                 query_id=rag_response.query_id
             )
 
-            # 7. Format and send response
-            response_text = f"🤖 {rag_response.answer}"
-
-            # Add sources if available
-            if rag_response.sources:
-                response_text += "\n\n📚 **Источники:**"
-                for src in rag_response.sources[:3]:
-                    title = src.get("title", "Документ")
-                    relevance = src.get("relevance", 0)
-                    response_text += f"\n- {title}"
-                    if relevance > 0:
-                        response_text += f" ({relevance:.0%})"
-
-            # Add confidence score if available
-            if rag_response.confidence > 0:
-                response_text += f"\n\n🎯 Уверенность: {rag_response.confidence:.0%}"
-
-            await update.message.reply_text(response_text, parse_mode="Markdown")
+            # 7. Format and send response (Just the answer, no emojis/sources)
+            await update.message.reply_text(rag_response.answer, parse_mode="Markdown")
 
             logger.info(f"Response sent to user {user_id}")
 
         except Exception as e:
             logger.error(f"Error processing message from {user_id}: {e}", exc_info=True)
             await update.message.reply_text(
-                "❌ Произошла ошибка при обработке вопроса. Попробуйте позже."
+                self._get_phrase("error_processing")
             )
 
     async def start(self):

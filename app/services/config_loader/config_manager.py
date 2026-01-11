@@ -3,7 +3,7 @@ Centralized configuration management.
 Handles reloading of all system configurations and caches.
 """
 from app.services.config_loader.loader import clear_config_cache
-from app.nodes._shared_config.history_filter import clear_filter_cache
+from app._shared_config.history_filter import clear_filter_cache
 
 class ConfigManager:
     @staticmethod

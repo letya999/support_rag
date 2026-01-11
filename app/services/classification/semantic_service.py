@@ -4,7 +4,7 @@ import os
 from typing import Optional, Dict, List, Any
 from sentence_transformers import SentenceTransformer, util
 from app.nodes.classification.models import ClassificationOutput
-from app.nodes._shared_config.intent_registry import get_registry, IntentRegistryService
+from app._shared_config.intent_registry import get_registry, IntentRegistryService
 
 # Prevent tokenizer parallelism issues (crashes uvicorn on Windows)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"

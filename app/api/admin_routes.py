@@ -1,9 +1,13 @@
 """
 Admin API routes for system management and diagnostics.
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import List, Dict, Any, Optional
+import logging
+
 from app.services.cache.manager import get_cache_manager
-from app.nodes._shared_config.intent_registry import get_registry
+from app._shared_config.intent_registry import get_registry
 from app.services.classification.semantic_service import SemanticClassificationService
 
 router = APIRouter(prefix="/admin", tags=["Admin"])

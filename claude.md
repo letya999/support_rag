@@ -114,7 +114,7 @@ python scripts/reset_db.py          # Clear all databases
 - `.env` — OpenAI key, DB credentials, Langfuse keys
 - `pipeline_order.yaml` — Node execution sequence
 - `pipeline_config.yaml` — **Auto-generated**, merged from all node configs
-- `app/nodes/_shared_config/intents_registry.yaml` — Categories & intents mapping
+- `app/_shared_config/intents_registry.yaml` — Categories & intents mapping
 - `config/product_configs_examples.yaml` — Per-product configurations
 
 Each node in `app/nodes/{node_name}/config.yaml` has isolated settings (merged by `rebuild_pipeline_config.py`).

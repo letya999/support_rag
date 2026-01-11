@@ -1,11 +1,9 @@
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 from app.nodes.base_node import BaseNode
-from app.storage.persistence import PersistenceManager
-from app.services.cache.session_manager import SessionManager
+from app._shared_config.history_filter import filter_conversation_history
 from app.services.cache.manager import get_cache_manager
-from app.observability.tracing import observe
-from app.nodes._shared_config.history_filter import filter_conversation_history
-
+from app.services.cache.session_manager import SessionManager
+from app.storage.persistence import PersistenceManager
 from app.services.config_loader.loader import get_node_params
 
 class SessionStarterNode(BaseNode):

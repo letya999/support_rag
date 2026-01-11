@@ -3,7 +3,7 @@ from typing import Dict, List
 import yaml
 
 class NodeRegistry:
-    EXCLUDED_DIRS = ["base_node", "_shared_config", "__pycache__"]
+    EXCLUDED_DIRS = ["base_node", "__pycache__"]
     
     def __init__(self, nodes_dir: str = "app/nodes"):
         self.nodes_dir = Path(nodes_dir)

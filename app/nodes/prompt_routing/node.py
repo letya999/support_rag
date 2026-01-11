@@ -4,11 +4,16 @@ Prompt Routing Node.
 Selects and builds the system prompt based on dialog state.
 Uses correct conversation_history format instead of session_history.
 """
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Literal, Optional
 from app.nodes.base_node import BaseNode
-from app.observability.tracing import observe
+from app.integrations.llm import get_llm
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate
+from app.services.config_loader.loader import load_shared_config
+import logging
+import json
 try:
-    from app.nodes._shared_config.history_filter import get_clean_history_for_prompt, is_system_message
+    from app._shared_config.history_filter import get_clean_history_for_prompt, is_system_message
 except ImportError:
     get_clean_history_for_prompt = None
     is_system_message = None

@@ -40,7 +40,7 @@ yaml.SafeLoader.add_constructor("!env", env_var_constructor)
 
 NODES_DIR = Path(__file__).parent.parent.parent / "nodes"
 PIPELINE_DIR = Path(__file__).parent.parent.parent / "pipeline"
-SHARED_CONFIG_DIR = NODES_DIR / "_shared_config"
+SHARED_CONFIG_DIR = Path(__file__).parent.parent.parent / "_shared_config"
 
 
 @lru_cache(maxsize=64)

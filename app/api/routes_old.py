@@ -15,7 +15,7 @@ from app.nodes.retrieval.search import retrieve_context
 router = APIRouter()
 
 # Default confidence threshold (fallback if config fails to load)
-# This value should match the one in app/nodes/_shared_config/global.yaml
+# This value should match the one in app/_shared_config/global.yaml
 DEFAULT_CONFIDENCE_THRESHOLD = 0.3
 
 # Telegram Bot Models
@@ -311,7 +311,7 @@ async def reload_config():
     """
     try:
         from app.services.config_loader.loader import clear_config_cache
-        from app.nodes._shared_config.history_filter import clear_filter_cache
+        from app._shared_config.history_filter import clear_filter_cache
         
         # Clear config caches
         clear_config_cache()
