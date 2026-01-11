@@ -38,6 +38,12 @@ class RedisConnector:
         if self.client:
             return await self.client.ping()
 
+    async def info(self, section: str = "default") -> dict:
+        """Get Redis server info."""
+        if self.client:
+            return await self.client.info(section)
+        return {}
+
 
     async def setex(self, key: str, time: int, value: Any):
         if self.client:

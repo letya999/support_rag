@@ -187,7 +187,7 @@ async def chat_stream(request: Request, body: ChatCompletionRequest):
             "session_id": body.session_id,
             "trace_id": trace_id
         }
-        yield f"data: {json.dumps(init_payload)}\n\n"
+        yield f"data: {json.dumps(init_payload, ensure_ascii=False)}\n\n"
 
         global_config = load_shared_config("global")
         confidence_threshold = global_config.get("parameters", {}).get("confidence_threshold", 0.3)
@@ -216,16 +216,28 @@ async def chat_stream(request: Request, body: ChatCompletionRequest):
                     if "generation_llm" in tags or "clarification_llm" in tags:
                         content = event["data"]["chunk"].content
                         if content:
-                            yield f"data: {json.dumps({'token': content, 'trace_id': trace_id})}\n\n"
+                            yield f"data: {json.dumps({'token': content, 'trace_id': trace_id}, ensure_ascii=False)}\n\n"
                 
                 # Capture state updates to get final metadata
                 elif kind == "on_chain_stream" and event["name"] == "LangGraph":
                     # In astream_events, the graph itself emits state updates
-                    final_state.update(event["data"]["chunk"])
+                    chunk = event["data"]["chunk"]
+                    if chunk and isinstance(chunk, dict):
+                        final_state.update(chunk)
                 
-                # Alternative to get final state: on_chain_end for the whole graph
-                elif kind == "on_chain_end" and event["name"] == "api_chat_stream":
-                    final_state = event["data"]["output"]
+                # Manual capture of node outputs to ensure we have the latest answer
+                # This is a fallback in case the graph end event doesn't contain the full state
+                elif kind == "on_chain_end": 
+                    name = event.get("name")
+                    output = event["data"].get("output")
+                    if output and isinstance(output, dict):
+                        # specific node captures or general update
+                        # We blindly update because State keys are global and we want the latest
+                        final_state.update(output)
+                    
+                    if name == "api_chat_stream":
+                        # logic to handle graph completion if needed, though we updated incrementally
+                        pass
 
             # After the loop, send the final complete object and DONE signal
             # Process sources from final state
@@ -255,13 +267,13 @@ async def chat_stream(request: Request, body: ChatCompletionRequest):
             }
             
             # Send final data as a special event or just a payload
-            yield f"data: {json.dumps({'final_data': final_data, 'trace_id': trace_id})}\n\n"
-            yield f"data: {json.dumps({'token': '[DONE]', 'trace_id': trace_id})}\n\n"
+            yield f"data: {json.dumps({'final_data': final_data, 'trace_id': trace_id}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'token': '[DONE]', 'trace_id': trace_id}, ensure_ascii=False)}\n\n"
             
         except Exception as e:
             logger.error(f"Streaming error: {e}", exc_info=True)
             err_payload = {"error": str(e), "trace_id": trace_id}
-            yield f"data: {json.dumps(err_payload)}\n\n"
+            yield f"data: {json.dumps(err_payload, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
