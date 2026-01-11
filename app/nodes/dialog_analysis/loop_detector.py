@@ -57,7 +57,7 @@ async def detect_topic_loop(
                 content = getattr(msg, "content", "")
             
             if role in ["user", "human"]:
-                user_messages.append(content)
+                user_messages.append(msg)
                 if len(user_messages) >= window_size:
                     break
         
@@ -107,8 +107,9 @@ async def detect_topic_loop(
                     translated = await translate_text(msg_text, target_lang="en")
                     translated_history.append(translated)
             else:
-                # String message - translate now
-                translated = await translate_text(msg, target_lang="en")
+                # Handle object/string - translate now
+                msg_text = getattr(msg, "content", "") if not isinstance(msg, str) else msg
+                translated = await translate_text(msg_text, target_lang="en")
                 translated_history.append(translated)
         
         print(f"[LoopDetector] Using {len([h for h in translated_history if h])} pre-translated messages from cache")

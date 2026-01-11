@@ -112,6 +112,33 @@ class SessionManager:
         
         await self.save_session(new_session)
 
+    async def add_message(self, session_id: str, role: str, content: str):
+        """
+        Add a message to the recent_messages list in the session.
+        Keeps strictly the last 50 messages to avoid bloating Redis.
+        """
+        key = f"{self.prefix}{session_id}"
+        data = await self.redis.get(key)
+        if not data:
+            return
+
+        try:
+            session = UserSession.model_validate_json(data)
+            
+            # Add new message
+            new_msg = {"role": role, "content": content}
+            session.recent_messages.append(new_msg)
+            
+            # Trim if too long (keep last 50)
+            if len(session.recent_messages) > 50:
+                session.recent_messages = session.recent_messages[-50:]
+                
+            session.message_count += 1
+            
+            await self.save_session(session)
+        except Exception as e:
+            print(f"Failed to add message to cache: {e}")
+
     async def clear_session(self, user_id: str):
         """
         Clear active session (on logout or expiration).

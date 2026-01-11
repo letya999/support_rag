@@ -44,6 +44,12 @@ class RedisConnector:
             return await self.client.info(section)
         return {}
 
+    async def dbsize(self) -> int:
+        """Get the number of keys in the selected database."""
+        if self.client:
+            return await self.client.dbsize()
+        return 0
+
 
     async def setex(self, key: str, time: int, value: Any):
         if self.client:

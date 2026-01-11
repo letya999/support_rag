@@ -252,12 +252,47 @@ class ArchiveSessionNode(BaseNode):
                     "extracted_entities": state.get("extracted_entities"),
                     "clarification_context": ctx_to_save
                 }
+
+                # Fix: Aggressively purge context if loop is finished.
+                # If we are not in NEEDS_CLARIFICATION but have an active context, it means we moved on.
+                # We must reset all fields to clear the cache state as requested.
+                if state.get("dialog_state") != "NEEDS_CLARIFICATION" and ctx_to_save and ctx_to_save.get("active"):
+                     print("💾 ArchiveSession: Purging outdated clarification context.")
+                     
+                     default_lang = "en"
+                     try:
+                        from app.services.config_loader.loader import get_global_param
+                        default_lang = get_global_param("default_language", "en")
+                     except Exception:
+                        pass
+                        
+                     # Overwrite with clean state
+                     ctx_to_save = {
+                         "active": False,
+                         "questions": [],
+                         "current_index": 0,
+                         "answers": {},
+                         "original_doc_id": None,
+                         "original_doc_content": None,
+                         "requires_handoff": False,
+                         "target_language": default_lang
+                     }
+                     updates["clarification_context"] = ctx_to_save
                 
                 # Persist Clarified Doc IDs
                 if state.get("clarified_doc_ids"):
                     updates["clarified_doc_ids"] = state.get("clarified_doc_ids")
                 
+                # Use update_state for bulk updates
                 await session_manager.update_state(session_id, updates)
+                
+                # Add messages to recent list for cache API
+                if question:
+                    await session_manager.add_message(session_id, "user", question)
+                
+                if answer and not _is_system_message(answer):
+                    await session_manager.add_message(session_id, "assistant", answer)
+
         except Exception as e:
             print(f"⚠️ Redis update failed (non-critical): {e}")
         

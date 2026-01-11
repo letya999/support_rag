@@ -15,15 +15,14 @@ class CacheStatus(BaseModel):
     hit_rate: Optional[float] = None
     connected: bool
 
-@router.get("/cache/messages", response_model=Envelope[List[Dict[str, Any]]])
-async def get_cached_messages(
+@router.get("/cache/session_state", response_model=Envelope[List[Dict[str, Any]]])
+async def get_session_state(
     request: Request, 
     user_id: str, 
     limit: int = 10
 ):
     """
     Get session state from Redis.
-    Note: Actual message content is currently stored in Postgres, not Redis.
     This endpoint returns the active session state and metadata.
     """
     trace_id = getattr(request.state, "trace_id", None)
@@ -63,6 +62,61 @@ async def get_cached_messages(
         
         return Envelope(
             data=results,
+            meta=MetaResponse(
+                trace_id=trace_id,
+                extra=extra_info
+            )
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/cache/recent_messages", response_model=Envelope[List[Dict[str, str]]])
+async def get_recent_messages(
+    request: Request,
+    user_id: str,
+    limit: int = 10
+):
+    """
+    Get recent messages for user from Redis session.
+    """
+    trace_id = getattr(request.state, "trace_id", None)
+    
+    if not settings.REDIS_URL:
+        raise HTTPException(status_code=500, detail="Redis URL not configured")
+        
+    try:
+        manager = await get_cache_manager()
+        redis = manager.redis
+        
+        # 1. Get active session ID
+        session_id_bytes = await redis.get(f"user:active_session:{user_id}")
+        session_id = session_id_bytes.decode() if session_id_bytes else None
+        
+        messages = []
+        extra_info = {"active_session_id": session_id}
+        
+        if session_id:
+            # 2. Get Session Data
+            session_key = f"session:{session_id}"
+            session_data = await redis.get(session_key)
+            
+            if session_data:
+                try:
+                    session_json = json.loads(session_data)
+                    # Get recent_messages
+                    all_messages = session_json.get("recent_messages", [])
+                    # Sort or slice - assuming list is appended to, so last N are freshest?
+                    # "TopN ... sorted from freshest to oldest" usually means reverse order
+                    # Let's assume list is chronological [old, ..., new]
+                    # So we take slice from end.
+                    messages = all_messages[-limit:]
+                    # If we want freshest first:
+                    messages.reverse()
+                except:
+                    pass # Empty if fail
+        
+        return Envelope(
+            data=messages,
             meta=MetaResponse(
                 trace_id=trace_id,
                 extra=extra_info
@@ -139,10 +193,15 @@ async def get_cache_status(request: Request):
             
         used_memory = info.get("used_memory", 0)
         
+        # Get total keys
+        total_keys = 0
+        if manager.redis.is_available():
+            total_keys = await manager.redis.dbsize()
+        
         return Envelope(
             data=CacheStatus(
                 memory_usage_mb=round(used_memory / 1024 / 1024, 2),
-                total_keys=0, 
+                total_keys=total_keys, 
                 hit_rate=hit_rate,
                 connected=health.get("status") == "healthy"
             ),

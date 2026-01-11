@@ -116,6 +116,7 @@ class UserSession(BaseModel):
     
     # History (transient)
     message_count: int = 0
+    recent_messages: List[Dict[str, str]] = Field(default_factory=list, description="List of recent messages (role, content)")
     
     class Config:
         json_schema_extra = {
