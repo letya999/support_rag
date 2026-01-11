@@ -90,15 +90,16 @@ class GenerationNode(BaseNode):
             human_prompt = f"Context:\n{docs_str}\n\nQuestion: {question}"
         
         # Build chain
+        llm = get_llm(streaming=True)
         if system_prompt:
             # Escape curly braces in system_prompt as it may contain data artifacts
             escaped = system_prompt.replace("{", "{{").replace("}", "}}")
             chain = ChatPromptTemplate.from_messages([
                 ("system", escaped),
                 ("human", "{human_prompt}")
-            ]) | get_llm()
+            ]) | llm
         else:
-            chain = self.qa_prompt | get_llm()
+            chain = self.qa_prompt | llm
         
         # Use handler from state if provided (e.g. from benchmark script), otherwise create new
         langfuse_handler = state.get("langfuse_handler")
@@ -107,7 +108,7 @@ class GenerationNode(BaseNode):
         
         response = await chain.ainvoke(
             {"human_prompt": human_prompt},
-            config={"callbacks": [langfuse_handler]}
+            config={"callbacks": [langfuse_handler], "tags": ["generation_llm"]}
         )
         return {"answer": response.content}
 

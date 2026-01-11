@@ -174,10 +174,6 @@ async def chat_stream(request: Request, body: ChatCompletionRequest):
     # We might need to iterate over specific events.
     
     async def event_generator():
-        # TODO: Implement true token streaming.
-        # For this phase, we might just yield the final result chunk by chunk or wait for full result.
-        # But to be compliant with "Stream" requirement, we try to stream.
-        
         # Resolving identity first
         internal_user_id = await IdentityManager.resolve_identity(
             channel="api_stream",
@@ -185,14 +181,13 @@ async def chat_stream(request: Request, body: ChatCompletionRequest):
             metadata_payload=body.user_metadata
         )
         
-        # Yield initial metadata event with question
-        init_data = {
+        # Initial chunk with common fields
+        init_payload = {
             "question": body.question,
             "session_id": body.session_id,
-            "token": "",
             "trace_id": trace_id
         }
-        yield f"data: {json.dumps(init_data)}\n\n"
+        yield f"data: {json.dumps(init_payload)}\n\n"
 
         global_config = load_shared_config("global")
         confidence_threshold = global_config.get("parameters", {}).get("confidence_threshold", 0.3)
@@ -205,7 +200,8 @@ async def chat_stream(request: Request, body: ChatCompletionRequest):
             "confidence_threshold": confidence_threshold
         }
 
-        # We use astream_events to catch LLM token stream
+        final_state = {}
+
         try:
             async for event in rag_graph.astream_events(
                 input_state, 
@@ -213,17 +209,57 @@ async def chat_stream(request: Request, body: ChatCompletionRequest):
                 config={"callbacks": [], "run_name": "api_chat_stream"}
             ):
                 kind = event["event"]
-                # We look for "on_chat_model_stream" event from the generation node
+                tags = event.get("tags", [])
+                
+                # Filter tokens: only allow generation or clarification LLMs
                 if kind == "on_chat_model_stream":
-                    content = event["data"]["chunk"].content
-                    if content:
-                        payload = {"token": content, "trace_id": trace_id}
-                        yield f"data: {json.dumps(payload)}\n\n"
+                    if "generation_llm" in tags or "clarification_llm" in tags:
+                        content = event["data"]["chunk"].content
+                        if content:
+                            yield f"data: {json.dumps({'token': content, 'trace_id': trace_id})}\n\n"
+                
+                # Capture state updates to get final metadata
+                elif kind == "on_chain_stream" and event["name"] == "LangGraph":
+                    # In astream_events, the graph itself emits state updates
+                    final_state.update(event["data"]["chunk"])
+                
+                # Alternative to get final state: on_chain_end for the whole graph
+                elif kind == "on_chain_end" and event["name"] == "api_chat_stream":
+                    final_state = event["data"]["output"]
+
+            # After the loop, send the final complete object and DONE signal
+            # Process sources from final state
+            raw_sources = final_state.get("best_doc_metadata", [])
+            if isinstance(raw_sources, dict):
+                raw_sources = [raw_sources]
             
+            sources = []
+            for src in raw_sources:
+                if not isinstance(src, dict): continue
+                sources.append({
+                    "document_id": str(src.get("id", "")),
+                    "title": src.get("title", "Document"),
+                    "excerpt": src.get("page_content", "")[:200],
+                    "relevance": src.get("score", 0.0),
+                    "metadata": src
+                })
+
+            final_data = {
+                "question": body.question,
+                "answer": final_state.get("answer", ""),
+                "sources": sources,
+                "confidence": float(final_state.get("confidence", 0.0) or 0.0),
+                "query_id": str(final_state.get("query_id", "")),
+                "pipeline_metadata": final_state.get("metadata"),
+                "trace_id": trace_id
+            }
+            
+            # Send final data as a special event or just a payload
+            yield f"data: {json.dumps({'final_data': final_data, 'trace_id': trace_id})}\n\n"
             yield f"data: {json.dumps({'token': '[DONE]', 'trace_id': trace_id})}\n\n"
             
         except Exception as e:
-            logger.error(f"Streaming error: {e}")
+            logger.error(f"Streaming error: {e}", exc_info=True)
             err_payload = {"error": str(e), "trace_id": trace_id}
             yield f"data: {json.dumps(err_payload)}\n\n"
 

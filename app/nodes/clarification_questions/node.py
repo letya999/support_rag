@@ -190,7 +190,7 @@ class ClarificationQuestionsNode(BaseNode):
             from app.integrations.llm import get_llm
             from langchain_core.prompts import ChatPromptTemplate
             
-            llm = get_llm(temperature=0)
+            llm = get_llm(temperature=0, streaming=True)
             prompt = ChatPromptTemplate.from_template(
                 "Translate the following support question into {language}. "
                 "Keep the tone professional and friendly. "
@@ -198,7 +198,10 @@ class ClarificationQuestionsNode(BaseNode):
                 "Question: {question}"
             )
             chain = prompt | llm
-            res = await chain.ainvoke({"language": target_lang, "question": question})
+            res = await chain.ainvoke(
+                {"language": target_lang, "question": question},
+                config={"tags": ["clarification_llm"]}
+            )
             return res.content.strip()
         except Exception as e:
             logger.error(f"Translation failed: {e}")
