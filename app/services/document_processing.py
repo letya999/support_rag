@@ -20,12 +20,13 @@ class DocumentProcessingService:
     """
 
     @staticmethod
-    async def process_file(file_path: str) -> List[ProcessedQAPair]:
+    async def process_file(file_path: str, original_filename: str = None) -> List[ProcessedQAPair]:
         """
         Process a file path into Q&A pairs.
         """
         path_obj = Path(file_path)
-        logger.info(f"Processing file: {path_obj.name}")
+        display_name = original_filename if original_filename else path_obj.name
+        logger.info(f"Processing file: {display_name}")
 
         # 1. Load Document Content (Blocks)
         loader = LoaderFactory.get_loader(file_path)
@@ -83,7 +84,7 @@ class DocumentProcessingService:
             # Enrich returns dict
             enriched_meta = MetadataEnricher.enrich(
                 pair,
-                source_document=path_obj.name,
+                source_document=display_name,
                 existing_metadata=pair.metadata
             )
             
@@ -93,5 +94,5 @@ class DocumentProcessingService:
                 metadata=enriched_meta
             ))
             
-        logger.info(f"Extracted {len(processed_pairs)} pairs from {path_obj.name}")
+        logger.info(f"Extracted {len(processed_pairs)} pairs from {display_name}")
         return processed_pairs

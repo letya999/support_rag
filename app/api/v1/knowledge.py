@@ -133,7 +133,7 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         
     try:
         # Process file using valid pipeline (Loader -> Analyzer -> Extractor)
-        pairs = await DocumentProcessingService.process_file(tmp_path)
+        pairs = await DocumentProcessingService.process_file(tmp_path, original_filename=file.filename)
         
         # Convert ProcessedQAPair objects to dicts for staging
         pairs_dicts = [
