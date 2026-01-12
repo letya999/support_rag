@@ -13,57 +13,67 @@ class KeywordMapper:
         "Account Access": {
             "password", "login", "reset", "forgot", "sign in", "sign up",
             "account", "auth", "authentication", "2fa", "mfa", "security",
-            "unlock", "lockout", "credentials"
+            "unlock", "lockout", "credentials",
+            "пароль", "вход", "логин", "аккаунт", "доступ", "разблокировать", "заблокирован"
         },
         "Order Management": {
             "order", "purchase", "buy", "shipping", "delivery", "track",
             "status", "pending", "cancel", "refund", "return", "exchange",
-            "tracking", "shipped", "delivered"
+            "tracking", "shipped", "delivered",
+            "заказ", "доставка", "отслеживание", "вернуть", "возврат", "статус"
         },
         "Payment & Billing": {
             "payment", "billing", "invoice", "charge", "credit", "debit",
             "payment method", "card", "subscription", "plan", "price",
-            "cost", "free trial", "refund"
+            "cost", "free trial", "refund",
+            "оплата", "подписка", "деньги", "списание", "карта", "счет", "цена", "стоимость", "вернуть деньги"
         },
         "Account Management": {
             "profile", "account", "user", "information", "email", "phone",
             "address", "personal", "update", "edit", "change", "settings",
-            "preferences", "notification"
+            "preferences", "notification",
+            "профиль", "почта", "телефон", "адрес", "изменить", "настройки"
         },
         "Support": {
             "contact", "support", "help", "assist", "issue", "problem",
             "complaint", "feedback", "suggestion", "question", "faq",
-            "ticket", "escalat"
+            "ticket", "escalat",
+            "поддержка", "помощь", "связаться", "оператор", "вопрос", "проблема"
         },
         "Technical": {
             "error", "bug", "issue", "crash", "slow", "broken", "not working",
             "failed", "timeout", "connection", "download", "upload", "sync",
-            "compatibility", "browser", "device"
+            "compatibility", "browser", "device",
+            "ошибка", "баг", "сбой", "не работает", "медленно", "вылет"
         },
         "Features & Usage": {
             "feature", "how", "use", "guide", "tutorial", "manual", "instruction",
-            "setup", "configure", "install", "integrate", "api", "plugin"
+            "setup", "configure", "install", "integrate", "api", "plugin",
+            "как", "использовать", "инструкция", "настройка", "установка"
         },
         "General": {
-            "what", "when", "where", "who", "why", "information", "details"
+            "what", "when", "where", "who", "why", "information", "details",
+            "что", "когда", "где", "кто", "почему", "информация"
         }
     }
 
     # Intent mappings
     INTENT_KEYWORDS = {
-        "how_to": {"how", "guide", "tutorial", "setup", "configure"},
-        "provide_info": {"what", "which", "explain", "describe", "tell me"},
-        "check_capability": {"can", "is", "are", "do", "does", "possible", "support"},
-        "locate_resource": {"where", "find", "locate", "access", "go to"},
+        "how_to": {"how", "guide", "tutorial", "setup", "configure", "как", "инструкция", "настроить"},
+        "provide_info": {"what", "which", "explain", "describe", "tell me", "что", "расскажи", "описание"},
+        "check_capability": {"can", "is", "are", "do", "does", "possible", "support", "может", "возможно", "поддерживает"},
+        "locate_resource": {"where", "find", "locate", "access", "go to", "где", "найти", "ссылка"},
         "troubleshoot": {
             "problem", "issue", "error", "bug", "not working",
-            "fail", "crash", "slow"
+            "fail", "crash", "slow",
+            "проблема", "ошибка", "не работает", "сбой"
         },
         "account_action": {
             "reset", "change", "update", "delete", "create",
-            "remove", "disable", "enable"
+            "remove", "disable", "enable",
+            "сбросить", "изменить", "удалить", "создать", "разблокировать"
         },
-        "contact_support": {"contact", "reach", "speak", "call", "email"},
+        "contact_support": {"contact", "reach", "speak", "call", "email", "связаться", "позвонить", "написать"},
     }
 
     @classmethod

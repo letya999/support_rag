@@ -42,38 +42,47 @@ class DocumentProcessingService:
         # 2. Analyze Structure & Choose Extractor
         # If it's CSV, we know it's a Table.
         # If DOCX/PDF, we analyzer.
-        extractor = None
+        # 2. Analyze Structure & Choose Extractor
+        analyzer = DocumentStructureAnalyzer()
+        structure = analyzer.analyze(doc)
         
-        if doc.file_type == DocumentFormat.CSV:
-            # Explicitly use Table extractor for CSV if it produced a Table Block
-            # CSVLoader produces BlockType.TABLE
+        # Special handling for CSV: If analyzer failed to detect table (e.g. strict headers), force it with default mapping
+        if doc.file_type == DocumentFormat.CSV and structure.detected_format != "table":
+             logger.warning("CSV analyzed but table structure not detected/confident. Forcing table extraction with default mapping.")
+             
+             # Fallback mapping: Col 0 -> Question, Col 1 -> Answer
+             mapping = {}
+             if doc.blocks and doc.blocks[0].type == BlockType.TABLE:
+                 header = doc.blocks[0].content[0]
+                 if len(header) >= 2:
+                     mapping = {0: "question", 1: "answer"}
+                     
+             structure = DocumentStructure(
+                 detected_format="table",
+                 confidence=0.8, 
+                 column_mapping=mapping,
+                 notes=["Forced CSV table structure with default mapping"]
+             )
+             
+        logger.info(f"Detected structure: {structure.detected_format}")
+        
+        extractor = None
+        if structure.detected_format == "table":
             extractor = TableQAExtractor()
-            # Structure required for generic extractor interface usually?
-            # Creating dummy structure
-            structure = DocumentStructure(detected_format="table", confidence=1.0)
-            
+        elif structure.detected_format == "sections":
+            extractor = SectionQAExtractor()
+        elif structure.detected_format == "faq":
+            extractor = FAQExtractor()
+        elif structure.detected_format == "list":
+                # Import locally to avoid circulars if any
+                try:
+                    from app.services.qa_extractors.list_extractor import ListQAExtractor
+                    extractor = ListQAExtractor()
+                except ImportError:
+                    extractor = FAQExtractor()
         else:
-            # Run Analyzer for unstructured
-            analyzer = DocumentStructureAnalyzer()
-            structure = analyzer.analyze(doc)
-            logger.info(f"Detected structure: {structure.detected_format}")
-            
-            if structure.detected_format == "table":
-                extractor = TableQAExtractor()
-            elif structure.detected_format == "sections":
+                # Fallback
                 extractor = SectionQAExtractor()
-            elif structure.detected_format == "faq":
-                extractor = FAQExtractor()
-            elif structure.detected_format == "list":
-                 # Import locally to avoid circulars if any
-                 try:
-                     from app.services.qa_extractors.list_extractor import ListQAExtractor
-                     extractor = ListQAExtractor()
-                 except ImportError:
-                     extractor = FAQExtractor()
-            else:
-                 # Fallback
-                 extractor = SectionQAExtractor()
 
         # 3. Extract Raw Pairs
         raw_pairs = extractor.extract(doc.blocks, structure)

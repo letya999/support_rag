@@ -86,46 +86,15 @@ class CSVLoader(BaseDocumentLoader):
 
     @staticmethod
     def _detect_delimiter(content: str) -> str:
-        """Auto-detect CSV delimiter.
-
-        Args:
-            content: CSV file content
-
-        Returns:
-            Detected delimiter character
-        """
-        # Common delimiters to check
-        delimiters = [",", ";", "\t", "|", " "]
-        lines = content.split("\n")[:10]  # Check first 10 lines
-
-        delimiter_counts = {d: [] for d in delimiters}
-
-        for line in lines:
-            if not line.strip():
-                continue
-            for d in delimiters:
-                delimiter_counts[d].append(line.count(d))
-
-        # Find delimiter with most consistent count
-        best_delimiter = ","
-        best_consistency = -1
-
-        for d in delimiters:
-            if not delimiter_counts[d]:
-                continue
-
-            counts = delimiter_counts[d]
-            avg_count = sum(counts) / len(counts)
-
-            if avg_count < 1:
-                continue
-
-            # Calculate consistency (lower variance is better)
-            variance = sum((c - avg_count) ** 2 for c in counts) / len(counts)
-            consistency = avg_count / (1 + variance)
-
-            if consistency > best_consistency:
-                best_consistency = consistency
-                best_delimiter = d
-
-        return best_delimiter
+        """Auto-detect CSV delimiter using csv.Sniffer."""
+        try:
+            import csv
+            # Check valid delimiters
+            delimiters = [",", ";", "\t", "|"]
+            # Sample first lines (enough to capture multiple rows, but limit size)
+            sample = content[:min(len(content), 4096)]
+            dialect = csv.Sniffer().sniff(sample, delimiters=delimiters)
+            return dialect.delimiter
+        except Exception as e:
+            logger.debug(f"Sniffer failed: {e}. Defaulting to comma.")
+            return ","

@@ -238,4 +238,91 @@ class StagingService:
             
         return result
 
+    async def list_drafts(self, draft_ids: Optional[List[str]] = None, search_term: Optional[str] = None) -> List[Dict[str, Any]]:
+        redis = await self._get_redis()
+        try:
+            # This uses SCAN which is safe but might be slow if millions of keys.
+            # Ideally we'd have a set of active drafts, but given this is staging, it's likely small.
+            cursor = 0
+            keys = []
+            while True:
+                cursor, new_keys = await redis.scan(cursor, match=f"{self.PREFIX}*", count=100)
+                keys.extend(new_keys)
+                if cursor == 0:
+                    break
+            
+            if not keys:
+                return []
+
+            # Determine which keys to fetch
+            # If draft_ids provided, filter keys first (optimization)
+            keys_to_fetch = []
+            if draft_ids:
+                draft_keys = set(f"{self.PREFIX}{did}" for did in draft_ids)
+                keys_to_fetch = [k for k in keys if k in draft_keys]
+            else:
+                keys_to_fetch = keys
+
+            if not keys_to_fetch:
+                return []
+
+            # MGET for all filtered keys
+            drafts_json = await redis.mget(keys_to_fetch)
+            
+            results = []
+            for d_json in drafts_json:
+                if d_json:
+                    try:
+                        d = json.loads(d_json)
+                        # Text search (LIKE) on filename
+                        if search_term:
+                            if search_term.lower() not in d.get("filename", "").lower():
+                                continue
+                        results.append(d)
+                    except:
+                        continue
+            
+            return results
+        finally:
+            await redis.close()
+
+    async def clear_all_drafts(self) -> int:
+        """
+        Deletes all staging drafts and file mappings.
+        Returns the number of keys deleted.
+        """
+        redis = await self._get_redis()
+        try:
+            # Find all draft keys
+            cursor = 0
+            keys_to_delete = []
+            while True:
+                cursor, new_keys = await redis.scan(cursor, match=f"{self.PREFIX}*", count=100)
+                keys_to_delete.extend(new_keys)
+                if cursor == 0:
+                    break
+            
+            # Find all file mapping keys
+            cursor = 0
+            while True:
+                cursor, new_keys = await redis.scan(cursor, match=f"{self.FILE_PREFIX}*", count=100)
+                keys_to_delete.extend(new_keys)
+                if cursor == 0:
+                    break
+            
+            if not keys_to_delete:
+                return 0
+                
+            # Delete in batches of 100 to be safe
+            deleted_count = 0
+            batch_size = 100
+            for i in range(0, len(keys_to_delete), batch_size):
+                batch = keys_to_delete[i:i + batch_size]
+                if batch:
+                    deleted_count += await redis.delete(*batch)
+                    
+            return deleted_count
+        finally:
+            await redis.close()
+
 staging_service = StagingService()
