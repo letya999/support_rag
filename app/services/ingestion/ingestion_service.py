@@ -150,6 +150,19 @@ class DocumentIngestionService:
                         ):
                             metadata_json = json.dumps(metadata)
 
+                            # Check for duplicates
+                            await cur.execute(
+                                "SELECT id FROM documents WHERE content = %s",
+                                (content,)
+                            )
+                            existing = await cur.fetchone()
+                            
+                            if existing:
+                                logger.warning(f"Skipping duplicate content: {content[:50]}...")
+                                # Optionally, we could update metadata here if needed, 
+                                # but for now we just skip to prevent duplication.
+                                continue
+
                             # Insert into PostgreSQL
                             await cur.execute(
                                 """

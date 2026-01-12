@@ -20,6 +20,7 @@ class DocumentFormat(str, Enum):
     DOCX = "docx"
     CSV = "csv"
     MARKDOWN = "md"
+    JSON = "json"
 
 
 @dataclass

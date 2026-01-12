@@ -8,6 +8,7 @@ from .csv_loader import CSVLoader
 from .docx_loader import DOCXLoader
 from .md_loader import MarkdownLoader
 from .pdf_loader import PDFLoader
+from .json_loader import JSONLoader
 from .models import DocumentFormat
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ class LoaderFactory:
         DocumentFormat.DOCX: DOCXLoader,
         DocumentFormat.CSV: CSVLoader,
         DocumentFormat.MARKDOWN: MarkdownLoader,
+        DocumentFormat.JSON: JSONLoader,
     }
 
     @staticmethod
@@ -44,6 +46,7 @@ class LoaderFactory:
             ".docx": DocumentFormat.DOCX,
             ".csv": DocumentFormat.CSV,
             ".md": DocumentFormat.MARKDOWN,
+            ".json": DocumentFormat.JSON,
         }
 
         if extension not in format_map:

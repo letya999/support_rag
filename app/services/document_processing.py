@@ -8,6 +8,7 @@ from app.services.document_loaders import ProcessedQAPair
 from app.services.qa_extractors.table_extractor import TableQAExtractor
 from app.services.qa_extractors.section_extractor import SectionQAExtractor
 from app.services.qa_extractors.faq_extractor import FAQExtractor
+from app.services.qa_extractors.json_extractor import JSONQAExtractor
 from app.services.structure_detectors.document_structure_analyzer import DocumentStructureAnalyzer, DocumentStructure
 from app.services.metadata_generators.metadata_enricher import MetadataEnricher
 
@@ -67,7 +68,9 @@ class DocumentProcessingService:
         logger.info(f"Detected structure: {structure.detected_format}")
         
         extractor = None
-        if structure.detected_format == "table":
+        if doc.file_type == DocumentFormat.JSON:
+            extractor = JSONQAExtractor()
+        elif structure.detected_format == "table":
             extractor = TableQAExtractor()
         elif structure.detected_format == "sections":
             extractor = SectionQAExtractor()
