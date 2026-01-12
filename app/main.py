@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 
 from app.settings import settings
 from app.api.main import router
-from app.api.admin_routes import router as admin_router
+# from app.api.admin_routes import router as admin_router
 # Use V1 handlers for global consistency
 from app.api.v1.middleware import RequestIDMiddleware, validation_exception_handler, global_exception_handler
 from app.api.v1.limiter import init_limiter
@@ -68,8 +68,6 @@ async def lifespan(app: FastAPI):
 
 from fastapi.openapi.utils import get_openapi
 
-# ... imports ...
-
 # Create FastAPI app
 app = FastAPI(
     title=settings.APP_NAME,
@@ -117,7 +115,7 @@ app.add_middleware(RequestIDMiddleware)
 
 # Include routers
 app.include_router(router)
-app.include_router(admin_router)
+# app.include_router(admin_router)
 
 # Exception handlers
 app.add_exception_handler(RequestValidationError, validation_exception_handler)

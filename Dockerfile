@@ -14,10 +14,12 @@ RUN pip install --no-cache-dir --default-timeout=1000 torch torchvision torchaud
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY . .
-
-# Pre-download models for faster startup and reliability
+# Pre-download models (cache this layer)
+COPY scripts/download_models.py scripts/
 RUN python scripts/download_models.py
+
+# Copy application code
+COPY . .
 
 # Expose port
 EXPOSE 8000

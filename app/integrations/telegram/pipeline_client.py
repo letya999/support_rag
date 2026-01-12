@@ -79,7 +79,7 @@ class RAGPipelineClient:
             logger.debug(f"Querying RAG for user {user_id}: {question[:50]}...")
 
             async with self.session.post(
-                f"{self.api_url}/rag/query",
+                f"{self.api_url}/api/v1/chat/completions",
                 json=request.model_dump(),
                 timeout=aiohttp.ClientTimeout(total=30)
             ) as response:
@@ -96,9 +96,29 @@ class RAGPipelineClient:
                         query_id="error"
                     )
 
-                data = await response.json()
+                payload = await response.json()
+                data = payload.get("data", {})
+                
+                # Map API response fields to RAGResponse model
+                sources_data = []
+                for src in data.get("sources", []):
+                    sources_data.append({
+                        "title": src.get("title", "Document"),
+                        "doc_id": src.get("document_id", ""),
+                        "relevance": src.get("relevance", 0.0),
+                        "metadata": src.get("metadata", {})
+                    })
+
+                rag_response_data = {
+                    "answer": data.get("answer", ""),
+                    "sources": sources_data,
+                    "confidence": data.get("confidence", 0.0),
+                    "query_id": data.get("query_id", ""),
+                    "metadata": data.get("pipeline_metadata", {})
+                }
+
                 logger.debug(f"RAG response received for user {user_id}")
-                return RAGResponse(**data)
+                return RAGResponse(**rag_response_data)
 
         except aiohttp.ClientError as e:
             logger.error(f"RAG API connection error: {e}")

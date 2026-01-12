@@ -6,9 +6,11 @@ import torch
 from app.observability.tracing import langfuse_context, observe
 from concurrent.futures import ThreadPoolExecutor
 
+import os
+
 # Create a dedicated executor for embeddings to avoid blocking the main loop
-# and limit the number of parallel threads if needed (though 1 is often enough for model inference)
-executor = ThreadPoolExecutor(max_workers=1)
+# Using more workers to allow parallel inference (torch releases GIL)
+executor = ThreadPoolExecutor(max_workers=min(32, (os.cpu_count() or 1) * 4))
 
 class EmbeddingModel:
     _instance = None
