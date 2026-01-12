@@ -80,7 +80,7 @@ class ZeroShotClassificationService:
         chunk_embeddings = await self.semantic_service.encode_batch(chunk_texts)
         intent_embeddings = await self.semantic_service.encode_batch(intent_texts)
         
-        if not chunk_embeddings or not intent_embeddings:
+        if chunk_embeddings is None or len(chunk_embeddings) == 0 or intent_embeddings is None or len(intent_embeddings) == 0:
             logger.error("Failed to generate embeddings")
             return []
         

@@ -196,6 +196,7 @@ class ZeroShotBatchRequest(BaseModel):
     """Request model for batch zero-shot classification with custom taxonomy."""
     taxonomy: List[CategoryIntentInput]
     draft_ids: List[str]
+    update_staging: bool = False
 
 
 
@@ -326,64 +327,105 @@ async def classify_batch_custom_taxonomy(
     """
     trace_id = getattr(request.state, "trace_id", None)
     
-    if not body.taxonomy:
-        raise HTTPException(status_code=400, detail="Taxonomy cannot be empty")
-    
-    if not body.draft_ids:
-        raise HTTPException(status_code=400, detail="Draft IDs list cannot be empty")
-    
-    # Convert input taxonomy
-    from app.services.classification.zeroshot_service import CategoryIntent, ZeroShotClassificationService
-    
-    taxonomy = [CategoryIntent(name=cat.name, intents=cat.intents) for cat in body.taxonomy]
-    
-    # Process each draft
-    from app.services.staging import staging_service
-    service = ZeroShotClassificationService()
-    
-    results_map = {}
-    
-    for draft_id in body.draft_ids:
-        draft = await staging_service.get_draft(draft_id)
-        if not draft:
-            logger.warning(f"Draft {draft_id} not found, skipping...")
-            continue
+    try:
+        if not body.taxonomy:
+            raise HTTPException(status_code=400, detail="Taxonomy cannot be empty")
         
-        chunks = draft.get("chunks", [])
-        if not chunks:
-            results_map[draft_id] = {"categories": []}
-            continue
+        if not body.draft_ids:
+            raise HTTPException(status_code=400, detail="Draft IDs list cannot be empty")
         
-        # Classify
-        predictions = await service.classify_chunks(chunks, taxonomy)
-        pred_map = {p.chunk_id: p for p in predictions}
+        # Convert input taxonomy
+        from app.services.classification.zeroshot_service import CategoryIntent, ZeroShotClassificationService
         
-        # Format results and add document_id
-        draft_results = []
-        for chunk in chunks:
-            c_id = chunk.get("chunk_id")
-            res_item = {
-                "chunk_id": c_id,
-                "document_id": draft_id,  # Add draft_id for tracking
-                "question": chunk.get("question"),
-                "answer": chunk.get("answer"),
-                "metadata": chunk.get("metadata", {}).copy()
-            }
+        # Validate intent structure
+        taxonomy = []
+        for cat in body.taxonomy:
+            if not cat.name or not cat.intents:
+                continue
+            taxonomy.append(CategoryIntent(name=cat.name, intents=cat.intents))
             
-            if c_id in pred_map:
-                pred = pred_map[c_id]
-                res_item["metadata"]["category"] = pred.category
-                res_item["metadata"]["intent"] = pred.intent
-                res_item["metadata"]["confidence_score"] = pred.confidence
-            
-            draft_results.append(res_item)
+        if not taxonomy:
+             raise HTTPException(status_code=400, detail="Valid taxonomy is required")
         
-        # Group by category and intent
-        grouped = group_by_category_and_intent(draft_results)
-        results_map[draft_id] = grouped
-    
-    return Envelope(
-        data={"drafts": results_map},
-        meta=MetaResponse(trace_id=trace_id)
-    )
+        # Process each draft
+        from app.services.staging import staging_service
+        service = ZeroShotClassificationService()
+        
+        results_map = {}
+        
+        for draft_id in body.draft_ids:
+            draft = await staging_service.get_draft(draft_id)
+            if not draft:
+                logger.warning(f"Draft {draft_id} not found, skipping...")
+                # Add empty result for missing draft to avoid confusion? 
+                # Or just skip. Current behavior is skip.
+                continue
+            
+            chunks = draft.get("chunks", [])
+            # Initialize with empty structure if no chunks
+            if not chunks:
+                results_map[draft_id] = {"categories": []}
+                continue
+            
+            # Classify
+            predictions = await service.classify_chunks(chunks, taxonomy)
+            pred_map = {p.chunk_id: p for p in predictions}
+            
+            # Format results and add document_id
+            draft_results = []
+            updates_for_staging = []
+            
+            for chunk in chunks:
+                c_id = chunk.get("chunk_id")
+                # Ensure metadata is a dict
+                current_meta = chunk.get("metadata") or {}
+                if not isinstance(current_meta, dict):
+                    current_meta = {}
+                    
+                res_item = {
+                    "chunk_id": c_id,
+                    "document_id": draft_id,  # Add draft_id for tracking
+                    "question": chunk.get("question"),
+                    "answer": chunk.get("answer"),
+                    "metadata": current_meta.copy()
+                }
+                
+                if c_id in pred_map:
+                    pred = pred_map[c_id]
+                    res_item["metadata"]["category"] = pred.category
+                    res_item["metadata"]["intent"] = pred.intent
+                    res_item["metadata"]["confidence_score"] = pred.confidence
+                    
+                    if body.update_staging:
+                        updates_for_staging.append({
+                            "chunk_id": c_id,
+                            "metadata": {
+                                "category": pred.category,
+                                "intent": pred.intent,
+                                "confidence_score": pred.confidence,
+                                "extraction_method": "zeroshot_custom_batch"
+                            }
+                        })
+                
+                draft_results.append(res_item)
+
+            # Update Staging if requested
+            if body.update_staging and updates_for_staging:
+                await staging_service.update_chunk_metadata_batch(draft_id, updates_for_staging)
+            
+            # Group by category and intent
+            grouped = group_by_category_and_intent(draft_results)
+            results_map[draft_id] = grouped
+            
+            results_map[draft_id] = grouped
+        
+        return Envelope(
+            data={"drafts": results_map},
+            meta=MetaResponse(trace_id=trace_id)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in batch custom classification: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal handling error: {str(e)}")
 
