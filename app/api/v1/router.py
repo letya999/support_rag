@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1 import chat, ingestion, analysis, taxonomy, channels, history, cache, config, system, dataset
+from app.api.v1 import chat, ingestion, analysis, taxonomy, channels, history, cache, config, system, dataset, chunks
 
 api_router = APIRouter()
 
@@ -13,3 +13,5 @@ api_router.include_router(dataset.router)
 api_router.include_router(cache.router)
 api_router.include_router(config.router)
 api_router.include_router(system.router)
+api_router.include_router(chunks.router)
+
