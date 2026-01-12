@@ -2,7 +2,7 @@
 Pydantic models for cache entries and statistics.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -117,6 +117,15 @@ class UserSession(BaseModel):
     # History (transient)
     message_count: int = 0
     recent_messages: List[Dict[str, str]] = Field(default_factory=list, description="List of recent messages (role, content)")
+
+    @field_validator('clarified_doc_ids', mode='before')
+    @classmethod
+    def filter_none_doc_ids(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return [x for x in v if x is not None]
+        return v
     
     class Config:
         json_schema_extra = {

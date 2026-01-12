@@ -45,6 +45,15 @@ def should_fast_escalate(state: State):
         print("⚡ Fast escalation: user requested operator")
         return "fast_escalate"
     
+    # Dialog Analysis Shortcuts
+    analysis = state.get("dialog_analysis", {})
+    
+    # Gratitude: If user is just saying thanks (and not asking a new question),
+    # skip retrieval to avoid hallucinating matches.
+    if analysis.get("is_gratitude", False) and not analysis.get("is_question", False):
+        print("⚡ Fast escalation: Gratitude detected, skipping search")
+        return "fast_escalate"
+    
     return "continue"
 
 def check_guardrails_outcome(state: State):

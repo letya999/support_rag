@@ -59,6 +59,13 @@ async def vector_search(
     except Exception as e:
         # Handle cases where Qdrant is not ready or collection missing
         print(f"Qdrant search error: {e}")
+        
+        # Reset client on connection errors to force reconnection next time
+        if "Channel is closed" in str(e) or "Connection refused" in str(e):
+             from app.storage.qdrant_client import reset_async_qdrant_client
+             reset_async_qdrant_client()
+             print("🔄 Qdrant client reset due to connection error.")
+
         if langfuse_context:
             langfuse_context.update_current_observation(output={"error": str(e), "results_count": 0})
         return []

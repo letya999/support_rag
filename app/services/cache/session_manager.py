@@ -110,7 +110,17 @@ class SessionManager:
         model_data.update(updates)
         new_session = UserSession(**model_data)
         
-        await self.save_session(new_session)
+        # Retry mechanism for saving session
+        for attempt in range(3):
+            try:
+                await self.save_session(new_session)
+                break
+            except Exception as e:
+                if attempt == 2:
+                    print(f"❌ Failed to save session state after 3 attempts: {e}")
+                else:
+                    import asyncio
+                    await asyncio.sleep(0.1)
 
     async def add_message(self, session_id: str, role: str, content: str):
         """

@@ -53,7 +53,16 @@ class RedisConnector:
 
     async def setex(self, key: str, time: int, value: Any):
         if self.client:
-            await self.client.setex(key, time, value)
+            for attempt in range(3):
+                try:
+                    await self.client.setex(key, time, value)
+                    return
+                except Exception as e:
+                    if attempt == 2:
+                        print(f"❌ Redis setex failed after 3 attempts: {e}")
+                    else:
+                        import asyncio
+                        await asyncio.sleep(0.1)
 
     async def get(self, key: str) -> Any:
         if self.client:
