@@ -115,7 +115,10 @@ app.add_middleware(RequestIDMiddleware)
 
 # Include routers
 app.include_router(router)
+from app.api.asyncapi_gen import router as asyncapi_router
+app.include_router(asyncapi_router)
 # app.include_router(admin_router)
+
 
 # Exception handlers
 app.add_exception_handler(RequestValidationError, validation_exception_handler)

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from pydantic import BaseModel
 from typing import Dict, Any, List
 from app.api.v1.models import Envelope, MetaResponse
+from app.services.webhook_service import WebhookService
 import logging
 
 # Rename router tag
@@ -70,6 +71,7 @@ def group_by_category_and_intent(chunks: List[Dict[str, Any]]) -> Dict[str, Any]
 async def classify_draft(
     request: Request, 
     draft_id: str, 
+    background_tasks: BackgroundTasks,
     update_staging: bool = False
 ):
     """
@@ -146,6 +148,17 @@ async def classify_draft(
     # 5. Group by category and intent
     grouped_data = group_by_category_and_intent(results)
     
+    # Trigger Webhook
+    background_tasks.add_task(
+        WebhookService.trigger_outgoing_event,
+        event_type="analysis.classification.completed",
+        payload={
+            "document_id": draft_id,
+            "classifications_count": len(predictions),
+            "method": "discovery_llm"
+        }
+    )
+
     return Envelope(
         data=grouped_data,
         meta=MetaResponse(trace_id=trace_id)
@@ -204,6 +217,7 @@ class ZeroShotBatchRequest(BaseModel):
 async def classify_draft_zeroshot(
     request: Request,
     draft_id: str,
+    background_tasks: BackgroundTasks,
     body: ZeroShotSingleRequest = None
 ):
     """
@@ -300,6 +314,17 @@ async def classify_draft_zeroshot(
     # 6. Group by category and intent
     grouped_data = group_by_category_and_intent(results)
     
+    # Trigger Webhook
+    background_tasks.add_task(
+        WebhookService.trigger_outgoing_event,
+        event_type="analysis.classification.completed",
+        payload={
+            "document_id": draft_id,
+            "classifications_count": len(predictions),
+            "method": "zeroshot_system"
+        }
+    )
+
     return Envelope(
         data=grouped_data,
         meta=MetaResponse(trace_id=trace_id)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
@@ -10,6 +10,7 @@ import asyncio
 from app.pipeline.graph import rag_graph
 from app.services.identity.manager import IdentityManager
 from app.services.config_loader.loader import load_shared_config
+from app.services.webhook_service import WebhookService
 from app.settings import settings
 from app.api.v1.models import Envelope, MetaResponse
 from app.observability.filtered_handler import FilteredLangfuseHandler
@@ -105,7 +106,7 @@ async def run_pipeline(
 # --- Endpoints ---
 
 @router.post("/chat/completions", response_model=Envelope[ChatCompletionData])
-async def chat_completions(request: Request, body: ChatCompletionRequest):
+async def chat_completions(request: Request, body: ChatCompletionRequest, background_tasks: BackgroundTasks):
     """
     Synchronous generation: get full answer at once.
     """
@@ -147,6 +148,19 @@ async def chat_completions(request: Request, body: ChatCompletionRequest):
             pipeline_metadata=result.get("metadata")
         )
 
+        # Trigger Webhook
+        background_tasks.add_task(
+            WebhookService.trigger_outgoing_event,
+            event_type="chat.response.generated",
+            payload={
+                "session_id": body.session_id,
+                "user_id": body.user_id,
+                "answer": answer,
+                "confidence": data.confidence,
+                "query_id": data.query_id
+            }
+        )
+
         return Envelope(
             data=data,
             meta=MetaResponse(trace_id=trace_id)
@@ -154,6 +168,12 @@ async def chat_completions(request: Request, body: ChatCompletionRequest):
         
     except Exception as e:
         logger.error(f"Error in chat_completions: {e}", exc_info=True)
+        # Trigger webhook for error?
+        background_tasks.add_task(
+            WebhookService.trigger_outgoing_event, 
+            event_type="error.occurred", 
+            payload={"error": str(e), "endpoint": "/chat/completions"}
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -270,6 +290,20 @@ async def chat_stream(request: Request, body: ChatCompletionRequest):
             yield f"data: {json.dumps({'final_data': final_data, 'trace_id': trace_id}, ensure_ascii=False)}\n\n"
             yield f"data: {json.dumps({'token': '[DONE]', 'trace_id': trace_id}, ensure_ascii=False)}\n\n"
             
+            # Streaming done, can we trigger webhook here? 
+            # We can't use BackgroundTasks in a StreamingResponse easily unless we pass it to the generator
+            # Or use a separate task. 
+            # Ideally we'd spawn a task here.
+            asyncio.create_task(WebhookService.trigger_outgoing_event(
+                event_type="chat.response.generated",
+                payload={
+                    "session_id": body.session_id,
+                    "user_id": body.user_id,
+                    "answer": final_data['answer'],
+                    "confidence": final_data['confidence']
+                }
+            ))
+            
         except Exception as e:
             logger.error(f"Streaming error: {e}", exc_info=True)
             err_payload = {"error": str(e), "trace_id": trace_id}
@@ -279,7 +313,7 @@ async def chat_stream(request: Request, body: ChatCompletionRequest):
 
 
 @router.post("/chat/escalate", response_model=Envelope[Dict[str, str]])
-async def chat_escalate(request: Request, body: EscalateRequest):
+async def chat_escalate(request: Request, body: EscalateRequest, background_tasks: BackgroundTasks):
     """
     Trigger manual escalation.
     """
@@ -291,20 +325,40 @@ async def chat_escalate(request: Request, body: EscalateRequest):
     
     logger.info(f"Escalation requested for session {body.session_id}: {body.reason}")
     
+    background_tasks.add_task(
+        WebhookService.trigger_outgoing_event,
+        event_type="chat.escalated",
+        payload={
+             "session_id": body.session_id,
+             "reason": body.reason,
+             "user_id": body.user_id
+        }
+    )
+
     return Envelope(
         data={"status": "escalated", "session_id": body.session_id},
         meta=MetaResponse(trace_id=trace_id)
     )
 
 @router.post("/chat/sessions/{session_id}/escalate", response_model=Envelope[Dict[str, str]])
-async def chat_session_escalate(request: Request, session_id: str):
+async def chat_session_escalate(request: Request, session_id: str, background_tasks: BackgroundTasks):
     """
     Escalate a specific session.
     """
     trace_id = request.state.trace_id
     logger.info(f"Escalation requested for specific session {session_id}")
     
+    background_tasks.add_task(
+        WebhookService.trigger_outgoing_event,
+        event_type="chat.escalated",
+        payload={
+             "session_id": session_id,
+             "reason": "Manual escalation via API"
+        }
+    )
+
     return Envelope(
         data={"status": "escalated", "session_id": session_id},
         meta=MetaResponse(trace_id=trace_id)
     )
+

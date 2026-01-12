@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Request, Query, Body, Path
+from fastapi import APIRouter, HTTPException, UploadFile, File, Request, Query, Body, Path, BackgroundTasks
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import shutil
@@ -9,6 +9,7 @@ import json
 from app.api.v1.models import Envelope, MetaResponse
 from app.services.staging import staging_service
 from app.services.document_processing import DocumentProcessingService
+from app.services.webhook_service import WebhookService
 
 router = APIRouter(tags=["Ingestion"])
 
@@ -119,7 +120,7 @@ async def get_contract(request: Request):
     )
 
 @router.post("/ingestion/upload", response_model=Envelope[KnowledgeResponse])
-async def upload_file(request: Request, file: UploadFile = File(...)):
+async def upload_file(request: Request, background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     """
     Upload file -> Staging.
     Creates a new draft from the file.
@@ -144,6 +145,17 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         
         draft = await staging_service.create_draft(file.filename, pairs_dicts)
         
+        # Trigger Webhook
+        background_tasks.add_task(
+            WebhookService.trigger_outgoing_event, 
+            event_type="knowledge.document.uploaded",
+            payload={
+                "document_name": file.filename,
+                "staging_id": draft["draft_id"],
+                "total_pairs": len(pairs)
+            }
+        )
+
         return Envelope(
             data=KnowledgeResponse(
                 file_id=draft["file_id"],
@@ -156,8 +168,18 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         )
         
     except ValueError as e:
+        background_tasks.add_task(
+            WebhookService.trigger_outgoing_event,
+            event_type="knowledge.document.failed",
+            payload={"error": str(e), "filename": file.filename}
+        )
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        background_tasks.add_task(
+            WebhookService.trigger_outgoing_event,
+            event_type="knowledge.document.failed",
+            payload={"error": str(e), "filename": file.filename}
+        )
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if os.path.exists(tmp_path):
@@ -354,7 +376,7 @@ async def update_chunks_in_draft(request: Request, draft_id: str, body: ChunkUpd
 # --- Commit ---
 
 @router.post("/ingestion/commit", response_model=Envelope[Dict[str, Any]])
-async def commit_staging(request: Request, body: CommitRequest):
+async def commit_staging(request: Request, body: CommitRequest, background_tasks: BackgroundTasks):
     """
     Commit staging to Prod.
     """
@@ -362,6 +384,17 @@ async def commit_staging(request: Request, body: CommitRequest):
     
     try:
         result = await staging_service.commit_draft(body.draft_id)
+        
+        # Trigger Webhook
+        background_tasks.add_task(
+            WebhookService.trigger_outgoing_event, 
+            event_type="knowledge.document.indexed",
+            payload={
+                "draft_id": body.draft_id,
+                "result": result
+            }
+        )
+        
         return Envelope(
             data=result,
             meta=MetaResponse(trace_id=trace_id)

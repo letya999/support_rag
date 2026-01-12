@@ -1,0 +1,227 @@
+asyncapi: 3.0.0
+info:
+  title: Support RAG Webhooks API
+  version: 1.0.0
+  description: >
+    Event-driven architecture for Support RAG system.
+    Defines both Incoming Webhooks (received by this system) and Outgoing Webhooks (sent to subscribers).
+  contact:
+    name: Support Team
+    email: support@example.com
+
+servers:
+  production:
+    host: api.support-rag.com
+    protocol: https
+    description: Production server
+  local:
+    host: localhost:8000
+    protocol: http
+    description: Local development server
+
+channels:
+  # --- Incoming Channels (We receive these) ---
+  
+  incoming/message:
+    address: /api/v1/webhooks/incoming/message
+    messages:
+      receiveMessage:
+        $ref: '#/components/messages/MessageReceived'
+    description: Endpoint for external systems to send chat messages to the RAG system.
+
+  incoming/document:
+    address: /api/v1/webhooks/incoming/document
+    messages:
+      uploadDocument:
+        $ref: '#/components/messages/DocumentUpload'
+    description: Endpoint for external systems to upload documents for indexing.
+
+  incoming/event:
+    address: /api/v1/webhooks/incoming/event
+    messages:
+      sendEvent:
+        $ref: '#/components/messages/CustomEvent'
+    description: Endpoint for generic or custom events.
+
+  # --- Outgoing Channels (We send these) ---
+  # Note: The address is dynamic (user defined webhook URL), but the events are statically defined.
+  
+  webhook/out/chat:
+    address: "{webhookUrl}"
+    messages:
+      chatGenerated:
+        $ref: '#/components/messages/ChatResponseGenerated'
+      chatEscalated:
+        $ref: '#/components/messages/ChatEscalated'
+    parameters:
+      webhookUrl:
+        description: The subscriber's URL
+    description: Events related to chat sessions.
+
+  webhook/out/knowledge:
+    address: "{webhookUrl}"
+    messages:
+      docUploaded:
+        $ref: '#/components/messages/KnowledgeDocumentUploaded'
+      docIndexed:
+        $ref: '#/components/messages/KnowledgeDocumentIndexed'
+      docFailed:
+        $ref: '#/components/messages/KnowledgeDocumentFailed'
+    description: Events related to document ingestion and processing.
+
+  webhook/out/analysis:
+    address: "{webhookUrl}"
+    messages:
+      classificationCompleted:
+        $ref: '#/components/messages/AnalysisClassificationCompleted'
+    description: Events related to automated content analysis.
+
+components:
+  securitySchemes:
+    webhookSignature:
+      type: http
+      scheme: x-hub-signature
+      description: |
+        HMAC-SHA256 signature of the request body.
+        Header: X-Webhook-Signature: sha256=<hex_digest>
+
+  messages:
+    # --- Incoming Messages ---
+    MessageReceived:
+      name: message.received
+      title: Message Received
+      summary: A user message sent from an external source (e.g., Slack, Telegram).
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/IncomingPayload'
+    
+    DocumentUpload:
+      name: document.upload
+      title: Document Upload
+      summary: A document file or reference uploaded for processing.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/IncomingPayload'
+
+    CustomEvent:
+      name: custom.event
+      title: Custom Event
+      summary: A generic event payload.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/IncomingPayload'
+
+    # --- Outgoing Messages ---
+    ChatResponseGenerated:
+      name: chat.response.generated
+      title: Chat Response Generated
+      summary: Triggered when the RAG pipeline completes a response.
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          session_id:
+            type: string
+          user_id:
+            type: string
+          answer:
+            type: string
+          confidence:
+            type: number
+          query_id:
+            type: string
+
+    ChatEscalated:
+      name: chat.escalated
+      title: Chat Escalated
+      summary: Triggered when a session requires human intervention.
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          session_id:
+            type: string
+          reason:
+            type: string
+          user_id:
+            type: string
+
+    KnowledgeDocumentUploaded:
+      name: knowledge.document.uploaded
+      title: Document Uploaded
+      summary: Triggered when a file is successfully uploaded to staging.
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          document_name:
+            type: string
+          staging_id:
+            type: string
+          total_pairs:
+            type: integer
+
+    KnowledgeDocumentIndexed:
+      name: knowledge.document.indexed
+      title: Document Indexed
+      summary: Triggered when a draft is committed to the knowledge base.
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          draft_id:
+            type: string
+          result:
+            type: object
+
+    KnowledgeDocumentFailed:
+      name: knowledge.document.failed
+      title: Document Failed
+      summary: Triggered when document processing fails.
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          error:
+            type: string
+          filename:
+            type: string
+
+    AnalysisClassificationCompleted:
+      name: analysis.classification.completed
+      title: Classification Completed
+      summary: Triggered when autoclassification finishes for a draft.
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          document_id:
+            type: string
+          classifications_count:
+            type: integer
+          method:
+            type: string
+
+  schemas:
+    IncomingPayload:
+      type: object
+      required:
+        - event_type
+        - source
+        - data
+      properties:
+        event_type:
+          type: string
+          description: The type of event (e.g. message.received)
+        timestamp:
+          type: string
+          format: date-time
+        source:
+          type: string
+          description: Origin system (e.g. slack, telegram)
+        data:
+          type: object
+          description: Event specific data
+        metadata:
+          type: object
+          description: Optional additional context
