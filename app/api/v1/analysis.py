@@ -1,132 +1,81 @@
-from fastapi import APIRouter, HTTPException, Request, Path
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
-import psycopg
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
+from typing import Dict, Any, List
 from app.api.v1.models import Envelope, MetaResponse
-from app.services.classification.semantic_service import SemanticClassificationService
-from app.settings import settings
-from app.storage.qdrant_client import get_async_qdrant_client
-from qdrant_client.http import models
 import logging
 
-router = APIRouter(tags=["Intelligence"])
+# Rename router tag
+router = APIRouter(tags=["Autoclassification categories & intentions"])
 logger = logging.getLogger(__name__)
 
 # Models
-class ClassificationResult(BaseModel):
-    document_id: str
-    intent: Optional[str]
-    intent_confidence: float
-    category: Optional[str]
-    category_confidence: float
-
-class MetadataUpdate(BaseModel):
-    document_id: str
+class ChunkMetadataUpdate(BaseModel):
+    chunk_id: str
     metadata: Dict[str, Any]
 
-class DocumentSummary(BaseModel):
-    document_id: int
-    content_preview: str
-    metadata: Dict[str, Any]
+
+# Helper Functions
+def group_by_category_and_intent(chunks: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Group chunks by category and intent for easier analysis.
+    
+    Returns:
+        {
+            "categories": [
+                {
+                    "name": "Category Name",
+                    "intents": [
+                        {
+                            "name": "intent_name",
+                            "chunks": [...]
+                        }
+                    ]
+                }
+            ]
+        }
+    """
+    from collections import defaultdict
+    
+    # First level: category -> intents
+    category_map = defaultdict(lambda: defaultdict(list))
+    
+    for chunk in chunks:
+        category = chunk.get("metadata", {}).get("category", "Uncategorized")
+        intent = chunk.get("metadata", {}).get("intent", "unclassified")
+        category_map[category][intent].append(chunk)
+    
+    # Build structured response
+    categories = []
+    for cat_name in sorted(category_map.keys()):
+        intents_data = []
+        for intent_name in sorted(category_map[cat_name].keys()):
+            intents_data.append({
+                "name": intent_name,
+                "count": len(category_map[cat_name][intent_name]),
+                "chunks": category_map[cat_name][intent_name]
+            })
+        
+        categories.append({
+            "name": cat_name,
+            "count": sum(len(chunks) for chunks in category_map[cat_name].values()),
+            "intents": intents_data
+        })
+    
+    return {"categories": categories}
+
 
 # Endpoints
 
-@router.get("/analysis/documents", response_model=Envelope[List[DocumentSummary]])
-async def list_documents(
-    request: Request, 
-    limit: int = 20, 
-    offset: int = 0
-):
-    """
-    List sample documents/chunks from the database.
-    Useful for finding IDs to test classification.
-    """
-    trace_id = getattr(request.state, "trace_id", None)
-    
-    if not settings.DATABASE_URL:
-        raise HTTPException(status_code=500, detail="DB URL not set")
-        
-    documents = []
-    async with await psycopg.AsyncConnection.connect(settings.DATABASE_URL, autocommit=True) as conn:
-        async with conn.cursor() as cur:
-            await cur.execute(
-                "SELECT id, content, metadata FROM documents ORDER BY id DESC LIMIT %s OFFSET %s", 
-                (limit, offset)
-            )
-            rows = await cur.fetchall()
-            
-            for row in rows:
-                doc_id, content, metadata = row
-                # Truncate content for preview
-                preview = content[:100] + "..." if len(content) > 100 else content
-                
-                documents.append(DocumentSummary(
-                    document_id=doc_id,
-                    content_preview=preview,
-                    metadata=metadata or {}
-                ))
-    
-    return Envelope(
-        data=documents,
-        meta=MetaResponse(
-            trace_id=trace_id,
-            pagination={
-                "limit": limit,
-                "offset": offset,
-                "total": len(documents) # Approximation for now
-            }
-        )
-    )
-
-@router.post("/analysis/classify/{document_id}", response_model=Envelope[ClassificationResult])
-async def classify_document(request: Request, document_id: int): # ID is serial int in DB
-    """
-    Auto-classify a document (chunk) by ID.
-    """
-    trace_id = getattr(request.state, "trace_id", None)
-    
-    # 1. Fetch content
-    content = None
-    if not settings.DATABASE_URL:
-        raise HTTPException(status_code=500, detail="DB URL not set")
-        
-    async with await psycopg.AsyncConnection.connect(settings.DATABASE_URL, autocommit=True) as conn:
-        async with conn.cursor() as cur:
-            await cur.execute("SELECT content FROM documents WHERE id = %s", (document_id,))
-            row = await cur.fetchone()
-            if row:
-                content = row[0]
-                
-    if not content:
-        raise HTTPException(status_code=404, detail="Document not found")
-        
-    # 2. Classify
-    service = SemanticClassificationService()
-    result = await service.classify(content)
-    
-    if not result:
-        raise HTTPException(status_code=500, detail="Classification failed")
-        
-    data = ClassificationResult(
-        document_id=str(document_id),
-        intent=result.intent,
-        intent_confidence=result.intent_confidence,
-        category=result.category,
-        category_confidence=result.category_confidence
-    )
-    
-    return Envelope(data=data, meta=MetaResponse(trace_id=trace_id))
-
-@router.post("/analysis/classify-draft/{draft_id}", response_model=Envelope[List[Dict[str, Any]]])
+@router.post("/autoclassify/{draft_id}", response_model=Envelope[Dict[str, Any]])
 async def classify_draft(
     request: Request, 
     draft_id: str, 
     update_staging: bool = False
 ):
     """
-    Classify/Cluster all chunks in a Staging Draft (Redis).
+    Auto-classify/Cluster all chunks in a Staging Draft (Redis).
     Uses LLM-based Discovery to generate intents/categories dynamically (clustering).
-    Results are applied directly to the chunk's metadata in the response.
+    Results are grouped by category and intent for easier analysis.
     """
     trace_id = getattr(request.state, "trace_id", None)
     
@@ -142,7 +91,7 @@ async def classify_draft(
     
     chunks = draft.get("chunks", [])
     if not chunks:
-        return Envelope(data=[], meta=MetaResponse(trace_id=trace_id))
+        return Envelope(data={"categories": []}, meta=MetaResponse(trace_id=trace_id))
 
     # Send only valid chunks with Q&A
     valid_chunks = [c for c in chunks if c.get("question") and c.get("answer")]
@@ -161,6 +110,7 @@ async def classify_draft(
         
         # Base object structure
         res_item = {
+            "chunk_id": c_id,
             "question": chunk.get("question"),
             "answer": chunk.get("answer"),
             "metadata": chunk.get("metadata", {}).copy() # Copy to avoid mutation issues
@@ -173,7 +123,7 @@ async def classify_draft(
             # Update metadata directly with predicted values
             res_item["metadata"]["category"] = pred.category
             res_item["metadata"]["intent"] = pred.intent
-            res_item["metadata"]["confidence_threshold"] = pred.confidence # Use confidence as threshold or score
+            res_item["metadata"]["confidence_score"] = pred.confidence
             
             # Prepare update for Redis if requested
             if update_staging:
@@ -192,64 +142,248 @@ async def classify_draft(
     # 4. Update Staging (if requested)
     if update_staging and updates_for_staging:
         await staging_service.update_chunk_metadata_batch(draft_id, updates_for_staging)
-        
+    
+    # 5. Group by category and intent
+    grouped_data = group_by_category_and_intent(results)
+    
     return Envelope(
-        data=results,
+        data=grouped_data,
         meta=MetaResponse(trace_id=trace_id)
     )
 
-@router.post("/analysis/metadata", response_model=Envelope[Dict[str, str]])
-async def save_metadata(request: Request, body: MetadataUpdate):
+
+@router.post("/autoclassify/{draft_id}/update", response_model=Envelope[Dict[str, Any]])
+async def update_draft_chunks(
+    request: Request,
+    draft_id: str,
+    updates: List[ChunkMetadataUpdate]
+):
     """
-    Save/Overwrite metadata for a document.
+    Manually update metadata for chunks in a draft (e.g. after user review).
     """
     trace_id = getattr(request.state, "trace_id", None)
-    doc_id = int(body.document_id)
     
-    # 1. Update DB
-    if not settings.DATABASE_URL:
-        raise HTTPException(status_code=500, detail="DB URL not set")
-
-    async with await psycopg.AsyncConnection.connect(settings.DATABASE_URL, autocommit=True) as conn:
-        async with conn.cursor() as cur:
-            # We merge new metadata with existing or overwrite?
-            # Plan says "Save results", "Touch-up".
-            # usually merge is safer or JSONB update.
-            # We'll do a merge logic (||)
-            await cur.execute("""
-                UPDATE documents 
-                SET metadata = metadata || %s::jsonb 
-                WHERE id = %s
-            """, (import_json(body.metadata), doc_id))
-            
-            if cur.rowcount == 0:
-                raise HTTPException(status_code=404, detail="Document not found")
-
-    # 2. Update Qdrant
-    try:
-        qdrant = get_async_qdrant_client()
-        # Set payload by ID
-        await qdrant.set_payload(
-            collection_name="documents",
-            payload=body.metadata,
-            points=[doc_id]
-        )
-    except Exception as e:
-        logger.error(f"Qdrant update failed: {e}")
-        # Soft fail?
+    from app.services.staging import staging_service
+    
+    # Convert pydantic models to dicts
+    updates_dict = [u.dict() for u in updates]
+    
+    result = await staging_service.update_chunk_metadata_batch(draft_id, updates_dict)
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Draft not found or no updates applied")
         
     return Envelope(
-        data={"status": "updated", "document_id": str(doc_id)},
+        data={"status": "updated", "draft_id": draft_id, "updated_count": len(updates)},
         meta=MetaResponse(trace_id=trace_id)
     )
 
-@router.patch("/analysis/chunks/metadata", response_model=Envelope[Dict[str, str]])
-async def patch_chunk_metadata(request: Request, body: MetadataUpdate):
-    """
-    Same as save_metadata but semantically for 'chunks'.
-    """
-    return await save_metadata(request, body)
 
-import json
-def import_json(d):
-    return json.dumps(d)
+# ========== Zero-Shot Classification Endpoints ==========
+
+class CategoryIntentInput(BaseModel):
+    """Category with nested intents for zero-shot classification."""
+    name: str
+    intents: List[str]
+
+
+class ZeroShotSingleRequest(BaseModel):
+    """Request model for zero-shot classification of a single draft."""
+    update_staging: bool = False
+
+
+class ZeroShotBatchRequest(BaseModel):
+    """Request model for batch zero-shot classification with custom taxonomy."""
+    taxonomy: List[CategoryIntentInput]
+    draft_ids: List[str]
+
+
+
+@router.post("/autoclassify/{draft_id}/zeroshot", response_model=Envelope[Dict[str, Any]])
+async def classify_draft_zeroshot(
+    request: Request,
+    draft_id: str,
+    body: ZeroShotSingleRequest = None
+):
+    """
+    Zero-shot classification of a draft against the System Taxonomy.
+    
+    Uses the current system taxonomy (categories and intents from TaxonomyService)
+    to classify chunks via semantic similarity. Does NOT use LLM to name clusters.
+    Results are grouped by category and intent for easier analysis.
+    
+    Args:
+        draft_id: ID of the staging draft to classify
+        body: Optional request body with update_staging flag
+        
+    Returns:
+        Grouped structure with categories -> intents -> chunks
+    """
+    trace_id = getattr(request.state, "trace_id", None)
+    update_staging = body.update_staging if body else False
+    
+    # 1. Fetch Draft
+    from app.services.staging import staging_service
+    draft = await staging_service.get_draft(draft_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    
+    chunks = draft.get("chunks", [])
+    if not chunks:
+        return Envelope(data={"categories": []}, meta=MetaResponse(trace_id=trace_id))
+    
+    # 2. Get System Taxonomy
+    from app.services.taxonomy import TaxonomyService
+    taxonomy_service = TaxonomyService()
+    categories = await taxonomy_service.get_all_categories()
+    
+    if not categories:
+        raise HTTPException(status_code=400, detail="No system taxonomy found. Please define categories and intents first.")
+    
+    # Build taxonomy structure
+    from app.services.classification.zeroshot_service import CategoryIntent, ZeroShotClassificationService
+    
+    taxonomy = []
+    for cat in categories:
+        intents = await taxonomy_service.get_intents_by_category(cat["id"])
+        if intents:
+            taxonomy.append(CategoryIntent(
+                name=cat["name"],
+                intents=[i["name"] for i in intents]
+            ))
+    
+    if not taxonomy:
+        raise HTTPException(status_code=400, detail="No intents found in system taxonomy")
+    
+    # 3. Classify using Zero-Shot Service
+    service = ZeroShotClassificationService()
+    predictions = await service.classify_chunks(chunks, taxonomy)
+    
+    # 4. Format Results
+    pred_map = {p.chunk_id: p for p in predictions}
+    results = []
+    updates_for_staging = []
+    
+    for chunk in chunks:
+        c_id = chunk.get("chunk_id")
+        res_item = {
+            "chunk_id": c_id,
+            "question": chunk.get("question"),
+            "answer": chunk.get("answer"),
+            "metadata": chunk.get("metadata", {}).copy()
+        }
+        
+        if c_id in pred_map:
+            pred = pred_map[c_id]
+            res_item["metadata"]["category"] = pred.category
+            res_item["metadata"]["intent"] = pred.intent
+            res_item["metadata"]["confidence_score"] = pred.confidence
+            
+            if update_staging:
+                updates_for_staging.append({
+                    "chunk_id": c_id,
+                    "metadata": {
+                        "category": pred.category,
+                        "intent": pred.intent,
+                        "confidence_score": pred.confidence,
+                        "extraction_method": "zeroshot_system"
+                    }
+                })
+        
+        results.append(res_item)
+    
+    # 5. Update Staging if requested
+    if update_staging and updates_for_staging:
+        await staging_service.update_chunk_metadata_batch(draft_id, updates_for_staging)
+    
+    # 6. Group by category and intent
+    grouped_data = group_by_category_and_intent(results)
+    
+    return Envelope(
+        data=grouped_data,
+        meta=MetaResponse(trace_id=trace_id)
+    )
+
+
+
+@router.post("/autoclassify/batch/custom", response_model=Envelope[Dict[str, Any]])
+async def classify_batch_custom_taxonomy(
+    request: Request,
+    body: ZeroShotBatchRequest
+):
+    """
+    Batch zero-shot classification with custom taxonomy.
+    
+    Classifies multiple drafts against a custom taxonomy provided in the request.
+    Does NOT use LLM to name clusters - only semantic similarity matching.
+    Results are grouped by category and intent within each draft.
+    
+    Args:
+        body: Request containing custom taxonomy and list of draft IDs
+        
+    Returns:
+        Map of draft_id -> grouped structure (categories -> intents -> chunks)
+    """
+    trace_id = getattr(request.state, "trace_id", None)
+    
+    if not body.taxonomy:
+        raise HTTPException(status_code=400, detail="Taxonomy cannot be empty")
+    
+    if not body.draft_ids:
+        raise HTTPException(status_code=400, detail="Draft IDs list cannot be empty")
+    
+    # Convert input taxonomy
+    from app.services.classification.zeroshot_service import CategoryIntent, ZeroShotClassificationService
+    
+    taxonomy = [CategoryIntent(name=cat.name, intents=cat.intents) for cat in body.taxonomy]
+    
+    # Process each draft
+    from app.services.staging import staging_service
+    service = ZeroShotClassificationService()
+    
+    results_map = {}
+    
+    for draft_id in body.draft_ids:
+        draft = await staging_service.get_draft(draft_id)
+        if not draft:
+            logger.warning(f"Draft {draft_id} not found, skipping...")
+            continue
+        
+        chunks = draft.get("chunks", [])
+        if not chunks:
+            results_map[draft_id] = {"categories": []}
+            continue
+        
+        # Classify
+        predictions = await service.classify_chunks(chunks, taxonomy)
+        pred_map = {p.chunk_id: p for p in predictions}
+        
+        # Format results and add document_id
+        draft_results = []
+        for chunk in chunks:
+            c_id = chunk.get("chunk_id")
+            res_item = {
+                "chunk_id": c_id,
+                "document_id": draft_id,  # Add draft_id for tracking
+                "question": chunk.get("question"),
+                "answer": chunk.get("answer"),
+                "metadata": chunk.get("metadata", {}).copy()
+            }
+            
+            if c_id in pred_map:
+                pred = pred_map[c_id]
+                res_item["metadata"]["category"] = pred.category
+                res_item["metadata"]["intent"] = pred.intent
+                res_item["metadata"]["confidence_score"] = pred.confidence
+            
+            draft_results.append(res_item)
+        
+        # Group by category and intent
+        grouped = group_by_category_and_intent(draft_results)
+        results_map[draft_id] = grouped
+    
+    return Envelope(
+        data={"drafts": results_map},
+        meta=MetaResponse(trace_id=trace_id)
+    )
+

@@ -1,7 +1,7 @@
 import asyncio
 from typing import Optional
 from transformers import pipeline
-from app.nodes.classification.prompts import INTENTS, CATEGORIES
+from app._shared_config.intent_registry import get_registry
 from app.nodes.classification.models import ClassificationOutput
 
 class ClassificationService:
@@ -42,14 +42,19 @@ class ClassificationService:
         import time
         start_time = time.time()
         
+        # Get dynamic lists
+        registry = get_registry()
+        intents = registry.intents
+        categories = registry.categories
+
         # Parallel classification
         intent_task = loop.run_in_executor(
             None, 
-            lambda: self._classifier(text, INTENTS, multi_label=False)
+            lambda: self._classifier(text, intents, multi_label=False)
         )
         category_task = loop.run_in_executor(
             None, 
-            lambda: self._classifier(text, CATEGORIES, multi_label=False)
+            lambda: self._classifier(text, categories, multi_label=False)
         )
 
         intent_res, category_res = await asyncio.gather(intent_task, category_task)

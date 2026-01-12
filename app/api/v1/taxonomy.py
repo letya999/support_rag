@@ -4,23 +4,23 @@ from typing import Optional, Dict, Any
 from app.api.v1.models import Envelope, MetaResponse
 from app.services.taxonomy import taxonomy_service
 
-router = APIRouter(tags=["Taxonomy"])
+router = APIRouter(tags=["Categories & Intents"])
 
 class RenameRequest(BaseModel):
     old_name: str
     new_name: str
     type: str = Field(..., pattern="^(category|intent)$")
 
-@router.get("/taxonomy/tree", response_model=Envelope[Dict[str, Any]])
+@router.get("/categories/tree", response_model=Envelope[Dict[str, Any]])
 async def get_taxonomy_tree(request: Request):
     """
     Get category/intent tree.
     """
     trace_id = getattr(request.state, "trace_id", None)
-    data = taxonomy_service.get_tree()
+    data = await taxonomy_service.get_tree()
     return Envelope(data=data, meta=MetaResponse(trace_id=trace_id))
 
-@router.patch("/taxonomy/rename", response_model=Envelope[Dict[str, Any]])
+@router.patch("/categories/rename", response_model=Envelope[Dict[str, Any]])
 async def rename_taxonomy_item(request: Request, body: RenameRequest):
     """
     Rename category or intent.
@@ -39,7 +39,7 @@ async def rename_taxonomy_item(request: Request, body: RenameRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/taxonomy/sync", response_model=Envelope[Dict[str, Any]])
+@router.post("/categories/sync", response_model=Envelope[Dict[str, Any]])
 async def sync_taxonomy(request: Request):
     """
     Sync registry with DB documents.

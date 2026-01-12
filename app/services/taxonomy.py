@@ -8,10 +8,11 @@ import asyncio
 import psycopg
 from qdrant_client.http import models
 
+from datetime import datetime
 from app.settings import settings
 from app._shared_config.intent_registry import get_registry
 from app.storage.qdrant_client import get_async_qdrant_client
-from app.services.metadata_generation.registry_generator import RegistryGenerator
+
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +21,13 @@ class TaxonomyService:
         self.db_url = settings.DATABASE_URL
         self.registry = get_registry()
 
-    def get_tree(self) -> Dict[str, Any]:
-        """Get the current intent registry tree."""
-        # Ensure registry is loaded
+    async def get_tree(self) -> Dict[str, Any]:
+        """
+        Get the current intent registry tree directly from DB (via IntentRegistryService).
+        """
+        # Ensure registry is fresh or loaded
         if not self.registry.is_loaded:
-            self.registry.reload()
+            await self.registry.initialize()
 
         return {
             "metadata": self.registry.metadata,
@@ -37,7 +40,7 @@ class TaxonomyService:
                 for cat in self.registry.categories
             ]
         }
-
+    
     async def rename_category(self, old_name: str, new_name: str) -> Dict[str, Any]:
         """
         Rename a category in both Postgres and Qdrant.
@@ -75,22 +78,15 @@ class TaxonomyService:
                 ]
             )
             
-            # Update payload (Qdrant supports setting payload by filter, actually it's clearer to select then update or use set_payload with filter?)
-            # Qdrant set_payload allows `points` selector which can be a filter in some SDK versions, or we need to scroll.
-            # set_payload(payload, points=..., filtering=...) -> 'points' can be filter?
-            # Looking at SDK, set_payload takes `points: Sequence[int | str] | Filter`.
-            
             await qdrant.set_payload(
                 collection_name="documents",
                 payload={"category": new_name},
                 points=filter_condition
             )
-            qdrant_updated = -1 # Count unknown without scrolling
+            qdrant_updated = -1 
             
         except Exception as e:
             logger.error(f"Qdrant update failed: {e}")
-            # Non-fatal? We should probably fail, but Postgres is already updated.
-            # Inconsistent state risk.
 
         # 3. Trigger Sync
         await self.sync_registry()
@@ -139,16 +135,72 @@ class TaxonomyService:
         await self.sync_registry()
         return {"status": "success", "old_name": old_name, "new_name": new_name}
 
+
+    async def get_all_categories(self) -> List[Dict[str, Any]]:
+        """
+        Get all unique categories from the database.
+        Returns list of dicts with 'id' and 'name' fields.
+        """
+        if not self.db_url:
+            raise ValueError("Database URL not configured")
+        
+        async with await psycopg.AsyncConnection.connect(self.db_url) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    SELECT DISTINCT 
+                        ROW_NUMBER() OVER (ORDER BY metadata->>'category') as id,
+                        metadata->>'category' as name
+                    FROM documents 
+                    WHERE metadata->>'category' IS NOT NULL
+                    ORDER BY name
+                """)
+                rows = await cur.fetchall()
+                return [{"id": row[0], "name": row[1]} for row in rows]
+    
+    async def get_intents_by_category(self, category_id: int = None, category_name: str = None) -> List[Dict[str, Any]]:
+        """
+        Get all intents for a specific category.
+        Can filter by category_id (row number) or category_name.
+        Returns list of dicts with 'id' and 'name' fields.
+        """
+        if not self.db_url:
+            raise ValueError("Database URL not configured")
+        
+        # If category_id provided, first get category name
+        if category_id is not None and category_name is None:
+            categories = await self.get_all_categories()
+            matching = [c for c in categories if c["id"] == category_id]
+            if not matching:
+                return []
+            category_name = matching[0]["name"]
+        
+        if category_name is None:
+            raise ValueError("Either category_id or category_name must be provided")
+        
+        async with await psycopg.AsyncConnection.connect(self.db_url) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    SELECT DISTINCT 
+                        ROW_NUMBER() OVER (ORDER BY metadata->>'intent') as id,
+                        metadata->>'intent' as name
+                    FROM documents 
+                    WHERE metadata->>'category' = %s
+                    AND metadata->>'intent' IS NOT NULL
+                    ORDER BY name
+                """, (category_name,))
+                rows = await cur.fetchall()
+                return [{"id": row[0], "name": row[1]} for row in rows]
+
     async def sync_registry(self) -> Dict[str, Any]:
+
         """
-        Regenerate registry from DB.
+        Refresh registry from DB.
         """
-        success = await RegistryGenerator.refresh_intents()
+        success = await self.registry.reload()
         if success:
-            self.registry.reload()
             return {
                 "status": "success",
-                "message": "Registry synchronized",
+                "message": "Registry synchronized from DB",
                 "categories": len(self.registry.categories),
                 "intents": len(self.registry.intents)
             }

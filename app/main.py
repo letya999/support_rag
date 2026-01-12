@@ -47,6 +47,8 @@ async def lifespan(app: FastAPI):
     
     # Warmup Models (prevents first-request latency)
     print("🔥 Warming up models...")
+    from app._shared_config.intent_registry import get_registry
+    await get_registry().initialize()
     await WarmupService.warmup_all()
 
     yield
