@@ -18,7 +18,7 @@ class SessionManager:
     """
     def __init__(self, redis_client: Redis):
         self.redis = redis_client
-        self.ttl = conversation_config.session_ttl_hours * 3600
+        self.ttl = int(conversation_config.session_ttl_hours * 3600)
         self.prefix = "session:"
 
     async def get_session(self, user_id: str, session_id: str = None) -> Optional[UserSession]:
