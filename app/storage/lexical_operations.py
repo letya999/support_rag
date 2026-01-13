@@ -4,6 +4,7 @@ import time
 from app.storage.connection import get_db_connection
 from app.storage.models import SearchResult
 from app.observability.tracing import observe, langfuse_context
+from app.logging_config import logger
 
 @observe(as_type="span")
 async def lexical_search_db(
@@ -44,7 +45,7 @@ async def lexical_search_db(
         document_language = get_global_param("default_language", "ru")
     
     filter_info = f", category_filter={category_filter}" if category_filter else ""
-    print(f"🔍 Lexical search for: '{query}' (document_language={document_language}{filter_info})")
+    logger.debug("Lexical search initiated", extra={"query": query, "lang": document_language, "filter": category_filter})
     
     # Helper to construct OR-based tsquery string
     def clean_query_for_tsquery(text: str) -> str:
@@ -62,7 +63,7 @@ async def lexical_search_db(
     
     if has_latin:
         tsquery_config = "english"
-        print(f"🌍 Detected Latin characters in query, forcing tsquery_config='english'")
+        logger.debug("Detected Latin characters in query, forcing tsquery_config='english'")
     elif document_language == "ru":
         tsquery_config = "russian"
     else:
@@ -102,7 +103,7 @@ async def lexical_search_db(
                 await cur.execute(base_query, tuple(params))
                 rows = await cur.fetchall()
             except Exception as e:
-                print(f"Index scan failed, falling back: {e}")
+                logger.error("Index scan failed, falling back", extra={"error": str(e)})
                 # Fallback to simple query if something goes wrong
                 fallback_query = """
                     SELECT content, 0.0, metadata
@@ -129,7 +130,7 @@ async def lexical_search_db(
                 ))
     
     elapsed = time.perf_counter() - t_start_db
-    print(f"🐘 DB Search took {elapsed:.4f}s")
+    logger.debug("DB Search completed", extra={"elapsed_sec": round(elapsed, 4)})
     
     # Log output explicitly
     if langfuse_context:

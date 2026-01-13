@@ -9,6 +9,7 @@ from app.nodes.base_node import BaseNode
 from app.storage.persistence import PersistenceManager
 from app.services.cache.session_manager import SessionManager
 from app.services.cache.manager import get_cache_manager
+from app.logging_config import logger
 from app.observability.tracing import observe
 
 
@@ -229,7 +230,7 @@ class ArchiveSessionNode(BaseNode):
                 )
             
         except Exception as e:
-            print(f"⚠️ Error archiving session: {e}")
+            logger.error("Error archiving session to Postgres", extra={"error": str(e), "session_id": session_id})
             return {"session_archived": False, "error": str(e)}
         
         # 6. Update Redis session state (optional cache layer)
@@ -240,10 +241,12 @@ class ArchiveSessionNode(BaseNode):
                 
                 # Debug logging for Clarification Persistence
                 ctx_to_save = state.get("clarification_context")
-                print(f"💾 ArchiveSession: Saving to Redis. Session: {session_id}")
-                print(f"   Context present: {bool(ctx_to_save)}")
-                if ctx_to_save:
-                    print(f"   Context Active: {ctx_to_save.get('active')}, Index: {ctx_to_save.get('current_index')}")
+                logger.debug("Saving session state to Redis", extra={
+                    "session_id": session_id,
+                    "has_context": bool(ctx_to_save),
+                    "context_active": ctx_to_save.get('active') if ctx_to_save else None,
+                    "context_index": ctx_to_save.get('current_index') if ctx_to_save else None
+                })
                 
                 updates = {
                     "dialog_state": state.get("dialog_state"),
@@ -257,7 +260,7 @@ class ArchiveSessionNode(BaseNode):
                 # If we are not in NEEDS_CLARIFICATION but have an active context, it means we moved on.
                 # We must reset all fields to clear the cache state as requested.
                 if state.get("dialog_state") != "NEEDS_CLARIFICATION" and ctx_to_save and ctx_to_save.get("active"):
-                     print("💾 ArchiveSession: Purging outdated clarification context.")
+                     logger.info("Purging outdated clarification context from Redis", extra={"session_id": session_id})
                      
                      default_lang = "en"
                      try:
@@ -294,7 +297,7 @@ class ArchiveSessionNode(BaseNode):
                     await session_manager.add_message(session_id, "assistant", answer)
 
         except Exception as e:
-            print(f"⚠️ Redis update failed (non-critical): {e}")
+            logger.warning("Redis session update failed (non-critical)", extra={"error": str(e), "session_id": session_id})
         
         return {"session_archived": True}
         

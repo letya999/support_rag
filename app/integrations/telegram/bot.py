@@ -6,7 +6,7 @@ Main bot logic for handling user messages and responses.
 
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from telegram import Update
 from telegram.constants import ChatAction
@@ -21,7 +21,6 @@ from telegram.ext import (
 from app.integrations.telegram.models import UserSession, MessageRole
 from app.integrations.telegram.storage import SessionStorage
 from app.integrations.telegram.pipeline_client import RAGPipelineClient
-from app.services.config_loader.loader import load_shared_config
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +53,31 @@ class SupportRAGBot:
 
         self.app = Application.builder().token(token).build()
         
-        # Load phrases config
-        self.phrases_config = load_shared_config("system_phrases").get("telegram_bot_phrases", {})
+        # Phrases will be loaded from API on startup
+        self.phrases_config: Dict[str, Any] = {}
         
         self._setup_handlers()
+    
+    async def load_phrases_from_api(self):
+        """
+        Load bot phrases configuration from API endpoint.
+        
+        This eliminates the need for direct file access to API container's YAML configs.
+        """
+        try:
+            async with self.rag_client.session.get(
+                f"{self.rag_client.api_url}/api/v1/config/bot-phrases"
+            ) as response:
+                if response.status == 200:
+                    payload = await response.json()
+                    self.phrases_config = payload.get("data", {})
+                    logger.info(f"Loaded {len(self.phrases_config)} phrase keys from API")
+                else:
+                    logger.error(f"Failed to load phrases from API: {response.status}")
+                    self.phrases_config = {}
+        except Exception as e:
+            logger.error(f"Error loading phrases from API: {e}")
+            self.phrases_config = {}
 
     def _get_phrase(self, key: str, **kwargs) -> str:
         """Helper to get bilingual phrase from config formatted with kwargs"""

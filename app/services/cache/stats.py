@@ -13,6 +13,7 @@ from collections import defaultdict
 from typing import Optional, Dict, Any
 from datetime import datetime
 from app.services.cache.models import CacheStats
+from app.logging_config import logger
 
 
 class CacheMetrics:
@@ -34,10 +35,8 @@ class CacheMetrics:
         # Record a cache miss (full pipeline)
         metrics.record_miss(response_time_ms=850)
 
-        # Get stats
-        stats = metrics.get_stats()
-        print(f"Hit rate: {stats.hit_rate}%")
-        print(f"Time saved: {stats.savings_time}s")
+        # Record a cache miss (full pipeline)
+        metrics.record_miss(response_time_ms=850)
     """
 
     def __init__(self, max_top_questions: int = 5):
@@ -127,8 +126,6 @@ class CacheMetrics:
 
         Example:
             stats = metrics.get_stats()
-            print(f"Hit rate: {stats.hit_rate}%")
-            print(f"Time saved: {stats.savings_time}s")
         """
         # Calculate hit rate
         hit_rate = 0.0
@@ -192,7 +189,7 @@ class CacheMetrics:
             Formatted string with key metrics
 
         Example:
-            print(metrics.get_summary())
+            summary = metrics.get_summary()
             # Output:
             # 📊 Cache Performance Summary
             # ─────────────────────────────

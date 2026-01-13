@@ -2,6 +2,7 @@
 Routing Logic functions for Conditional Edges in the RAG Pipeline.
 """
 from langgraph.graph import END
+from app.logging_config import logger
 from app.pipeline.state import State
 
 def cache_hit_logic(state: State):
@@ -38,20 +39,19 @@ def should_fast_escalate(state: State):
 
     # Critical escalation - fast track
     if state.get("safety_violation", False):
-        print("⚡ Fast escalation: safety_violation detected")
+        logger.info("Fast escalation: safety_violation detected")
         return "fast_escalate"
     
     if state.get("escalation_requested", False):
-        print("⚡ Fast escalation: user requested operator")
+        logger.info("Fast escalation: user requested operator")
         return "fast_escalate"
     
     # Dialog Analysis Shortcuts
     analysis = state.get("dialog_analysis", {})
     
-    # Gratitude: If user is just saying thanks (and not asking a new question),
     # skip retrieval to avoid hallucinating matches.
     if analysis.get("is_gratitude", False) and not analysis.get("is_question", False):
-        print("⚡ Fast escalation: Gratitude detected, skipping search")
+        logger.info("Fast escalation: Gratitude detected, skipping search")
         return "fast_escalate"
     
     return "continue"

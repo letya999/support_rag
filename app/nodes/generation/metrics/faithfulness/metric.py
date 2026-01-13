@@ -2,6 +2,7 @@ import os
 import yaml
 from typing import Any
 from app.nodes.generation.metrics.base import GenerationBaseMetric
+from app.logging_config import logger
 from app.integrations.llm import get_llm
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -66,5 +67,5 @@ class Faithfulness(GenerationBaseMetric):
             return max(0.0, min(1.0, score))
             
         except Exception as e:
-            print(f"⚠️ Faithfulness evaluation failed: {e}")
+            logger.error("Faithfulness evaluation failed", extra={"error": str(e)})
             return 0.0

@@ -1,8 +1,8 @@
 """Service for ingesting Q&A pairs into PostgreSQL and Qdrant."""
 
 import json
-import logging
 from typing import List
+from app.logging_config import logger
 
 import psycopg
 from qdrant_client.http import models
@@ -12,7 +12,7 @@ from app.integrations.embeddings_opensource import get_embeddings_batch
 from app.services.document_loaders import ProcessedQAPair
 from app.storage.qdrant_client import get_async_qdrant_client
 
-logger = logging.getLogger(__name__)
+
 
 
 class DocumentIngestionService:
@@ -40,7 +40,7 @@ class DocumentIngestionService:
             logger.warning("No pairs to ingest")
             return {"status": "success", "ingested_count": 0}
 
-        logger.info(f"Starting ingestion of {len(pairs)} Q&A pairs")
+        logger.info("Starting ingestion", extra={"count": len(pairs)})
 
         # Initialize Qdrant
         qdrant = get_async_qdrant_client()
@@ -61,7 +61,7 @@ class DocumentIngestionService:
                         distance=models.Distance.COSINE
                     )
                 )
-                logger.info(f"Recreated Qdrant collection: {collection_name}")
+                logger.info("Recreated Qdrant collection", extra={"collection": collection_name})
             else:
                 # Ensure collection exists
                 try:
@@ -75,10 +75,10 @@ class DocumentIngestionService:
                             distance=models.Distance.COSINE
                         )
                     )
-                    logger.info(f"Created new Qdrant collection: {collection_name}")
+                    logger.info("Created new Qdrant collection", extra={"collection": collection_name})
 
         except Exception as e:
-            logger.error(f"Error initializing Qdrant: {e}")
+            logger.error("Error initializing Qdrant", extra={"error": str(e)})
             raise
 
         ingested_count = 0
@@ -109,7 +109,7 @@ class DocumentIngestionService:
                             "CREATE INDEX IF NOT EXISTS idx_documents_fts_en ON documents USING GIN (fts_en);"
                         )
                     except Exception as e:
-                        logger.warning(f"Could not setup English FTS: {e}")
+                        logger.warning("Could not setup English FTS", extra={"error": str(e)})
 
                     try:
                         await cur.execute(
@@ -120,7 +120,7 @@ class DocumentIngestionService:
                             "CREATE INDEX IF NOT EXISTS idx_documents_fts_ru ON documents USING GIN (fts_ru);"
                         )
                     except Exception as e:
-                        logger.warning(f"Could not setup Russian FTS: {e}")
+                        logger.warning("Could not setup Russian FTS", extra={"error": str(e)})
 
                     # Process in batches
                     for i in range(0, len(pairs), DocumentIngestionService.BATCH_SIZE):
@@ -128,7 +128,7 @@ class DocumentIngestionService:
                         batch_num = i // DocumentIngestionService.BATCH_SIZE + 1
                         total_batches = (len(pairs) + DocumentIngestionService.BATCH_SIZE - 1) // DocumentIngestionService.BATCH_SIZE
 
-                        logger.info(f"Processing batch {batch_num}/{total_batches}...")
+                        logger.info("Processing batch", extra={"batch": batch_num, "total": total_batches})
 
                         # Prepare batch content
                         batch_contents = []
@@ -158,7 +158,7 @@ class DocumentIngestionService:
                             existing = await cur.fetchone()
                             
                             if existing:
-                                logger.warning(f"Skipping duplicate content: {content[:50]}...")
+                                logger.warning("Skipping duplicate content", extra={"content_preview": content[:50]})
                                 # Optionally, we could update metadata here if needed, 
                                 # but for now we just skip to prevent duplication.
                                 continue
@@ -199,13 +199,10 @@ class DocumentIngestionService:
                                 points=points
                             )
 
-                logger.info(
-                    f"Ingestion complete! {ingested_count} documents stored in "
-                    f"PostgreSQL and Qdrant"
-                )
+                logger.info("Ingestion complete", extra={"ingested_count": ingested_count})
 
         except Exception as e:
-            logger.error(f"Error during ingestion: {e}")
+            logger.error("Error during ingestion", extra={"error": str(e)})
             raise
         finally:
             # Close Qdrant client if it has close method

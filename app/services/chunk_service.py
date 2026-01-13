@@ -1,16 +1,24 @@
+from app.settings import settings
+from app.storage.qdrant_client import get_async_qdrant_client
+from app.logging_config import logger
+from qdrant_client.http import models
 
-import logging
 from typing import List, Dict, Any, Optional
 import json
 import psycopg
-from app.settings import settings
-from app.storage.qdrant_client import get_async_qdrant_client
-from qdrant_client.http import models
-
-logger = logging.getLogger(__name__)
 
 class ChunkService:
+    """Service for managing document chunks in Postgres and Qdrant."""
     async def get_chunk(self, chunk_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve a single chunk by its ID.
+
+        Args:
+            chunk_id: Database ID of the chunk
+
+        Returns:
+            Dict containing chunk data or None
+        """
         if not settings.DATABASE_URL:
             raise ValueError("DATABASE_URL is not set")
             
@@ -42,6 +50,23 @@ class ChunkService:
         requires_handoff: Optional[bool] = None,
         extraction_date: Optional[str] = None
     ) -> Dict[str, Any]:
+        """
+        List and filter chunks with pagination.
+
+        Args:
+            page: Page number
+            page_size: Items per page
+            search: Text search (ILIKE content)
+            chunk_id: Filter by ID
+            intent: Filter by intent metadata
+            category: Filter by category metadata
+            source_document: Filter by source document
+            requires_handoff: Filter by handoff flag
+            extraction_date: Filter by extraction date
+
+        Returns:
+            Dict containing items, total count, page, and size
+        """
         if not settings.DATABASE_URL:
             raise ValueError("DATABASE_URL is not set")
             
@@ -125,6 +150,17 @@ class ChunkService:
         }
 
     async def update_chunk(self, chunk_id: int, content: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+        """
+        Update a chunk's content and/or metadata.
+
+        Args:
+            chunk_id: Database ID of the chunk
+            content: New content (optional)
+            metadata: Metadata to merge (optional)
+
+        Returns:
+            Updated chunk data or None if not found or no op
+        """
         # This mirrors staging update_chunk but commits to DB
         if not settings.DATABASE_URL:
             raise ValueError("DATABASE_URL is not set")
@@ -174,11 +210,20 @@ class ChunkService:
                             points=[chunk_id]
                         )
                     except Exception as e:
-                        logger.error(f"Failed to update Qdrant payload for chunk {chunk_id}: {e}")
+                        logger.error("Failed to update Qdrant payload", extra={"error": str(e), "chunk_id": chunk_id})
 
                 return updated_chunk
                 
     async def delete_chunk(self, chunk_id: int) -> bool:
+        """
+        Delete a chunk from both Postgres and Qdrant.
+
+        Args:
+            chunk_id: Database ID of the chunk
+
+        Returns:
+            True if deletion was successful
+        """
         if not settings.DATABASE_URL:
             raise ValueError("DATABASE_URL is not set")
 
@@ -195,7 +240,7 @@ class ChunkService:
                             points_selector=models.PointIdsList(points=[chunk_id])
                         )
                     except Exception as e:
-                        logger.error(f"Failed to delete from Qdrant chunk {chunk_id}: {e}")
+                        logger.error("Failed to delete chunk from Qdrant", extra={"error": str(e), "chunk_id": chunk_id})
                     return True
         return False
 

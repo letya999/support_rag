@@ -8,6 +8,7 @@ import json
 import time
 from typing import Optional
 from redis.asyncio import Redis
+from app.logging_config import logger
 from app.services.cache.models import UserSession
 from app.services.config_loader.conversation_config import conversation_config
 
@@ -49,7 +50,7 @@ class SessionManager:
         try:
             return UserSession.model_validate_json(data)
         except Exception as e:
-            print(f"Error parsing session: {e}")
+            logger.error("Error parsing session", extra={"session_id": session_id, "error": str(e)})
             return None
 
     async def create_session(self, user_id: str, session_id: str) -> UserSession:
@@ -117,7 +118,7 @@ class SessionManager:
                 break
             except Exception as e:
                 if attempt == 2:
-                    print(f"❌ Failed to save session state after 3 attempts: {e}")
+                    logger.error("Failed to save session state after 3 attempts", extra={"session_id": session_id, "error": str(e)})
                 else:
                     import asyncio
                     await asyncio.sleep(0.1)
@@ -147,7 +148,7 @@ class SessionManager:
             
             await self.save_session(session)
         except Exception as e:
-            print(f"Failed to add message to cache: {e}")
+            logger.error("Failed to add message to cache", extra={"session_id": session_id, "error": str(e)})
 
     async def clear_session(self, user_id: str):
         """

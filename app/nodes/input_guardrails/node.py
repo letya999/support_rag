@@ -15,8 +15,9 @@ from typing import Dict, Any
 import re
 from app.pipeline.state import State
 from app.nodes.base_node import BaseNode
+from app.logging_config import logger
 from app.services.config_loader.loader import get_node_params, get_node_config
-from app.nodes.input_guardrails.scanner import get_basic_guardrails_service, ScanResult
+from app.nodes.input_guardrails.scanner import get_basic_guardrails_service, ScanResult, BasicGuardrailsService, reset_basic_service
 from app.nodes.input_guardrails.advanced_scanner import get_advanced_guardrails_service, AdvancedScanResult, reset_advanced_service
 from app.observability.tracing import observe
 
@@ -114,17 +115,25 @@ class InputGuardrailsNode(BaseNode):
         self.scanner = None
         
     async def warmup(self):
-        """Initialize the scanner service (Load models)"""
+        """
+        Initialize the scanner service and load models.
+        Should be called during startup or configuration reload.
+        """
         # Force reset singleton to pick up new config
         reset_advanced_service()
+        reset_basic_service()
         self.scanner = None
 
         regex_patterns = self.config.get("regex_patterns", [])
         
         # Try initializing advanced guardrails if configured
         if self.protection_level in ["standard", "advanced"]:
-            print(f"🛡️ Initializing Advanced Guardrails (level: {self.protection_level})...")
-            print(f"   Thresholds: PI={self.prompt_injection_threshold}, Tox={self.toxicity_threshold}, Topics={self.ban_topics_threshold}")
+            logger.info("Initializing Advanced Guardrails", extra={
+                "level": self.protection_level,
+                "pi_threshold": self.prompt_injection_threshold,
+                "tox_threshold": self.toxicity_threshold,
+                "topics_threshold": self.ban_topics_threshold
+            })
             # Run in executor to avoid blocking loop if necessary, though init might be sync
             self.scanner = get_advanced_guardrails_service(
                 protection_level=self.protection_level,
@@ -139,31 +148,25 @@ class InputGuardrailsNode(BaseNode):
         # Fallback to basic guardrails if advanced is not available or requested
         if self.scanner is None:
             if self.protection_level != "basic":
-                print("⚠️ Advanced guardrails unavailable. Falling back to Basic Guardrails.")
+                logger.warning("Advanced guardrails unavailable, falling back to basic")
             
             self.scanner = get_basic_guardrails_service(
                 regex_patterns=regex_patterns,
                 max_tokens=self.max_input_tokens,
                 allowed_languages=self.allowed_languages
             )
-        print("✅ Input Guardrails Ready")
+        logger.info("Input Guardrails ready")
     
     @observe(as_type="span")
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
+        Scan user input for security threats and malicious content.
 
-        Scan user input for security threats.
-        
-        Contracts:
-            - Required Inputs: `question` (str)
-            - Optional Inputs: `detected_language` (str)
-            - Guaranteed Outputs: `guardrails_passed` (bool) OR `guardrails_blocked` (bool), `guardrails_risk_score` (float), `guardrails_triggered` (List[str])
-            - Conditional Outputs: `guardrails_warning` (bool), `guardrails_sanitized` (bool), `user_input` (modified), `answer` (if blocked), `action` (if blocked)
-        
-        If threat detected:
-        - block mode: return safe rejection message
-        - log mode: log event and continue
-        - sanitize mode: remove malicious parts and continue
+        Args:
+            state: Current pipeline state
+
+        Returns:
+            Dict: State updates including safety flags and risk scores
         """
         # State uses 'question' not 'user_input'
         user_input = state.get("question", "")
@@ -180,7 +183,7 @@ class InputGuardrailsNode(BaseNode):
         scan_result = await self.scanner.scan(
             text=user_input,
             **({"detected_language": detected_language, "enabled_scanners": self.scanners} 
-               if self.protection_level == "basic" or isinstance(self.scanner, type(get_basic_guardrails_service([], 0, []))) 
+               if self.protection_level == "basic" or isinstance(self.scanner, BasicGuardrailsService) 
                else {})
         )
         
@@ -217,7 +220,7 @@ class InputGuardrailsNode(BaseNode):
             
             if not remaining_threats:
                 # Only non-critical scanners triggered - treat as warning
-                print(f"🟡 Support query flagged but whitelisted: {scan_result.triggered_scanners} (Risk: {scan_result.risk_score:.2f})")
+                logger.info("Support query flagged but whitelisted", extra={"triggers": scan_result.triggered_scanners, "risk": scan_result.risk_score})
                 return {
                     "guardrails_warning": True,
                     "guardrails_risk_score": scan_result.risk_score,
@@ -233,8 +236,7 @@ class InputGuardrailsNode(BaseNode):
             
             # Log blocked request
             if self.logging_config.get("log_blocked_requests", True):
-                print(f"🛡️ Blocked malicious request. Risk: {scan_result.risk_score:.2f}, "
-                      f"Triggers: {', '.join(scan_result.triggered_scanners)}")
+                logger.warning("Blocked malicious request", extra={"risk": scan_result.risk_score, "triggers": scan_result.triggered_scanners})
             
             return {
                 "guardrails_blocked": True,
@@ -251,7 +253,7 @@ class InputGuardrailsNode(BaseNode):
             
             if has_critical_threat:
                 # Force block for critical security threats
-                print(f"🛑 CRITICAL THREAT DETECTED in 'log' mode. Enforcing block. Triggers: {scan_result.triggered_scanners}")
+                logger.error("CRITICAL THREAT DETECTED in log mode, enforcing block", extra={"triggers": scan_result.triggered_scanners})
                 
                 rejection_msg = self.rejection_messages.get(
                     detected_language,
@@ -267,8 +269,7 @@ class InputGuardrailsNode(BaseNode):
                 }
 
             # Log but continue processing for non-critical threats (Toxicity, BanTopics)
-            print(f"⚠️ Suspicious request detected (Allowed in log mode). Risk: {scan_result.risk_score:.2f}, "
-                  f"Triggers: {', '.join(scan_result.triggered_scanners)}")
+            logger.warning("Suspicious request detected (log mode)", extra={"risk": scan_result.risk_score, "triggers": scan_result.triggered_scanners})
             
             return {
                 "guardrails_warning": True,
@@ -280,7 +281,7 @@ class InputGuardrailsNode(BaseNode):
             # Sanitize and continue
             if scan_result.sanitized_text:
                 if self.logging_config.get("log_sanitized_requests", True):
-                    print(f"🧹 Sanitized request. Risk: {scan_result.risk_score:.2f}")
+                    logger.info("Sanitized request", extra={"risk": scan_result.risk_score})
                 
                 return {
                     "question": scan_result.sanitized_text,  # Update question with sanitized text

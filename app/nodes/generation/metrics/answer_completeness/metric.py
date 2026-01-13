@@ -3,6 +3,7 @@ import json
 import yaml
 from typing import Any, Dict
 from app.nodes.generation.metrics.base import GenerationBaseMetric
+from app.logging_config import logger
 from app.integrations.llm import get_llm
 
 
@@ -70,5 +71,5 @@ class AnswerCompleteness(GenerationBaseMetric):
             return max(0.0, min(1.0, float(score)))
             
         except Exception as e:
-            print(f"⚠️ AnswerCompleteness evaluation failed: {e}")
+            logger.error("AnswerCompleteness evaluation failed", extra={"error": str(e)})
             return 0.0

@@ -6,6 +6,7 @@ Should be placed right before cache storage or END.
 """
 from typing import Dict, Any
 from app.nodes.base_node import BaseNode
+from app.logging_config import logger
 from app.services.config_loader.loader import get_node_params, get_node_config
 from app.nodes.output_guardrails.scanner import get_output_guardrails_service, OutputScanResult
 from app.observability.tracing import observe
@@ -142,8 +143,7 @@ class OutputGuardrailsNode(BaseNode):
             )
             
             if self.logging_config.get("log_blocked_responses", True):
-                print(f"🛡️ Blocked unsafe response. Risk: {scan_result.risk_score:.2f}, "
-                      f"Triggers: {', '.join(scan_result.triggered_scanners)}")
+                logger.warning("Blocked unsafe response", extra={"risk": scan_result.risk_score, "triggers": scan_result.triggered_scanners})
             
             return {
                 "final_answer": fallback_msg,
@@ -154,8 +154,7 @@ class OutputGuardrailsNode(BaseNode):
         
         elif self.action_mode == "log":
             # Log but allow response
-            print(f"⚠️ Suspicious output detected. Risk: {scan_result.risk_score:.2f}, "
-                  f"Triggers: {', '.join(scan_result.triggered_scanners)}")
+            logger.warning("Suspicious output detected", extra={"risk": scan_result.risk_score, "triggers": scan_result.triggered_scanners})
             
             return {
                 "output_guardrails_warning": True,
@@ -167,7 +166,7 @@ class OutputGuardrailsNode(BaseNode):
             # Use sanitized version if available
             if scan_result.sanitized_text:
                 if self.logging_config.get("log_sanitized_responses", True):
-                    print(f"🧹 Sanitized output. Risk: {scan_result.risk_score:.2f}")
+                    logger.info("Sanitized response", extra={"risk": scan_result.risk_score})
                 
                 return {
                     "final_answer": scan_result.sanitized_text,

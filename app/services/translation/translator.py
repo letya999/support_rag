@@ -2,6 +2,7 @@ import torch
 from transformers import MarianMTModel, MarianTokenizer
 from langdetect import detect, DetectorFactory
 from typing import Optional
+from app.logging_config import logger
 
 # Ensure consistent results from langdetect
 DetectorFactory.seed = 0
@@ -21,19 +22,19 @@ class QueryTranslator:
         self.model_ru_en = None
         self.tokenizer_en_ru = None
         self.model_en_ru = None
-        print(f"QueryTranslator initialized on {self.device}")
+        logger.info("QueryTranslator initialized", extra={"device": self.device})
 
     def _load_ru_en(self):
         if self.model_ru_en is None:
             model_name = "Helsinki-NLP/opus-mt-ru-en"
-            print(f"Loading translation model {model_name}...")
+            logger.info("Loading translation model", extra={"model": model_name})
             self.tokenizer_ru_en = MarianTokenizer.from_pretrained(model_name)
             self.model_ru_en = MarianMTModel.from_pretrained(model_name).to(self.device)
 
     def _load_en_ru(self):
         if self.model_en_ru is None:
             model_name = "Helsinki-NLP/opus-mt-en-ru"
-            print(f"Loading translation model {model_name}...")
+            logger.info("Loading translation model", extra={"model": model_name})
             self.tokenizer_en_ru = MarianTokenizer.from_pretrained(model_name)
             self.model_en_ru = MarianMTModel.from_pretrained(model_name).to(self.device)
 
@@ -79,9 +80,9 @@ class QueryTranslator:
 
     def warmup(self):
         """Preload models into memory."""
-        print("Translating warmup...")
+        logger.info("Warming up translator models")
         self._load_ru_en()
         self._load_en_ru()
-        print("Translator models loaded.")
+        logger.info("Translator models loaded")
 
 translator = QueryTranslator.get_instance()

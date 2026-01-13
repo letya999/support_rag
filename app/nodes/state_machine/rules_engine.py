@@ -9,6 +9,7 @@ import os
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 import yaml
+from app.logging_config import logger
 
 
 RULES_PATH = os.path.join(os.path.dirname(__file__), "rules.yaml")
@@ -55,7 +56,7 @@ class RulesEngine:
     def _load_rules(self) -> bool:
         """Load rules from YAML file."""
         if not os.path.exists(RULES_PATH):
-            print(f"[RulesEngine] Warning: rules.yaml not found at {RULES_PATH}")
+            logger.warning("rules.yaml not found", extra={"path": RULES_PATH})
             return False
         
         try:
@@ -71,11 +72,11 @@ class RulesEngine:
             self._rules = sorted(self._rules, key=lambda x: x.get('priority', 100))
             
             self._loaded = True
-            print(f"[RulesEngine] Loaded {len(self._rules)} rules, {len(self._dynamic_rules)} dynamic rules")
+            logger.info("Loaded rules engine", extra={"rules": len(self._rules), "dynamic_rules": len(self._dynamic_rules)})
             return True
             
         except Exception as e:
-            print(f"[RulesEngine] Error loading rules: {e}")
+            logger.error("Error loading rules", extra={"error": str(e)})
             return False
     
     def reload(self) -> bool:

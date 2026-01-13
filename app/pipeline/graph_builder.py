@@ -18,7 +18,20 @@ from app.pipeline.schema_generator import generate_node_schema
 from app.observability.pipeline_logger import pipeline_logger
 
 def build_graph():
-    """Builds and returns the compiled StateGraph workflow."""
+    """
+    Builds and constructs the LangGraph StateGraph workflow.
+    
+    This function:
+    1. Initializes StateGraph with the State schema.
+    2. Adds infrastructure nodes (Cache) if enabled.
+    3. Loads pipeline configuration and adds active nodes.
+    4. Validates the resulting pipeline structure.
+    5. Connects all nodes with edges (sequential, conditional, and special branches).
+    6. Compiles and returns the final graph.
+
+    Returns:
+        langgraph.graph.CompiledGraph: The compiled RAG pipeline workflow
+    """
     
     workflow = StateGraph(State)
 

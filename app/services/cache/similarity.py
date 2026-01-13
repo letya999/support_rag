@@ -8,6 +8,7 @@ Refactored from app/cache/nodes.py to follow services pattern.
 import time
 from typing import Optional, Dict, Any, List
 from qdrant_client.http import models
+from app.logging_config import logger
 from app.integrations.embeddings import get_embedding
 from app.storage.qdrant_client import get_async_qdrant_client
 from app.services.config_loader.loader import load_shared_config
@@ -47,7 +48,7 @@ async def ensure_semantic_cache_collection():
         exists = any(c.name == SEMANTIC_CACHE_COLLECTION for c in collections.collections)
         
         if not exists:
-            print(f"Creating semantic cache collection: {SEMANTIC_CACHE_COLLECTION}")
+            logger.info("Creating semantic cache collection", extra={"collection": SEMANTIC_CACHE_COLLECTION})
             await client.create_collection(
                 collection_name=SEMANTIC_CACHE_COLLECTION,
                 vectors_config=models.VectorParams(
@@ -56,7 +57,7 @@ async def ensure_semantic_cache_collection():
                 )
             )
     except Exception as e:
-        print(f"Failed to ensure semantic cache collection: {e}")
+        logger.error("Failed to ensure semantic cache collection", extra={"error": str(e)})
 
 
 async def cleanup_expired_semantic_cache(ttl_seconds: int):
@@ -82,9 +83,9 @@ async def cleanup_expired_semantic_cache(ttl_seconds: int):
                 )
             )
         )
-        print(f"🧹 Cleaned up semantic cache entries older than {ttl_seconds}s")
+        logger.info("Cleaned up expired semantic cache entries", extra={"ttl_seconds": ttl_seconds})
     except Exception as e:
-        print(f"⚠️  Semantic cache cleanup failed: {e}")
+        logger.warning("Semantic cache cleanup failed", extra={"error": str(e)})
 
 
 async def check_semantic_similarity(
@@ -160,12 +161,12 @@ async def check_semantic_similarity(
                     "cached_question": payload.get("question", "")
                 }
             else:
-                print(f"❌ Semantic score too low: {score:.4f} < {threshold}")
+                logger.debug("Semantic score below threshold", extra={"score": score, "threshold": threshold})
         
         return None
         
     except Exception as e:
-        print(f"⚠️  Semantic similarity check error: {e}")
+        logger.error("Semantic similarity check error", extra={"error": str(e)})
         return None
 
 
@@ -214,7 +215,7 @@ async def store_in_semantic_cache(
                 )
             ]
         )
-        print(f"💾 Cached semantic vector for: '{question}'")
+        logger.info("Stored question in semantic cache", extra={"question": question})
         
     except Exception as e:
-        print(f"⚠️  Semantic cache store error: {e}")
+        logger.error("Semantic cache store error", extra={"error": str(e)})

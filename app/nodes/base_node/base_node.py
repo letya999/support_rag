@@ -1,8 +1,9 @@
 import os
 import inspect
-import logging
 from abc import abstractmethod
 from typing import Dict, Any, Optional, List
+
+from app.logging_config import logger
 
 from app.pipeline.state import State
 from app.observability.tracing import observe, langfuse_context
@@ -18,7 +19,7 @@ from app.observability.output_state_validator import OutputStateValidator
 from app.observability.validation_config import get_validation_config
 
 
-logger = logging.getLogger(__name__)
+
 
 
 class BaseNode(StateValidator):
@@ -101,15 +102,14 @@ class BaseNode(StateValidator):
     
     async def __call__(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        The entry point when the node is called by LangGraph.
-        Applies input filtering and output validation if enabled.
-        
-        Refactored to support Langfuse tracing without direct access to langfuse_context.
-        We filter inputs BEFORE passing them to the traced function, and validate outputs
-        BEFORE returning them, allowing @observe to automatically capture the clean, 
-        filtered data.
+        Entrance for LangGraph. Applies validation and tracing.
+
+        Args:
+            state: The current graph state
+
+        Returns:
+            Dict: State updates after node execution
         """
-        
         # Step 1: Prepare Input (Filter if enabled)
         input_to_processed = state
         input_metadata = {}
@@ -122,7 +122,7 @@ class BaseNode(StateValidator):
                 try:
                     input_to_processed = self._input_filter.apply(state)
                 except ValueError as e:
-                    logger.error(f"Input validation failed for node '{self.name}': {e}", exc_info=True)
+                    logger.error("Input validation failed", extra={"node": self.name, "error": str(e)})
                     raise
                 # filtered_size = len(str(input_to_processed))
                 # input_metadata = ... (Cant attach easily without context)
@@ -150,7 +150,7 @@ class BaseNode(StateValidator):
         try:
             return await _execute_traced(input_to_processed)
         except Exception as e:
-            logger.error(f"Error in node '{self.name}' execution: {e}", exc_info=True)
+            logger.error("Node execution error", extra={"node": self.name, "error": str(e)})
             raise
 
     

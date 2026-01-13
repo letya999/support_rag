@@ -3,6 +3,7 @@ import json
 import yaml
 from typing import Any, Dict, List
 from app.nodes.dialog_analysis.metrics.base import DialogAnalysisBaseMetric
+from app.logging_config import logger
 from app.integrations.llm import get_llm
 
 
@@ -95,5 +96,5 @@ class ContextIntegration(DialogAnalysisBaseMetric):
             return max(0.0, min(1.0, float(score)))
             
         except Exception as e:
-            print(f"⚠️ ContextIntegration evaluation failed: {e}")
+            logger.error("ContextIntegration evaluation failed", extra={"error": str(e)})
             return 0.0

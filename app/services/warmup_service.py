@@ -6,6 +6,7 @@ first-request latency.
 """
 import asyncio
 from app.integrations.embeddings import get_embedding
+from app.logging_config import logger
 
 
 class WarmupService:
@@ -26,7 +27,7 @@ class WarmupService:
             from app.nodes.reranking.ranker import get_reranker
             ranker = get_reranker()
             await loop.run_in_executor(None, ranker.rank, "warmup", ["warmup"])
-            print("✅ Reranker Warmed Up")
+            logger.info("Reranker Warmed Up")
             
             # 2. Classifier (Semantic - Multilingual)
             from app.services.classification.semantic_service import SemanticClassificationService
@@ -35,30 +36,30 @@ class WarmupService:
             await svc._ensure_model()
             # Run dummy classification to finalize initialization
             await svc.classify("warmup check")
-            print("✅ Classifier Warmed Up (Multilingual)")
+            logger.info("Classifier Warmed Up (Multilingual)")
 
             # 3. Embeddings
             await get_embedding("warmup")
-            print("✅ Embeddings Warmed Up")
+            logger.info("Embeddings Warmed Up")
 
             # 4. Translator
             from app.services.translation.translator import translator
             await loop.run_in_executor(None, translator.warmup)
-            print("✅ Translator Warmed Up")
+            logger.info("Translator Warmed Up")
 
             # 5. Guardrails
             from app.nodes.input_guardrails.node import input_guardrails_node
             await input_guardrails_node.warmup()
-            print("✅ Guardrails Warmed Up")
+            logger.info("Guardrails Warmed Up")
 
         except Exception as e:
-            print(f"⚠️ Warmup failed: {e}")
+            logger.error("Warmup failed", extra={"error": str(e)})
     
     @staticmethod
     async def warmup_embeddings_only():
         """Warm up only embeddings (fast warmup)."""
         try:
             await get_embedding("warmup")
-            print("✅ Embeddings Warmed Up")
+            logger.info("Embeddings Warmed Up (partial)")
         except Exception as e:
-            print(f"⚠️ Embeddings warmup failed: {e}")
+            logger.error("Embeddings warmup failed", extra={"error": str(e)})

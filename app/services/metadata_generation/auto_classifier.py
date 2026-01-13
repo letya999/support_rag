@@ -16,6 +16,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 import numpy as np
+from app.logging_config import logger
 
 from sentence_transformers import SentenceTransformer
 from sklearn.cluster import AgglomerativeClustering
@@ -170,11 +171,16 @@ class AutoClassificationPipeline:
         self._is_initialized: bool = False
         
     async def initialize(self):
-        """Load models (CPU-only)."""
+        """
+        Load models (CPU-only).
+        
+        This method initializes the SentenceTransformer and TfidfVectorizer.
+        It is idempotent and will return immediately if already initialized.
+        """
         if self._is_initialized:
             return
             
-        print(f"[AutoClassifier] Loading {self.embedding_model}...")
+        logger.info("Loading embedding model", extra={"model": self.embedding_model})
         loop = asyncio.get_running_loop()
         self._encoder = await loop.run_in_executor(
             None, SentenceTransformer, self.embedding_model
@@ -188,7 +194,7 @@ class AutoClassificationPipeline:
         )
         
         self._is_initialized = True
-        print("[AutoClassifier] Ready.")
+        logger.info("AutoClassifier ready")
         
     async def classify_batch(
         self,
@@ -213,32 +219,32 @@ class AutoClassificationPipeline:
         questions = [qa["question"] for qa in qa_pairs]
         
         # Step 1: Generate embeddings (CPU)
-        print(f"[AutoClassifier] Step 1: Embedding {len(questions)} questions...")
+        logger.info("AutoClassifier Step 1: Embedding questions", extra={"count": len(questions)})
         loop = asyncio.get_running_loop()
         self._embeddings = await loop.run_in_executor(
             None, self._encoder.encode, questions
         )
         
         # Step 2: Cluster questions (CPU)
-        print("[AutoClassifier] Step 2: Clustering...")
+        logger.info("AutoClassifier Step 2: Clustering")
         cluster_labels = await self._cluster_questions()
         
         # Step 3: Discover category names using TF-IDF (CPU)
-        print("[AutoClassifier] Step 3: Discovering categories via TF-IDF...")
+        logger.info("AutoClassifier Step 3: Discovering categories via TF-IDF")
         self._categories = self._discover_categories(questions, cluster_labels)
         
         # Step 4: Classify each Q&A pair (CPU)
-        print("[AutoClassifier] Step 4: Generating classifications...")
+        logger.info("AutoClassifier Step 4: Generating classifications")
         results = self._generate_classifications(qa_pairs, cluster_labels)
         
         # Step 5: LLM validation for uncertain cases (optional, minimal)
         if use_llm_validation:
             uncertain_count = sum(1 for r in results if r.needs_llm_validation)
             if uncertain_count > 0:
-                print(f"[AutoClassifier] Step 5: LLM validation for {uncertain_count} uncertain cases...")
+                logger.info("AutoClassifier Step 5: LLM validation", extra={"uncertain_count": uncertain_count})
                 results = await self._validate_uncertain(qa_pairs, results)
         
-        print(f"[AutoClassifier] Done. {len(self._categories)} categories discovered.")
+        logger.info("AutoClassifier completed", extra={"categories_discovered": len(self._categories)})
         return results, self._categories
         
     async def _cluster_questions(self) -> np.ndarray:
@@ -264,7 +270,7 @@ class AutoClassificationPipeline:
             None, clustering.fit_predict, self._embeddings
         )
         
-        print(f"[AutoClassifier] Found {len(set(labels))} clusters")
+        logger.debug("Clustering completed", extra={"cluster_count": len(set(labels))})
         return labels
         
     def _discover_categories(
@@ -563,11 +569,11 @@ class AutoClassificationPipeline:
                 updated_results.append(updated_result)
                 
             except Exception as e:
-                print(f"[AutoClassifier] LLM validation failed for Q{i}: {e}")
+                logger.error("LLM validation failed", extra={"index": i, "error": str(e)})
                 updated_results.append(result)
                 
         if llm_calls > 0:
-            print(f"[AutoClassifier] Made {llm_calls} LLM calls for validation")
+            logger.info("LLM validation completed", extra={"llm_calls": llm_calls})
             
         return updated_results
         

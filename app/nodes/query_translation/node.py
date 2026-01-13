@@ -8,6 +8,7 @@ Query Translation Node
 """
 from typing import Dict, Any
 from app.nodes.base_node import BaseNode
+from app.logging_config import logger
 from app.observability.tracing import observe
 from app.services.config_loader.loader import get_global_param
 
@@ -82,21 +83,21 @@ class QueryTranslationNode(BaseNode):
             return {"translated_query": query}
 
         if actual_conf < min_conf:
-            print(f"⚠️ Low language detection confidence ({actual_conf} < {min_conf}), using original query")
+            logger.warning("Low language detection confidence, using original query", extra={"actual": actual_conf, "threshold": min_conf})
             return {"translated_query": query, "translation_performed": False}
         
         # Skip translation if already in target language
         if detected_language == document_language:
-            print(f"✅ Query already in document language ({document_language}), skipping translation")
+            logger.info("Query already in document language, skipping translation", extra={"language": document_language})
             return {
                 "translated_query": query
             }
         
         # Translate
         try:
-            print(f"🔄 Translating query from '{detected_language}' to '{document_language}'")
+            logger.info("Translating query", extra={"from": detected_language, "to": document_language})
             translated_query = translator.translate_query(query, target_lang=document_language)
-            print(f"✅ Translation successful: '{query}' → '{translated_query}'")
+            logger.info("Translation successful", extra={"original": query, "translated": translated_query})
             
             return {
                 "translated_query": translated_query,
@@ -105,7 +106,7 @@ class QueryTranslationNode(BaseNode):
                 "target_language": document_language
             }
         except Exception as e:
-            print(f"⚠️ Translation failed: {e}, using original query")
+            logger.error("Translation failed", extra={"error": str(e)})
             return {
                 "translated_query": query,
                 "translation_performed": False,

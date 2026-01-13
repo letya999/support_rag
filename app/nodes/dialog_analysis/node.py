@@ -3,6 +3,7 @@ import re
 from app.nodes.base_node import BaseNode
 from app.pipeline.state import State
 from app.observability.tracing import observe
+from app.logging_config import logger
 from app.services.config_loader.conversation_config import conversation_config
 from app.services.config_loader.loader import get_node_params
 from app.nodes.dialog_analysis.llm import llm_dialog_analysis_node
@@ -79,7 +80,7 @@ async def regex_dialog_analysis_node(state: State) -> Dict[str, Any]:
     keywords = params.get("keywords", {})
     
     history = state.get("conversation_history") or state.get("session_history", []) or []
-    print(f"🔍 dialog_analysis (regex): Got {len(history)} history messages")
+    logger.debug("Running regex dialog analysis", extra={"history_messages": len(history)})
     current_question = state.get("question", "").lower()
     
     # Defaults

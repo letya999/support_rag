@@ -1,5 +1,6 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
+from app.logging_config import logger
 from app.nodes.retrieval.evaluator import RetrievalEvaluator
 from app.nodes.generation.evaluator import GenerationEvaluator
 from app.dataset.loader import load_ground_truth_dataset
@@ -23,7 +24,7 @@ class PipelineEvaluator:
         
         results = []
         
-        print(f"Starting E2E Evaluation: {run_name}")
+        logger.info("Starting E2E Evaluation", extra={"run_name": run_name, "dataset_count": len(items)})
         
         for i, item in enumerate(items):
             # Run Pipeline

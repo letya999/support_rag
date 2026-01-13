@@ -4,6 +4,7 @@ from typing import List, Optional
 from langfuse import Langfuse
 from app.dataset.schema import EvalItem
 from app.dataset.validator import validate_dataset
+from app.logging_config import logger
 
 # Default to the datasets directory in the project root
 DEFAULT_DATASET_NAME = "ground_truth_dataset.json"
@@ -57,5 +58,5 @@ def sync_dataset_to_langfuse(
             )
         return True
     except Exception as e:
-        print(f"Failed to sync dataset: {e}")
+        logger.error("Failed to sync dataset to Langfuse", extra={"error": str(e), "dataset": dataset_name})
         return False

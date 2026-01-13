@@ -12,6 +12,7 @@ from app.services.cache.similarity import store_in_semantic_cache
 from app.services.cache.models import CacheEntry
 from app.services.config_loader.loader import get_node_config
 from app.observability.tracing import observe
+from app.logging_config import logger
 from app.integrations.embeddings import get_embedding
 
 
@@ -102,7 +103,7 @@ class StoreInCacheNode(BaseNode):
             
             # Check confidence threshold
             if confidence < self.min_confidence:
-                print(f"⚠️  Skipping cache: confidence {confidence:.2f} < {self.min_confidence}")
+                logger.info("Skipping cache due to low confidence", extra={"confidence": confidence, "threshold": self.min_confidence})
                 return {}
             
             # Initialize cache manager
@@ -118,7 +119,7 @@ class StoreInCacheNode(BaseNode):
                 hit_count=0
             )
             await cache.set(cache_key, cache_entry)
-            print(f"💾 Cached answer for: '{question}'")
+            logger.info("Cached answer successfully", extra={"question": question, "cache_key": cache_key})
             
             # 2. Optionally store in Qdrant (Semantic match)
             if self.store_semantic:
@@ -145,12 +146,12 @@ class StoreInCacheNode(BaseNode):
                         metadata=metadata
                     )
                 else:
-                    print("⚠️  Missing embedding, skipping semantic cache storage.")
+                    logger.warning("Missing embedding, skipping semantic cache storage", extra={"question": question})
             
             return {}
             
         except Exception as e:
-            print(f"⚠️  Cache store error: {e}")
+            logger.error("Cache store node error", extra={"error": str(e)})
             return {}
 
 

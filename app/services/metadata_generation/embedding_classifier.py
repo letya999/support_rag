@@ -7,6 +7,7 @@ into categories and intents without any model training.
 
 import asyncio
 from typing import Dict, List, Optional
+from app.logging_config import logger
 from app.services.classification.semantic_service import SemanticClassificationService
 from app.integrations.embeddings import get_embedding
 from .models import ClassificationResult, MetadataConfig
@@ -119,7 +120,7 @@ class EmbeddingClassifier:
         processed_results = []
         for idx, result in enumerate(results):
             if isinstance(result, Exception):
-                print(f"Error classifying pair {idx}: {result}")
+                logger.error("Error classifying pair", extra={"index": idx, "error": str(result)})
                 # Return fallback
                 processed_results.append({
                     "category": ClassificationResult(

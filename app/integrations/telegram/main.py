@@ -14,13 +14,12 @@ from app.integrations.telegram.bot import SupportRAGBot
 from app.integrations.telegram.storage import SessionStorage
 from app.integrations.telegram.pipeline_client import RAGPipelineClient
 
-# Configure logging
+# Configure standard Python logging (no custom dependencies)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('telegram_bot.log', mode='a')
+        logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger(__name__)
@@ -61,6 +60,10 @@ async def main():
         storage=storage,
         rag_client=rag_client
     )
+    
+    # Load phrases configuration from API
+    logger.info("Loading bot phrases from API...")
+    await bot.load_phrases_from_api()
 
     try:
         await bot.start()

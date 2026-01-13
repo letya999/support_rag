@@ -5,6 +5,7 @@ Configuration loader for metadata generation service.
 import os
 import yaml
 from typing import Dict, Any, Optional
+from app.logging_config import logger
 from .models import MetadataConfig
 
 
@@ -31,7 +32,7 @@ def load_config(config_path: Optional[str] = None) -> MetadataConfig:
         config_path = DEFAULT_CONFIG_PATH
 
     if not os.path.exists(config_path):
-        print(f"[Config] Config file not found at {config_path}, using defaults")
+        logger.warning("Config file not found, using defaults", extra={"config_path": config_path})
         return MetadataConfig()
 
     try:
@@ -77,12 +78,12 @@ def load_config(config_path: Optional[str] = None) -> MetadataConfig:
         }
 
         config = MetadataConfig(**config_kwargs)
-        print(f"[Config] Loaded configuration from {config_path}")
+        logger.info("Loaded configuration", extra={"config_path": config_path})
 
         return config
 
     except Exception as e:
-        print(f"[Config] Error loading config from {config_path}: {e}")
+        logger.error("Error loading config", extra={"config_path": config_path, "error": str(e)})
         return MetadataConfig()
 
 

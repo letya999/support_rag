@@ -1,6 +1,7 @@
 from typing import Dict, Any, List
 import json
 from app.pipeline.state import State
+from app.logging_config import logger
 from app.observability.tracing import observe
 from app.integrations.llm import get_llm
 from app.services.config_loader.loader import get_node_params
@@ -23,7 +24,7 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
     """
     # Priority: conversation_history (active) > session_history (archived)
     history = state.get("conversation_history") or state.get("session_history", []) or []
-    print(f"🔍 dialog_analysis (LLM): Got {len(history)} history messages")
+    logger.debug("Running dialog analysis", extra={"history_messages": len(history)})
     current_question = state.get("question", "")
     
     # Load config
@@ -127,7 +128,7 @@ async def llm_dialog_analysis_node(state: State) -> Dict[str, Any]:
         return result
 
     except Exception as e:
-        print(f"LLM Dialog Analysis verification failed: {e}. Falling back to default.")
+        logger.error("LLM Dialog Analysis failed", extra={"error": str(e)})
         # Fallback to safe defaults
         return {
             "dialog_analysis": {

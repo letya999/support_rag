@@ -4,6 +4,7 @@ from app._shared_config.history_filter import filter_conversation_history
 from app.services.cache.manager import get_cache_manager
 from app.services.cache.session_manager import SessionManager
 from app.storage.persistence import PersistenceManager
+from app.logging_config import logger
 from app.services.config_loader.loader import get_node_params
 
 class SessionStarterNode(BaseNode):
@@ -78,14 +79,14 @@ class SessionStarterNode(BaseNode):
             if raw_history_db:
                 clean_history = filter_conversation_history(raw_history_db)
                 updates["conversation_history"] = clean_history
-                print(f"✅ session_starter: Loaded {len(clean_history)} messages from DB")
+                logger.info("Loaded conversation history from DB", extra={"session_id": session_id, "messages": len(clean_history)})
             else:
                 # No history in DB means new session or empty state
                 updates["conversation_history"] = []
-                print(f"ℹ️ session_starter: No messages found in DB (new session).")
+                logger.info("New session - no history found in DB", extra={"session_id": session_id})
 
         except Exception as e:
-            print(f"⚠️ Failed to load conversation history from DB: {e}")
+            logger.error("Failed to load conversation history from DB", extra={"session_id": session_id, "error": str(e)})
             updates["conversation_history"] = []
 
         # 2. Load User Profile (Lazy or Eager based on config)
@@ -97,7 +98,7 @@ class SessionStarterNode(BaseNode):
              try:
                 updates["user_profile"] = await self._load_user_profile(user_id)
              except Exception as e:
-                print(f"⚠️ Error loading profile: {e}")
+                logger.warning("Error loading user profile", extra={"user_id": user_id, "error": str(e)})
                 updates["user_profile"] = {"error": str(e)}
 
         # 3. Lazy Load Session History (Previous sessions)
@@ -163,7 +164,7 @@ class SessionStarterNode(BaseNode):
                 
                 return current_session
         except Exception as e:
-            print(f"⚠️ Error with Redis session: {e}")
+            logger.error("Error with Redis session", extra={"user_id": user_id, "session_id": session_id, "error": str(e)})
             return None
 
 # For backward compatibility

@@ -6,11 +6,10 @@ from redis import asyncio as aioredis
 from app.settings import settings
 from app.services.ingestion.ingestion_service import DocumentIngestionService
 from app.services.document_loaders import ProcessedQAPair
-import logging
-
-logger = logging.getLogger(__name__)
+from app.logging_config import logger
 
 class StagingService:
+    """Service for managing staging drafts in Redis before they are committed to permanent storage."""
     PREFIX = "staging:draft:"
     FILE_PREFIX = "staging:file:"
     EXPIRY = 86400 * 7 # 7 days
@@ -25,6 +24,16 @@ class StagingService:
         return str(uuid.uuid4())
 
     async def create_draft(self, filename: str, pairs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Create a new staging draft from a list of Q&A pairs.
+
+        Args:
+            filename: Name of the source file
+            pairs: List of Q&A pair dicts
+
+        Returns:
+            Dict containing the created draft data
+        """
         draft_id = self._generate_id()
         file_id = self._generate_id()
         
@@ -63,6 +72,15 @@ class StagingService:
             await redis.close()
 
     async def get_draft(self, draft_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve a draft by its ID.
+
+        Args:
+            draft_id: Unique draft identifier
+
+        Returns:
+            Dict containing draft data or None
+        """
         redis = await self._get_redis()
         try:
             key = f"{self.PREFIX}{draft_id}"
@@ -209,6 +227,17 @@ class StagingService:
             await redis.close()
             
     async def commit_draft(self, draft_id: str) -> Dict[str, Any]:
+        """
+        Commit a staging draft to permanent storage (Postgres and Qdrant).
+        Deletes the draft from staging on success.
+
+        Args:
+            draft_id: Unique draft identifier
+
+        Returns:
+            Dict containing ingestion results
+        """
+        logger.info("Committing staging draft", extra={"draft_id": draft_id})
         draft = await self.get_draft(draft_id)
         if not draft:
             raise ValueError("Draft not found")

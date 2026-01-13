@@ -14,6 +14,7 @@ from typing import Dict, Any
 from app.nodes.base_node import BaseNode
 from app.services.cache.similarity import check_semantic_similarity
 from app.services.config_loader.loader import get_node_config
+from app.logging_config import logger
 from app.observability.tracing import observe
 
 
@@ -54,7 +55,12 @@ def _validate_doc_relevance(question: str, docs: list, threshold: float = 0.3) -
     # Require minimum keyword overlap based on threshold
     is_relevant = relevance_ratio >= threshold
     
-    print(f"📊 Doc relevance check: {matches}/{len(question_words)} keywords matched ({relevance_ratio:.2%})")
+    logger.debug("Doc relevance check", extra={
+        "matches": matches,
+        "total_keywords": len(question_words),
+        "ratio": round(relevance_ratio, 2),
+        "is_relevant": is_relevant
+    })
     return is_relevant
 
 
@@ -144,14 +150,16 @@ class CacheSimilarityNode(BaseNode):
                 if self.validate_relevance:
                     docs = result.get("doc_ids", [])
                     if not _validate_doc_relevance(question, docs, self.relevance_threshold):
-                        print(f"⚠️  Cache hit rejected: docs not relevant to query")
-                        print(f"   Score: {result['score']:.4f} >= {self.similarity_threshold}, but docs failed validation")
+                        logger.warning("Semantic cache hit rejected: docs not relevant", extra={
+                            "question": question,
+                            "score": result['score'],
+                            "threshold": self.similarity_threshold
+                        })
                         return {"cache_hit": False}
                 
                 # Cache hit!
                 score = result["score"]
-                print(f"✅ Semantic Cache HIT for: '{question}'")
-                print(f"   Score: {score:.4f} >= {self.similarity_threshold}, docs validated" if self.validate_relevance else "")
+                logger.info("Semantic Cache HIT", extra={"question": question, "score": score, "threshold": self.similarity_threshold})
                 
                 return {
                     "cache_hit": True,
@@ -165,7 +173,7 @@ class CacheSimilarityNode(BaseNode):
             return {"cache_hit": False}
             
         except Exception as e:
-            print(f"⚠️  Cache similarity error: {e}")
+            logger.error("Cache similarity error", extra={"error": str(e)})
             return {"cache_hit": False}
 
 

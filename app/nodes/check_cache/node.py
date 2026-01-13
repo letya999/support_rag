@@ -9,6 +9,7 @@ from typing import Dict, Any
 from app.nodes.base_node import BaseNode
 from app.services.cache.manager import get_cache_manager
 from app.services.cache.query_normalizer import get_normalizer
+from app.logging_config import logger
 from app.observability.tracing import observe
 
 
@@ -72,7 +73,7 @@ class CheckCacheNode(BaseNode):
             cached_entry = await cache.get(cache_key)
             
             if cached_entry:
-                print(f"✅ Exact Cache HIT for: '{question}'")
+                logger.info("Exact Cache HIT", extra={"question": question, "key": cache_key})
                 return {
                     "cache_hit": True,
                     "cache_key": cache_key,
@@ -83,14 +84,14 @@ class CheckCacheNode(BaseNode):
                 }
             
             # Cache MISS
-            print(f"❌ Cache MISS for: '{question}'")
+            logger.info("Cache MISS", extra={"question": question, "key": cache_key})
             return {
                 "cache_hit": False,
                 "cache_key": cache_key
             }
             
         except Exception as e:
-            print(f"⚠️  Cache check error: {e}")
+            logger.error("Cache check error", extra={"error": str(e)})
             return {
                 "cache_hit": False,
                 "cache_key": None

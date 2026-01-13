@@ -2,6 +2,7 @@ import uuid
 import json
 from typing import Dict, Any, Optional, Union
 from app.storage.repositories.identity_repository import IdentityRepository
+from app.logging_config import logger
 
 class IdentityManager:
     """
@@ -51,7 +52,15 @@ class IdentityManager:
         metadata: Dict[str, Any]
     ) -> str:
         """
-        Internal logic to lookup or create the user in DB.
+        Internal logic to lookup or create the user in DB based on identity.
+
+        Args:
+            identity_type: Type of identity (e.g. 'telegram')
+            identity_value: External ID value
+            metadata: Metadata to store/merge
+
+        Returns:
+            str: Resolved internal user_id
         """
         # 1. Try to find existing
         existing = await IdentityRepository.get_identity(identity_type, identity_value)
@@ -69,6 +78,7 @@ class IdentityManager:
         
         # 2. Create new user if not found
         new_user_id = str(uuid.uuid4())
+        logger.info("Creating new user identity", extra={"identity_type": identity_type, "user_id": new_user_id})
         
         # Best guess for name
         guessed_name = metadata.get('first_name') or metadata.get('name') or metadata.get('username')

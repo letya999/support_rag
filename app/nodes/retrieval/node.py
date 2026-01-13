@@ -38,12 +38,13 @@ class RetrievalNode(BaseNode):
     
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Logic for simple retrieval.
+        Execute simple vector search retrieval.
 
-        Contracts:
-            - Required Inputs: `aggregated_query` OR `question` (str)
-            - Optional Inputs: `matched_category` (str)
-            - Guaranteed Outputs: `docs` (List[str]), `scores` (List[float]), `confidence` (float), `best_doc_metadata` (Dict), `vector_results` (List[SearchResult])
+        Args:
+            state: Current pipeline state
+
+        Returns:
+            Dict: State updates with docs and confidence
         """
         question = state.get("aggregated_query") or state.get("question", "")
         category_filter = state.get("matched_category") if state.get("filter_used") else None
@@ -91,7 +92,13 @@ class RetrievalExpandedNode(BaseNode):
     
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Logic for expanded retrieval (multiple queries).
+        Execute multi-query expanded retrieval in parallel.
+
+        Args:
+            state: Current pipeline state
+
+        Returns:
+            Dict: State updates with merged unique documents
         """
         question = state.get("aggregated_query") or state.get("question", "")
         queries = state.get("queries", [question])

@@ -1,5 +1,6 @@
 import asyncio
 from typing import Optional
+from app.logging_config import logger
 from transformers import pipeline
 from app._shared_config.intent_registry import get_registry
 from app.nodes.classification.models import ClassificationOutput
@@ -60,7 +61,7 @@ class ClassificationService:
         intent_res, category_res = await asyncio.gather(intent_task, category_task)
 
         duration = time.time() - start_time
-        print(f"[Classifier] Took {duration:.2f}s for query: '{text[:20]}...'")
+        logger.debug("Classification performance", extra={"duration_s": round(duration, 3), "text_preview": text[:20]})
 
         output = ClassificationOutput(
             intent=intent_res['labels'][0],

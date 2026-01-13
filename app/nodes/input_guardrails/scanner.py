@@ -225,3 +225,10 @@ def get_basic_guardrails_service(
             allowed_languages=allowed_languages
         )
     return _basic_service
+
+
+def reset_basic_service():
+    """Reset the singleton instance of BasicGuardrailsService"""
+    global _basic_service
+    _basic_service = None
+

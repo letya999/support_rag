@@ -1,0 +1,40 @@
+openapi: 3.1.0
+info:
+  title: Support RAG API
+  description: RAG system with semantic caching and webhooks.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+
+paths:
+  /chat/completions:
+    post:
+      tags:
+        - Chat
+      summary: Execute RAG query
+      operationId: chatCompletions
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeChat'
+
+components:
+  schemas:
+    EnvelopeChat:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            answer:
+              type: string
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string

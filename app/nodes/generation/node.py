@@ -3,6 +3,7 @@ from app.nodes.base_node import BaseNode
 from app.integrations.llm import get_llm
 from app.observability.tracing import observe
 from langchain_core.prompts import ChatPromptTemplate
+from app.logging_config import logger
 from app.observability.callbacks import get_langfuse_callback_handler
 
 class GenerationNode(BaseNode):
@@ -54,12 +55,14 @@ class GenerationNode(BaseNode):
 
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Generation node logic.
+        Execute generation logic using LLM.
+        Supports escalation bypass and answer reuse.
 
-        Contracts:
-            - Required Inputs: `system_prompt` OR `docs`+`question` (str)
-            - Optional Inputs: `escalation_message` (str), `human_prompt` (str), `aggregated_query` (str)
-            - Guaranteed Outputs: `answer` (str)
+        Args:
+            state: Current pipeline state
+
+        Returns:
+            Dict: State updates containing the final answer
         """
         # Check if escalation happened - if so, use escalation message instead of generating
         escalation_message = state.get("escalation_message")
@@ -71,11 +74,10 @@ class GenerationNode(BaseNode):
         dialog_state = state.get("dialog_state")
         
         # DEBUG LOGGING (Temporary)
-        print(f"DEBUG: GenerationNode - Existing Answer: '{existing_answer}'")
-        print(f"DEBUG: GenerationNode - Dialog State: '{dialog_state}'")
+        logger.debug("Generation state check", extra={"existing_answer_set": bool(existing_answer), "dialog_state": dialog_state})
         
         if existing_answer and dialog_state == "NEEDS_CLARIFICATION":
-            print("DEBUG: SKIPPING Generation (Answer already provided)")
+            logger.debug("Skipping generation as answer already provided by clarification node")
             return {"answer": existing_answer}
             
         # Use pre-built prompts from prompt_routing

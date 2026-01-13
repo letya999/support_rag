@@ -41,6 +41,28 @@ async def get_phrases(request: Request):
         meta=MetaResponse(trace_id=trace_id)
     )
 
+@router.get("/config/bot-phrases", response_model=Envelope[Dict[str, Any]])
+async def get_bot_phrases(request: Request):
+    """
+    Get localized phrases for Telegram bot.
+    
+    This endpoint allows the bot microservice to fetch its configuration
+    without direct access to YAML files or internal modules.
+    
+    Returns:
+        Envelope: Bot phrases configuration with bilingual text
+    """
+    from app.services.config_loader.loader import load_shared_config
+    
+    trace_id = getattr(request.state, "trace_id", None)
+    config = load_shared_config("system_phrases")
+    phrases = config.get("telegram_bot_phrases", {})
+    
+    return Envelope(
+        data=phrases,
+        meta=MetaResponse(trace_id=trace_id)
+    )
+
 @router.post("/config/refresh", response_model=Envelope[Dict[str, Any]])
 async def refresh_pipeline_config(request: Request):
     """

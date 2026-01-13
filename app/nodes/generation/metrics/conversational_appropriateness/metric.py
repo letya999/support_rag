@@ -3,6 +3,7 @@ import json
 import yaml
 from typing import Any, Dict, List
 from app.nodes.generation.metrics.base import GenerationBaseMetric
+from app.logging_config import logger
 from app.integrations.llm import get_llm
 
 
@@ -97,5 +98,5 @@ class ConversationalAppropriateness(GenerationBaseMetric):
             return max(0.0, min(1.0, float(score)))
             
         except Exception as e:
-            print(f"⚠️ ConversationalAppropriateness evaluation failed: {e}")
+            logger.error("ConversationalAppropriateness evaluation failed", extra={"error": str(e)})
             return 0.0

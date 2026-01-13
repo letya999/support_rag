@@ -9,6 +9,7 @@ Refactored to separate concerns:
 
 import json
 from typing import Optional, Dict, Any, List
+from app.logging_config import logger
 from app.services.cache.models import CacheEntry
 from app.services.cache.stats import CacheMetrics
 from app.services.cache.redis_client import RedisConnector
@@ -74,7 +75,7 @@ class CacheManager:
 
             return True
         except Exception as e:
-            print(f"❌ Cache set failed: {e}")
+            logger.error("Cache set failed", extra={"query": query_normalized, "error": str(e)})
             return False
 
     async def get(self, query_normalized: str) -> Optional[CacheEntry]:
@@ -96,7 +97,7 @@ class CacheManager:
                     return entry
             return None
         except Exception as e:
-            print(f"❌ Cache get failed: {e}")
+            logger.error("Cache get failed", extra={"query": query_normalized, "error": str(e)})
             return None
 
     async def delete(self, query_normalized: str) -> bool:
@@ -108,7 +109,7 @@ class CacheManager:
             else:
                 return self.memory.delete(query_normalized)
         except Exception as e:
-            print(f"❌ Cache delete failed: {e}")
+            logger.error("Cache delete failed", extra={"query": query_normalized, "error": str(e)})
             return False
 
     async def clear(self) -> bool:
@@ -129,7 +130,7 @@ class CacheManager:
                 self.memory.clear()
             return True
         except Exception as e:
-            print(f"❌ Cache clear failed: {e}")
+            logger.error("Cache clear failed", extra={"error": str(e)})
             return False
 
     async def get_all_entries(self) -> Dict[str, CacheEntry]:
@@ -154,7 +155,7 @@ class CacheManager:
                 entries = self.memory.get_all()
             return entries
         except Exception as e:
-            print(f"❌ Get all entries failed: {e}")
+            logger.error("Get all entries failed", extra={"error": str(e)})
             return {}
 
     def get_stats(self) -> Optional[Dict[str, Any]]:

@@ -8,6 +8,7 @@ import json
 import asyncio
 from typing import Dict, List, Optional
 from openai import AsyncOpenAI
+from app.logging_config import logger
 from .models import (
     LLMValidationRequest,
     LLMValidationResult,
@@ -93,7 +94,7 @@ class LLMValidator:
             }
 
         except Exception as e:
-            print(f"LLM validation error for category '{predicted_category}': {e}")
+            logger.error("LLM validation error", extra={"category": predicted_category, "error": str(e)})
             # Fallback: trust the prediction
             return {
                 "is_correct": True,
@@ -165,7 +166,7 @@ class LLMValidator:
             }
 
         except Exception as e:
-            print(f"LLM validation error for intent '{predicted_intent}': {e}")
+            logger.error("LLM validation error", extra={"intent": predicted_intent, "error": str(e)})
             return {
                 "is_correct": True,
                 "suggested_intent": predicted_intent,
@@ -213,7 +214,7 @@ class LLMValidator:
 
             for batch_result in batch_results:
                 if isinstance(batch_result, Exception):
-                    print(f"Error processing batch: {batch_result}")
+                    logger.error("Error processing LLM batch", extra={"error": str(batch_result)})
                     continue
                 results.extend(batch_result)
 
@@ -325,7 +326,7 @@ Respond with JSON (no markdown, just JSON):
             return result
 
         except json.JSONDecodeError:
-            print(f"Failed to parse LLM response: {response_text[:200]}")
+            logger.warning("Failed to parse LLM response", extra={"response_snippet": response_text[:200]})
             # Return safe defaults
             return {
                 "is_correct": True,

@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Union
+from app.logging_config import logger
 
 from app.observability.langfuse_client import get_langfuse_client
 from app.observability.score_logger import log_score
@@ -74,7 +75,7 @@ class RetrievalEvaluator(BaseEvaluator):
             "first_chunk_score": []
         }
         
-        print(f"Starting evaluation: {run_name} on {len(items)} items")
+        logger.info("Starting retrieval evaluation", extra={"run_name": run_name, "count": len(items)})
         
         for idx, item in enumerate(items):
             eval_res = await self.evaluate_single(item.question, item.expected_chunks, top_k=top_k)
@@ -113,7 +114,7 @@ class RetrievalEvaluator(BaseEvaluator):
             k: sum(v)/len(v) if v else 0.0 for k, v in scores_aggregate.items() 
         }
         
-        print(f"Evaluation finished. Aggregated: {aggregated}")
+        logger.info("Retrieval evaluation finished", extra={"run_name": run_name, "results": aggregated})
         return {
             "run_name": run_name,
             "metrics": aggregated,

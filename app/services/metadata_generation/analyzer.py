@@ -7,6 +7,7 @@ Coordinates embedding classification, LLM validation, and handoff detection.
 import asyncio
 import time
 from typing import Dict, List, Optional
+from app.logging_config import logger
 from .embedding_classifier import EmbeddingClassifier
 from .context_retriever import ContextRetriever
 from .llm_validator import LLMValidator
@@ -52,11 +53,11 @@ class HybridMetadataAnalyzer:
         Analyze a batch of Q&A pairs.
 
         Args:
-            qa_pairs: List of {"question": "...", "answer": "..."} dicts
-            analysis_id: Unique ID for this analysis
+            qa_pairs (List[Dict[str, str]]): List of {"question": "...", "answer": "..."} dicts.
+            analysis_id (str): Unique ID for this analysis.
 
         Returns:
-            AnalysisResult with all metadata and statistics
+            AnalysisResult: Object containing all metadata and statistics.
         """
         start_time = time.time()
 
@@ -65,7 +66,7 @@ class HybridMetadataAnalyzer:
             await self.initialize()
 
         # Step 1: Fast embedding classification
-        print(f"[Analyzer] Step 1: Classifying {len(qa_pairs)} pairs with embeddings...")
+        logger.info("Analyzer Step 1: Embedding classification", extra={"count": len(qa_pairs), "analysis_id": analysis_id})
         classification_results = await self.classifier.classify_batch(qa_pairs)
 
         # Step 2: Identify pairs needing LLM validation
@@ -77,21 +78,21 @@ class HybridMetadataAnalyzer:
                     "qa": qa,
                     "clf_result": clf_result
                 })
-
-        print(f"[Analyzer] {len(pairs_needing_validation)} pairs need LLM validation")
+        
+        logger.info("Analyzer uncertainty check", extra={"needs_validation": len(pairs_needing_validation)})
 
         # Step 3: LLM validation for low-confidence pairs
         llm_results = {}
         if pairs_needing_validation:
-            print(f"[Analyzer] Step 2: Validating with LLM...")
+            logger.info("Analyzer Step 2: LLM validation started")
             llm_results = await self._validate_with_llm(pairs_needing_validation)
 
         # Step 4: Handoff detection (parallel)
-        print(f"[Analyzer] Step 3: Detecting handoff requirements...")
+        logger.info("Analyzer Step 3: Handoff detection")
         handoff_results = self.handoff_detector.detect_batch(qa_pairs)
 
         # Step 5: Merge results
-        print(f"[Analyzer] Step 4: Merging results...")
+        logger.info("Analyzer Step 4: Merging results")
         qa_with_metadata = self._merge_results(
             qa_pairs,
             classification_results,

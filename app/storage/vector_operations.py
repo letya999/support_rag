@@ -4,6 +4,7 @@ from app.storage.connection import get_db_connection
 from app.storage.qdrant_client import get_async_qdrant_client
 from app.storage.models import SearchResult
 from app.observability.tracing import observe, langfuse_context
+from app.logging_config import logger
 
 @observe(as_type="span")
 async def vector_search(
@@ -13,13 +14,14 @@ async def vector_search(
 ) -> List[SearchResult]:
     """
     Search for documents using Qdrant vector search, then fetch content from Postgres.
-    
-    Contracts:
-        Input:
-            Required: query_embedding (List[float])
-            Optional: top_k (int), category_filter (str/List[str])
-        Output:
-            Guaranteed: List[SearchResult]
+
+    Args:
+        query_embedding: Vector representation of the query
+        top_k: Number of nearest neighbors to retrieve
+        category_filter: Optional filter to restrict search to specific categories
+
+    Returns:
+        List[SearchResult]: Ordered list of search results with content and scores
     """
     # Log inputs explicitly (not the full embedding)
     if langfuse_context:
@@ -58,13 +60,13 @@ async def vector_search(
         points = result.points
     except Exception as e:
         # Handle cases where Qdrant is not ready or collection missing
-        print(f"Qdrant search error: {e}")
+        logger.error("Qdrant search error", extra={"error": str(e)})
         
         # Reset client on connection errors to force reconnection next time
         if "Channel is closed" in str(e) or "Connection refused" in str(e):
              from app.storage.qdrant_client import reset_async_qdrant_client
              reset_async_qdrant_client()
-             print("🔄 Qdrant client reset due to connection error.")
+             logger.info("Qdrant client reset due to connection error")
 
         if langfuse_context:
             langfuse_context.update_current_observation(output={"error": str(e), "results_count": 0})

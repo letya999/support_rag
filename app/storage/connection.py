@@ -6,6 +6,10 @@ from app.settings import settings
 _pool: AsyncConnectionPool | None = None
 
 async def init_db_pool():
+    """
+    Initialize the global asynchronous connection pool for Postgres.
+    Should be called during application startup.
+    """
     global _pool
     # Create the pool
     _pool = AsyncConnectionPool(
@@ -19,6 +23,10 @@ async def init_db_pool():
     await _pool.open()
 
 async def close_db_pool():
+    """
+    Gracefully close the global asynchronous connection pool.
+    Should be called during application shutdown.
+    """
     global _pool
     if _pool:
         await _pool.close()
@@ -27,6 +35,9 @@ async def close_db_pool():
 async def get_db_connection():
     """
     Async context manager for database connection using pool.
+    
+    Yields:
+        psycopg.AsyncConnection: An asynchronous database connection
     """
     if _pool is None:
         # Fallback for scripts/tests that didn't call init_db_pool

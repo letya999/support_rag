@@ -35,6 +35,15 @@ class ClassificationNode(BaseNode):
     }
     
     async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute query classification.
+
+        Args:
+            state: Current pipeline state
+
+        Returns:
+            Dict: State updates with intent and category
+        """
         question = state.get("aggregated_query") or state.get("question", "")
         service = ClassificationService()
         

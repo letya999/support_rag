@@ -8,15 +8,28 @@ import time
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from app.storage.connection import get_db_connection
+from app.logging_config import logger
+
 
 
 
 
 from app.api.webhook_schemas import WebhookCreate, WebhookUpdate
+from app.storage.repositories.webhook_repository import WebhookRepository
 
 class WebhookService:
+    """Service for managing webhooks (registration, verification, delivery)."""
     @staticmethod
     async def register_webhook(webhook_data: WebhookCreate) -> Dict[str, Any]:
+        """
+        Register a new webhook.
+
+        Args:
+            webhook_data: Registration data
+
+        Returns:
+            Dict containing the created webhook and its plaintext secret (shown only once)
+        """
         webhook_id = f"webhook_{uuid.uuid4().hex[:12]}"
         
         # specific secret or generate one
@@ -159,7 +172,11 @@ class WebhookService:
     @staticmethod
     async def trigger_outgoing_event(event_type: str, payload: Dict[str, Any]):
         """
-        Finds all active webhooks subscribed to this event and queues delivery.
+        Identify active webhooks for an event and queue deliveries.
+
+        Args:
+            event_type: Type of event (e.g. 'message.received')
+            payload: Payload to deliver
         """
         targets = await WebhookRepository.get_webhooks_by_event(event_type, active_only=True)
         timestamp = datetime.utcnow().isoformat()

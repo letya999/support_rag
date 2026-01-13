@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Dict, List
 import yaml
+from app.logging_config import logger
 
 class NodeRegistry:
     EXCLUDED_DIRS = ["base_node", "__pycache__"]
@@ -28,7 +29,7 @@ class NodeRegistry:
                         config = yaml.safe_load(f) or {}
                         nodes[node_path.name] = config
                 except Exception as e:
-                    print(f"⚠️ Error loading config for node {node_path.name}: {e}")
+                    logger.error("Error loading node config", extra={"node": node_path.name, "error": str(e)})
         return nodes
     
     def get_node_config(self, node_name: str) -> dict:

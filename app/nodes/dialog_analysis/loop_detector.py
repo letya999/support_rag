@@ -9,6 +9,7 @@ Detects when a user is stuck in a conversational loop by:
 from typing import List, Dict, Any, Optional
 import numpy as np
 from app.integrations.embeddings_opensource import get_embeddings_batch
+from app.logging_config import logger
 
 
 async def detect_topic_loop(
@@ -81,14 +82,14 @@ async def detect_topic_loop(
         # Translate current question if not already translated
         if translated_query and detected_language and detected_language != "en":
             current_en = translated_query
-            print(f"[LoopDetector] Using pre-translated query: '{current_question}' -> '{current_en}'")
+            logger.debug("Loop detector using pre-translated query", extra={"original": current_question, "en": current_en})
         elif detected_language == "en":
             current_en = current_question
-            print(f"[LoopDetector] Current question already in English")
+            logger.debug("Loop detector: question already in English")
         else:
             # Fallback: translate now
             current_en = await translate_text(current_question, target_lang="en")
-            print(f"[LoopDetector] Translated current: '{current_question}' -> '{current_en}'")
+            logger.debug("Loop detector: translated current question", extra={"original": current_question, "en": current_en})
         
         # Translate history messages
         # OPTIMIZATION: Use pre-saved translations from message metadata
@@ -112,10 +113,8 @@ async def detect_topic_loop(
                 translated = await translate_text(msg_text, target_lang="en")
                 translated_history.append(translated)
         
-        print(f"[LoopDetector] Using {len([h for h in translated_history if h])} pre-translated messages from cache")
-        
         all_english_messages = [current_en] + translated_history
-        print(f"[LoopDetector] Comparing {len(all_english_messages)} English messages")
+        logger.debug("Loop detector comparing English messages", extra={"count": len(all_english_messages)})
         
         # Step 2: Get embeddings for English text
         embeddings = await get_embeddings_batch(all_english_messages[:window_size])
@@ -135,14 +134,17 @@ async def detect_topic_loop(
             if similarity >= similarity_threshold:
                 similar_indices.append(idx + 1)
         
-        print(f"[LoopDetector] Similarities (English): {[f'{s:.3f}' for s in similarities]}")
-        print(f"[LoopDetector] Similar messages (>={similarity_threshold}): {len(similar_indices)}")
-        
-        # Step 4: Detect loop
-        loop_detected = len(similar_indices) >= (min_messages_for_loop - 1)
         average_similarity = np.mean(similarities) if similarities else 0.0
         
-        print(f"[LoopDetector] Final decision: loop_detected={loop_detected}")
+
+        loop_detected = len(similar_indices) >= (min_messages_for_loop - 1)
+
+        logger.info("Topic loop detection finished", extra={
+            "loop_detected": loop_detected,
+            "similarities": [f'{s:.3f}' for s in similarities],
+            "similar_count": len(similar_indices),
+            "threshold": similarity_threshold
+        })
 
         
         # Calculate confidence
@@ -161,7 +163,7 @@ async def detect_topic_loop(
         }
         
     except Exception as e:
-        print(f"⚠️ Loop detection failed: {e}")
+        logger.error("Loop detection failed", extra={"error": str(e)})
         # Fail gracefully - don't block the pipeline
         return {
             "topic_loop_detected": False,

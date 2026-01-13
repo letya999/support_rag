@@ -15,12 +15,14 @@ from app.services.cache.manager import get_cache_manager
 from app.services.config_loader.loader import get_cache_config
 from app.services.warmup_service import WarmupService
 from app.storage.connection import init_db_pool, close_db_pool
+from app.logging_config import setup_logging, logger
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize services on startup and cleanup on shutdown."""
-    print("🚀 Starting Support RAG Pipeline...")
+    setup_logging()
+    logger.info("Starting Support RAG Pipeline...")
 
     # Initialize cache manager
     try:
@@ -33,20 +35,20 @@ async def lifespan(app: FastAPI):
             ttl_seconds=cache_params.get("ttl_seconds", 86400)
         )
         health = await cache.health_check()
-        print(f"✅ Cache initialized: {health['backend'].upper()}")
+        logger.info("Cache initialized", extra={"backend": health['backend'].upper()})
         
         # Initialize Rate Limiter
         await init_limiter()
-        print("✅ Rate Limiter initialized")
+        logger.info("Rate Limiter initialized")
         
         # Initialize DB Pool
         await init_db_pool()
-        print("✅ DB Pool initialized")
+        logger.info("DB Pool initialized")
     except Exception as e:
-        print(f"⚠️  Cache/DB initialization warning: {e}")
+        logger.warning("Cache/DB initialization warning", extra={"error": str(e)})
     
     # Warmup Models (prevents first-request latency)
-    print("🔥 Warming up models...")
+    logger.info("Warming up models...")
     from app._shared_config.intent_registry import get_registry
     await get_registry().initialize()
     await WarmupService.warmup_all()
@@ -54,16 +56,16 @@ async def lifespan(app: FastAPI):
     yield
 
     # Cleanup
-    print("🛑 Shutting down Support RAG Pipeline...")
+    logger.info("Shutting down Support RAG Pipeline...")
     try:
         cache = await get_cache_manager()
         await cache.close()
-        print("✅ Cache closed")
+        logger.info("Cache closed")
         
         await close_db_pool()
-        print("✅ DB Pool closed")
+        logger.info("DB Pool closed")
     except Exception as e:
-        print(f"⚠️  Cleanup warning: {e}")
+        logger.warning("Cleanup warning", extra={"error": str(e)})
 
 
 from fastapi.openapi.utils import get_openapi

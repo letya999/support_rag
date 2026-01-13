@@ -3,21 +3,20 @@ Taxonomy Service
 Manages hierarchical category and intent structures
 """
 from typing import Dict, List, Optional, Any
-import logging
-import asyncio
-import psycopg
-from qdrant_client.http import models
-
-from datetime import datetime
 from app.settings import settings
 from app._shared_config.intent_registry import get_registry
 from app.storage.qdrant_client import get_async_qdrant_client
+from app.logging_config import logger
 
-
-logger = logging.getLogger(__name__)
+import asyncio
+import psycopg
+from qdrant_client.http import models
+from datetime import datetime
 
 class TaxonomyService:
+    """Service for managing the taxonomy (categories and intents) across storage backends."""
     def __init__(self):
+        """Initialize TaxonomyService with database URL and registry."""
         self.db_url = settings.DATABASE_URL
         self.registry = get_registry()
 
@@ -45,6 +44,13 @@ class TaxonomyService:
         """
         Rename a category in both Postgres and Qdrant.
         Trigger registry refresh.
+
+        Args:
+            old_name: Current category name
+            new_name: New category name
+
+        Returns:
+            Dict with update status and statistics
         """
         if not self.db_url:
             raise ValueError("Database URL not configured")
@@ -86,7 +92,7 @@ class TaxonomyService:
             qdrant_updated = -1 
             
         except Exception as e:
-            logger.error(f"Qdrant update failed: {e}")
+            logger.error("Qdrant category update failed", extra={"error": str(e), "old_name": old_name, "new_name": new_name})
 
         # 3. Trigger Sync
         await self.sync_registry()
@@ -102,6 +108,13 @@ class TaxonomyService:
     async def rename_intent(self, old_name: str, new_name: str) -> Dict[str, Any]:
         """
         Rename an intent in both Postgres and Qdrant.
+
+        Args:
+            old_name: Current intent name
+            new_name: New intent name
+
+        Returns:
+            Dict with update status
         """
         if not self.db_url:
             raise ValueError("Database URL not configured")
@@ -130,7 +143,7 @@ class TaxonomyService:
                 points=filter_condition
             )
         except Exception as e:
-            logger.error(f"Qdrant update failed: {e}")
+            logger.error("Qdrant intent update failed", extra={"error": str(e), "old_name": old_name, "new_name": new_name})
 
         await self.sync_registry()
         return {"status": "success", "old_name": old_name, "new_name": new_name}

@@ -7,6 +7,7 @@ Considers confidence, escalation requests, and document requirements.
 from typing import Dict, Any
 from app.nodes.base_node import BaseNode
 from app.settings import settings
+from app.logging_config import logger
 from app.nodes.routing.logic import decide_action, get_decision_reason
 from app.observability.tracing import observe
 
@@ -113,7 +114,7 @@ class RoutingNode(BaseNode):
         
         # Если нет рекомендации (старый flow), используем fallback логику
         if not action_recommendation:
-            print("⚠️ No action_recommendation from state_machine, using fallback logic")
+            logger.warning("No action_recommendation from state_machine, using fallback logic")
             action_recommendation = self._fallback_decision(state, params)
             escalation_reason = escalation_reason or "fallback_decision"
         
@@ -128,7 +129,7 @@ class RoutingNode(BaseNode):
         escalation_message = None
         
         if action_recommendation == "block":
-            print(f"🚫 Request blocked by guardrails/state machine")
+            logger.info("Request blocked by guardrails/state machine")
             return {
                 "action": "block",
                 "routing_reason": escalation_reason,
@@ -164,11 +165,7 @@ class RoutingNode(BaseNode):
                 "dialog_state": state.get("dialog_state")
             }
             
-            print(f"🚨 ESCALATION TRIGGERED")
-            print(f"   Reason: {escalation_reason}")
-            print(f"   Confidence: {confidence:.3f} (Threshold: {threshold:.3f})")
-            print(f"   Dialog State: {state.get('dialog_state')}")
-            print(f"   Message: {escalation_message}")
+            logger.info("Escalation triggered", extra=escalation_details)
             
             # Логируем событие в Langfuse
             try:
@@ -185,7 +182,7 @@ class RoutingNode(BaseNode):
                 )
             except Exception as e:
                 # Fallback - @observe decorator будет логировать
-                print(f"   (Langfuse event logging failed: {e})")
+                logger.debug("Langfuse event logging failed", extra={"error": str(e)})
         
         result = {
             "action": action_recommendation,

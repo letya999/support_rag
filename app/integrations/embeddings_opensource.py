@@ -3,6 +3,7 @@ from typing import List, Union
 from sentence_transformers import SentenceTransformer
 import torch
 import torch
+from app.logging_config import logger
 from app.observability.tracing import langfuse_context, observe
 from concurrent.futures import ThreadPoolExecutor
 
@@ -23,7 +24,7 @@ class EmbeddingModel:
 
     def __init__(self, model_name: str = "intfloat/multilingual-e5-small"):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"Loading embedding model {model_name} on {self.device}...")
+        logger.info("Loading embedding model", extra={"model": model_name, "device": self.device})
         self.model = SentenceTransformer(model_name, device=self.device)
         self.vector_size = self.model.get_sentence_embedding_dimension()
 
@@ -36,7 +37,7 @@ class EmbeddingModel:
         embeddings = self.model.encode(clean_texts, batch_size=batch_size, normalize_embeddings=True)
         
         duration_ms = (time.perf_counter() - start) * 1000
-        print(f"[Embeddings] Encoded {len(texts)} texts in {duration_ms:.2f}ms")
+        logger.debug("Embeddings encoded", extra={"count": len(texts), "duration_ms": round(duration_ms, 2)})
         
         return embeddings.tolist()
 

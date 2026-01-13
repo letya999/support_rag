@@ -3,6 +3,7 @@ import asyncio
 import os
 from typing import Optional, Dict, List, Any
 from sentence_transformers import SentenceTransformer, util
+from app.logging_config import logger
 from app.nodes.classification.models import ClassificationOutput
 from app._shared_config.intent_registry import get_registry, IntentRegistryService
 
@@ -68,7 +69,7 @@ class SemanticClassificationService:
         if self._model is not None:
             return
 
-        print(f"[SemanticClassifier] Loading semantic model {self._model_name}...", flush=True)
+        logger.info("Loading semantic model", extra={"model": self._model_name})
         try:
             loop = asyncio.get_running_loop()
             self._model = await loop.run_in_executor(None, SentenceTransformer, self._model_name)
@@ -92,11 +93,9 @@ class SemanticClassificationService:
                 None, self._model.encode, category_texts
             )
             
-            print(f"[SemanticClassifier] Model loaded. Labels: {len(intents)} intents, {len(categories)} categories.", flush=True)
+            logger.info("Semantic model loaded", extra={"intents": len(intents), "categories": len(categories)})
         except Exception as e:
-            print(f"[SemanticClassifier] CRITICAL ERROR loading model: {e}", flush=True)
-            import traceback
-            traceback.print_exc()
+            logger.error("CRITICAL ERROR loading semantic model", exc_info=True)
     
     async def refresh_embeddings(self) -> bool:
         """
@@ -129,10 +128,10 @@ class SemanticClassificationService:
                 None, self._model.encode, category_texts
             )
             
-            print(f"[SemanticClassifier] Refreshed embeddings: {len(intents)} intents, {len(categories)} categories.", flush=True)
+            logger.info("Refreshed semantic embeddings", extra={"intents": len(intents), "categories": len(categories)})
             return True
         except Exception as e:
-            print(f"[SemanticClassifier] Error refreshing embeddings: {e}", flush=True)
+            logger.error("Error refreshing embeddings", extra={"error": str(e)})
             return False
 
     async def classify(self, text: str) -> Optional[ClassificationOutput]:
@@ -166,7 +165,7 @@ class SemanticClassificationService:
             )
 
         except Exception as e:
-            print(f"[SemanticClassifier] Error: {e}", flush=True)
+            logger.error("Semantic classification error", extra={"error": str(e)})
             return None
 
     async def encode_batch(self, texts: List[str]) -> Any:

@@ -3,6 +3,7 @@ import json
 import yaml
 from typing import Any, Dict, List
 from app.nodes.dialog_analysis.metrics.base import DialogAnalysisBaseMetric
+from app.logging_config import logger
 from app.integrations.llm import get_llm
 from app.nodes.state_machine.states_config import SIGNAL_ESCALATION_REQ
 
@@ -161,7 +162,7 @@ class EscalationLogicValidation(DialogAnalysisBaseMetric):
             llm_score = max(0.0, min(1.0, float(llm_score)))
             
         except Exception as e:
-            print(f"⚠️ EscalationLogicValidation LLM part failed: {e}")
+            logger.error("EscalationLogicValidation LLM part failed", extra={"error": str(e)})
             llm_score = 0.5  # Neutral if LLM fails
         
         # 3. Combined score: rule compliance (70%) + LLM validation (30%)

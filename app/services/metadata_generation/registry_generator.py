@@ -5,6 +5,7 @@ import yaml
 import psycopg
 import asyncio
 from app.settings import settings
+from app.logging_config import logger
 
 # Default output path for the registry
 DEFAULT_REGISTRY_PATH = os.path.join(
@@ -129,7 +130,7 @@ class RegistryGenerator:
     @staticmethod
     async def refresh_intents(output_path: str = DEFAULT_REGISTRY_PATH) -> bool:
         if not settings.DATABASE_URL:
-            print("❌ Error: DATABASE_URL is not set.")
+            logger.error("Error refreshing intents: DATABASE_URL is not set")
             return False
             
         try:
@@ -145,7 +146,5 @@ class RegistryGenerator:
             return True
             
         except Exception as e:
-            print(f"❌ Error refreshing intents: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Error refreshing intents", exc_info=True)
             return False

@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import List, Dict, Any, Union
-import logging
+from app.logging_config import logger
 
 from app.services.document_loaders.loader_factory import LoaderFactory
 from app.services.document_loaders.models import DocumentFormat
@@ -12,8 +12,6 @@ from app.services.qa_extractors.json_extractor import JSONQAExtractor
 from app.services.structure_detectors.document_structure_analyzer import DocumentStructureAnalyzer, DocumentStructure
 from app.services.metadata_generators.metadata_enricher import MetadataEnricher
 
-logger = logging.getLogger(__name__)
-
 class DocumentProcessingService:
     """
     Orchestrates the conversion of raw files into structured Q&A pairs (ProcessedQAPair).
@@ -23,11 +21,18 @@ class DocumentProcessingService:
     @staticmethod
     async def process_file(file_path: str, original_filename: str = None) -> List[ProcessedQAPair]:
         """
-        Process a file path into Q&A pairs.
+        Process a file path into Q&A pairs using the full processing pipeline.
+
+        Args:
+            file_path: Path to the local file
+            original_filename: Original filename (optional, for metadata)
+
+        Returns:
+            List of ProcessedQAPair objects
         """
         path_obj = Path(file_path)
         display_name = original_filename if original_filename else path_obj.name
-        logger.info(f"Processing file: {display_name}")
+        logger.info("Processing file", extra={"filename": display_name})
 
         # 1. Load Document Content (Blocks)
         loader = LoaderFactory.get_loader(file_path)
@@ -65,7 +70,7 @@ class DocumentProcessingService:
                  notes=["Forced CSV table structure with default mapping"]
              )
              
-        logger.info(f"Detected structure: {structure.detected_format}")
+        logger.info("Structure detection finished", extra={"format": structure.detected_format, "filename": display_name})
         
         extractor = None
         if doc.file_type == DocumentFormat.JSON:
@@ -106,5 +111,5 @@ class DocumentProcessingService:
                 metadata=enriched_meta
             ))
             
-        logger.info(f"Extracted {len(processed_pairs)} pairs from {display_name}")
+        logger.info("File processing complete", extra={"pairs_extracted": len(processed_pairs), "filename": display_name})
         return processed_pairs

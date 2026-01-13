@@ -1,6 +1,7 @@
 from typing import Optional, Tuple, Any
 from redis import asyncio as aioredis
 from redis.asyncio import Redis
+from app.logging_config import logger
 
 class RedisConnector:
     """
@@ -17,10 +18,10 @@ class RedisConnector:
             # Original code used decode_responses=False
             self.client = await aioredis.from_url(self.url, decode_responses=False)
             await self.client.ping()
-            print("✅ Redis connected successfully")
+            logger.info("Redis connected successfully")
             return True
         except Exception as e:
-            print(f"⚠️  Redis connection failed: {e}. Using in-memory cache.")
+            logger.warning("Redis connection failed, using in-memory fallback", extra={"error": str(e)})
             self.client = None
             return False
 
@@ -59,7 +60,7 @@ class RedisConnector:
                     return
                 except Exception as e:
                     if attempt == 2:
-                        print(f"❌ Redis setex failed after 3 attempts: {e}")
+                        logger.error("Redis setex failed after 3 attempts", extra={"key": key, "error": str(e)})
                     else:
                         import asyncio
                         await asyncio.sleep(0.1)

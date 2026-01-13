@@ -16,6 +16,7 @@ Note: This is heavier than basic guardrails (~50-200ms latency)
 from typing import List, Dict, Optional
 from dataclasses import dataclass
 import asyncio
+from app.logging_config import logger
 
 try:
     from llm_guard.input_scanners import (
@@ -31,7 +32,7 @@ try:
     LLM_GUARD_AVAILABLE = True
 except ImportError:
     LLM_GUARD_AVAILABLE = False
-    print("⚠️ LLM Guard not installed. Install with: pip install llm-guard")
+    logger.debug("LLM Guard not installed, advanced guardrails disabled")
 
 
 @dataclass
@@ -92,7 +93,7 @@ class AdvancedGuardrailsService:
         if self._initialized:
             return
             
-        print(f"🔄 Lazy-loading guardrails models (level: {self.protection_level})...")
+        logger.info("Lazy-loading guardrails models", extra={"level": self.protection_level})
         self.scanners = []
         
         # 1. Prompt Injection Scanner
@@ -150,7 +151,7 @@ class AdvancedGuardrailsService:
         # self.scanners.append(Anonymize())
         
         self._initialized = True
-        print("✅ Guardrails models loaded")
+        logger.info("Guardrails models loaded successfully")
     
     async def scan(self, text: str) -> AdvancedScanResult:
         """
