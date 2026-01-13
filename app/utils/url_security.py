@@ -46,12 +46,12 @@ def is_ip_blocked(ip_str: str) -> bool:
         return False
 
 
-def validate_webhook_url(url: str, allow_private: bool = True) -> tuple[bool, Optional[str]]:
+def validate_webhook_url(url: str, allow_private: bool = True, allow_localhost: bool = False) -> tuple[bool, Optional[str]]:
     """
     Validate a webhook URL to prevent SSRF attacks.
 
     For internal network deployments:
-    - Blocks localhost (127.0.0.1, ::1)
+    - Blocks localhost (127.0.0.1, ::1) unless allow_localhost=True
     - Blocks cloud metadata endpoints (169.254.x.x)
     - Allows private IPs (10.x.x.x, 192.168.x.x) since it's internal network
     - Blocks file://, ftp://, and other non-HTTP protocols
@@ -59,6 +59,7 @@ def validate_webhook_url(url: str, allow_private: bool = True) -> tuple[bool, Op
     Args:
         url: URL to validate
         allow_private: Whether to allow private IP ranges (default: True for internal networks)
+        allow_localhost: Whether to allow localhost URLs (default: False, set True for dev)
 
     Returns:
         Tuple of (is_valid, error_message)
@@ -83,17 +84,18 @@ def validate_webhook_url(url: str, allow_private: bool = True) -> tuple[bool, Op
     if not hostname:
         return False, "URL must contain a hostname"
 
-    # Block obvious localhost references
-    localhost_patterns = [
-        "localhost",
-        "127.0.0.1",
-        "0.0.0.0",
-        "::1",
-        "0:0:0:0:0:0:0:1",
-    ]
+    # Block obvious localhost references (unless explicitly allowed for dev)
+    if not allow_localhost:
+        localhost_patterns = [
+            "localhost",
+            "127.0.0.1",
+            "0.0.0.0",
+            "::1",
+            "0:0:0:0:0:0:0:1",
+        ]
 
-    if hostname.lower() in localhost_patterns:
-        return False, "Localhost URLs are not allowed for security reasons"
+        if hostname.lower() in localhost_patterns:
+            return False, "Localhost URLs are not allowed for security reasons"
 
     # Resolve hostname to IP and check
     try:
@@ -102,9 +104,20 @@ def validate_webhook_url(url: str, allow_private: bool = True) -> tuple[bool, Op
         ips = set(info[4][0] for info in addr_info)
 
         for ip_str in ips:
-            # Check if IP is in blocked ranges
-            if is_ip_blocked(ip_str):
+            # Check if IP is in blocked ranges (cloud metadata, etc.)
+            # Skip localhost check if allow_localhost is True
+            if not allow_localhost and is_ip_blocked(ip_str):
                 return False, f"URL resolves to blocked IP address: {ip_str}"
+
+            # For allow_localhost=True, only block metadata endpoints, not localhost
+            if allow_localhost:
+                try:
+                    ip = ipaddress.ip_address(ip_str)
+                    # Still block cloud metadata even in dev mode
+                    if ip in ipaddress.ip_network("169.254.0.0/16"):
+                        return False, f"Cloud metadata endpoint blocked: {ip_str}"
+                except ValueError:
+                    pass
 
             # For internal networks, we allow private IPs
             # But you can disable this with allow_private=False
@@ -124,8 +137,16 @@ def validate_webhook_url(url: str, allow_private: bool = True) -> tuple[bool, Op
     # Additional check: Prevent DNS rebinding attacks with numeric IPs in hostname
     # If hostname is an IP, validate it directly
     if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', hostname):
-        if is_ip_blocked(hostname):
+        if not allow_localhost and is_ip_blocked(hostname):
             return False, f"IP address is blocked: {hostname}"
+        # For allow_localhost=True, only block metadata endpoints
+        if allow_localhost:
+            try:
+                ip = ipaddress.ip_address(hostname)
+                if ip in ipaddress.ip_network("169.254.0.0/16"):
+                    return False, f"Cloud metadata endpoint blocked: {hostname}"
+            except ValueError:
+                pass
 
     # Check for suspicious patterns
     suspicious_patterns = [

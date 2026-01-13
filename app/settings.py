@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     # Telegram
     TELEGRAM_TOKEN: Optional[str] = None
 
+    # Security
+    # Set to True in development to allow localhost webhooks for testing
+    ALLOW_LOCALHOST_WEBHOOKS: bool = False
+
     model_config = SettingsConfigDict(
         env_file=".env", 
         env_file_encoding="utf-8",

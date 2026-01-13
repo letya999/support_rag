@@ -2,6 +2,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 from app.utils.url_security import validate_webhook_url
+from app.settings import settings
 
 # --- Webhook Management Schemas ---
 
@@ -20,7 +21,11 @@ class WebhookCreate(BaseModel):
     def validate_url_security(cls, v):
         """Validate URL to prevent SSRF attacks."""
         url_str = str(v)
-        is_valid, error = validate_webhook_url(url_str, allow_private=True)
+        is_valid, error = validate_webhook_url(
+            url_str,
+            allow_private=True,  # Internal network - allow private IPs
+            allow_localhost=settings.ALLOW_LOCALHOST_WEBHOOKS  # Allow localhost in dev mode
+        )
         if not is_valid:
             raise ValueError(f"Invalid webhook URL: {error}")
         return v
@@ -40,7 +45,11 @@ class WebhookUpdate(BaseModel):
         """Validate URL to prevent SSRF attacks."""
         if v is not None:
             url_str = str(v)
-            is_valid, error = validate_webhook_url(url_str, allow_private=True)
+            is_valid, error = validate_webhook_url(
+                url_str,
+                allow_private=True,  # Internal network - allow private IPs
+                allow_localhost=settings.ALLOW_LOCALHOST_WEBHOOKS  # Allow localhost in dev mode
+            )
             if not is_valid:
                 raise ValueError(f"Invalid webhook URL: {error}")
         return v
