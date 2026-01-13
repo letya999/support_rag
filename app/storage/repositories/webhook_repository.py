@@ -100,29 +100,47 @@ class WebhookRepository:
         webhook_id: str,
         updates: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
-        valid_fields = {'name', 'url', 'events', 'description', 'active', 'metadata', 'ip_whitelist'}
-        
-        # Filter and prepare updates
+        # SECURITY: Use immutable set of allowed fields to prevent SQL injection
+        # Column names cannot be parameterized in SQL, so we use a strict whitelist
+        VALID_FIELDS = frozenset({
+            'name', 'url', 'events', 'description',
+            'active', 'metadata', 'ip_whitelist'
+        })
+
+        JSON_FIELDS = frozenset({'events', 'metadata', 'ip_whitelist'})
+
+        # Filter and prepare updates - only allow whitelisted fields
         fields = []
         values = []
         for k, v in updates.items():
-            if k in valid_fields:
-                fields.append(f"{k} = %s")
-                if k in ['events', 'metadata', 'ip_whitelist']:
-                    values.append(json.dumps(v))
-                else:
-                    values.append(v)
-        
+            # Double-check field is in whitelist
+            if k not in VALID_FIELDS:
+                # Skip invalid fields silently to prevent errors
+                # In production, you might want to log this
+                continue
+
+            # Validate field name contains only alphanumeric and underscore
+            # This is redundant given the whitelist, but defense in depth
+            if not k.replace('_', '').isalnum():
+                continue
+
+            fields.append(f"{k} = %s")
+            if k in JSON_FIELDS:
+                values.append(json.dumps(v))
+            else:
+                values.append(v)
+
         if not fields:
             return await WebhookRepository.get_webhook(webhook_id)
-            
+
         fields.append("updated_at = NOW()")
-        values.append(webhook_id) # for WHERE clause
-        
+        values.append(webhook_id)  # for WHERE clause
+
         async with get_db_connection() as conn:
             async with conn.cursor() as cur:
+                # Build query with validated field names
                 query = f"""
-                    UPDATE webhooks 
+                    UPDATE webhooks
                     SET {', '.join(fields)}
                     WHERE webhook_id = %s
                     RETURNING *

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Request, Query, Body, Path, BackgroundTasks
+from fastapi import APIRouter, HTTPException, UploadFile, File, Request, Query, Body, Path, BackgroundTasks, Depends
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import shutil
@@ -10,6 +10,8 @@ from app.api.v1.models import Envelope, MetaResponse
 from app.services.staging import staging_service
 from app.services.document_processing import DocumentProcessingService
 from app.services.webhook_service import WebhookService
+from app.utils.file_security import validate_file_type, sanitize_filename
+from app.api.v1.limiter import strict_limiter
 
 router = APIRouter(tags=["Ingestion"])
 
@@ -119,38 +121,53 @@ async def get_contract(request: Request):
         meta=MetaResponse(trace_id=trace_id)
     )
 
-@router.post("/ingestion/upload", response_model=Envelope[KnowledgeResponse])
+@router.post("/ingestion/upload", response_model=Envelope[KnowledgeResponse], dependencies=[Depends(strict_limiter)])
 async def upload_file(request: Request, background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     """
     Upload file -> Staging.
     Creates a new draft from the file.
     """
     trace_id = getattr(request.state, "trace_id", None)
-    
+
+    # Sanitize filename
+    try:
+        safe_filename = sanitize_filename(file.filename)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid filename: {str(e)}")
+
     # Save to temp file
-    suffix = os.path.splitext(file.filename)[1]
+    suffix = os.path.splitext(safe_filename)[1]
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
-        
+
+    # Validate file type using magic bytes
+    try:
+        extension, mime_type = validate_file_type(tmp_path, safe_filename)
+    except ValueError as e:
+        # Clean up temp file
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise HTTPException(status_code=400, detail=f"File validation failed: {str(e)}")
+
     try:
         # Process file using valid pipeline (Loader -> Analyzer -> Extractor)
-        pairs = await DocumentProcessingService.process_file(tmp_path, original_filename=file.filename)
-        
+        pairs = await DocumentProcessingService.process_file(tmp_path, original_filename=safe_filename)
+
         # Convert ProcessedQAPair objects to dicts for staging
         pairs_dicts = [
-            {"question": p.question, "answer": p.answer, "metadata": p.metadata} 
+            {"question": p.question, "answer": p.answer, "metadata": p.metadata}
             for p in pairs
         ]
-        
-        draft = await staging_service.create_draft(file.filename, pairs_dicts)
+
+        draft = await staging_service.create_draft(safe_filename, pairs_dicts)
         
         # Trigger Webhook
         background_tasks.add_task(
-            WebhookService.trigger_outgoing_event, 
+            WebhookService.trigger_outgoing_event,
             event_type="knowledge.document.uploaded",
             payload={
-                "document_name": file.filename,
+                "document_name": safe_filename,
                 "staging_id": draft["draft_id"],
                 "total_pairs": len(pairs)
             }
@@ -171,16 +188,16 @@ async def upload_file(request: Request, background_tasks: BackgroundTasks, file:
         background_tasks.add_task(
             WebhookService.trigger_outgoing_event,
             event_type="knowledge.document.failed",
-            payload={"error": str(e), "filename": file.filename}
+            payload={"error": "File processing failed", "filename": safe_filename}
         )
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="File processing failed")
     except Exception as e:
         background_tasks.add_task(
             WebhookService.trigger_outgoing_event,
             event_type="knowledge.document.failed",
-            payload={"error": str(e), "filename": file.filename}
+            payload={"error": "Internal error", "filename": safe_filename}
         )
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
     finally:
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)

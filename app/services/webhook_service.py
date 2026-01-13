@@ -32,53 +32,55 @@ class WebhookService:
         """
         webhook_id = f"webhook_{uuid.uuid4().hex[:12]}"
         
-        # specific secret or generate one
+        # Generate or use provided secret
         secret = webhook_data.secret or secrets.token_hex(32)
-        
-        # Store hash of the secret? 
-        # The plan says "secret_hash" in DB structure.
-        # But for outgoing signatures, we need the PLAINTEXT secret to sign the payload.
-        # So we MUST store the secret encrypted or plain, NOT just the hash.
-        # Waiting... checking plan 'WEBHOOKS_PLAN.md'.
-        # Plan says: "secret_hash VARCHAR(255) NOT NULL, -- HMAC-SHA256"
-        # AND "Signing for outgoing... hmac.new(secret.encode()...)"
-        # THIS IS A CONTRADICTION in strict security terms if we only have the hash.
-        # If we only have the hash of the secret, we cannot generate the HMAC signature (which requires the secret key).
-        # Unless "secret_hash" in the DB schema implies an encrypted secret, or the plan implies we can't recover it?
-        # Re-reading Plan: "secret_hash VARCHAR(255) ... // для верификации".
-        # If we use it for *outgoing*, we definitely need the raw secret.
-        # If we use it for *incoming*, we verify using the secret.
-        # A common pattern is to show the secret once and store it. 
-        # IF the plan says "secret_hash", maybe it implies the user *provides* the secret and the system validates it?
-        # NO, "Signing (HMAC-SHA256)... Outgoing... hmac(secret, message)". We act as the signer. We need the secret.
-        # Conclusion: I will store the secret in the DB field `secret_hash` for now, but assume it's the ACTUAL secret (maybe encrypted later). 
-        # Or I'll just store the plain secret there because "secret_hash" might be a misnomer in the SQL schema provided in the plan 
-        # OR it implies we hash it for storage and can't sign? No, that breaks outgoing webhooks. 
-        # I will treat `secret_hash` column as `secret` storage.
-        
+
+        # SECURITY NOTE for internal networks:
+        # We store the secret as plaintext in the database because:
+        # 1. We need it to sign outgoing webhook payloads (HMAC-SHA256)
+        # 2. Hashing would prevent us from signing (can't recover plaintext from hash)
+        # 3. For internal network with secured database, this is acceptable
+        #
+        # For production/external deployments, consider:
+        # - Encrypting secrets with a master key (envelope encryption)
+        # - Using a dedicated secrets vault (HashiCorp Vault, AWS Secrets Manager)
+        # - Implementing key rotation
+
         webhook = await WebhookRepository.create_webhook(
             webhook_id=webhook_id,
             name=webhook_data.name,
             url=str(webhook_data.url),
             events=webhook_data.events,
-            secret_hash=secret, # Storing plain secret for now to enable signing
+            secret_hash=secret,  # Stored as plaintext for signing capability
             description=webhook_data.description,
             active=webhook_data.active,
             metadata=webhook_data.metadata,
             ip_whitelist=webhook_data.ip_whitelist
         )
-        
-        # Attach the secret to the response only here
-        webhook['secret'] = secret 
+
+        # Return secret ONLY on registration (shown once)
+        # This is the only time the user sees the secret
+        webhook['secret'] = secret
         return webhook
 
     @staticmethod
     async def list_webhooks(limit: int = 20, offset: int = 0, active: bool = None) -> List[Dict[str, Any]]:
-        return await WebhookRepository.list_webhooks(limit, offset, active)
+        webhooks = await WebhookRepository.list_webhooks(limit, offset, active)
+        # Remove secret from list responses for security
+        for webhook in webhooks:
+            webhook.pop('secret_hash', None)
+            webhook.pop('secret', None)
+        return webhooks
 
     @staticmethod
     async def get_webhook(webhook_id: str) -> Optional[Dict[str, Any]]:
-        return await WebhookRepository.get_webhook(webhook_id)
+        webhook = await WebhookRepository.get_webhook(webhook_id)
+        if webhook:
+            # Remove secret from get responses for security
+            # Secret is only shown once during registration
+            webhook.pop('secret_hash', None)
+            webhook.pop('secret', None)
+        return webhook
 
     @staticmethod
     async def update_webhook(webhook_id: str, updates: WebhookUpdate) -> Optional[Dict[str, Any]]:
@@ -230,21 +232,37 @@ class WebhookService:
         http_status = 0
         error_message = None
         start_time = time.time()
-        
+
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            # Use longer timeout for internal network requests (30 seconds)
+            # Configure timeout per operation type
+            timeout = httpx.Timeout(
+                connect=5.0,   # Time to establish connection
+                read=30.0,     # Time to read response
+                write=10.0,    # Time to send request
+                pool=5.0       # Time to acquire connection from pool
+            )
+
+            async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
                 response = await client.post(url, content=payload_str, headers=headers)
                 http_status = response.status_code
-                
+
                 if 200 <= http_status < 300:
                     status = 'delivered'
                 else:
                     status = 'failed'
+                    # Truncate error message to prevent log injection
                     error_message = f"HTTP {http_status}: {response.text[:200]}"
-                    
+
+        except httpx.TimeoutException as e:
+            status = 'failed'
+            error_message = f"Request timeout: {str(e)[:100]}"
+        except httpx.RequestError as e:
+            status = 'failed'
+            error_message = f"Request error: {str(e)[:100]}"
         except Exception as e:
             status = 'failed'
-            error_message = str(e)
+            error_message = f"Unexpected error: {str(e)[:100]}"
             
         duration = int((time.time() - start_time) * 1000)
         

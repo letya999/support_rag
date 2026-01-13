@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_validator
+from app.utils.url_security import validate_webhook_url
 
 # --- Webhook Management Schemas ---
 
@@ -14,6 +15,16 @@ class WebhookCreate(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
     ip_whitelist: Optional[List[str]] = None
 
+    @field_validator('url')
+    @classmethod
+    def validate_url_security(cls, v):
+        """Validate URL to prevent SSRF attacks."""
+        url_str = str(v)
+        is_valid, error = validate_webhook_url(url_str, allow_private=True)
+        if not is_valid:
+            raise ValueError(f"Invalid webhook URL: {error}")
+        return v
+
 class WebhookUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
@@ -22,6 +33,17 @@ class WebhookUpdate(BaseModel):
     active: Optional[bool] = None
     metadata: Optional[Dict[str, Any]] = None
     ip_whitelist: Optional[List[str]] = None
+
+    @field_validator('url')
+    @classmethod
+    def validate_url_security(cls, v):
+        """Validate URL to prevent SSRF attacks."""
+        if v is not None:
+            url_str = str(v)
+            is_valid, error = validate_webhook_url(url_str, allow_private=True)
+            if not is_valid:
+                raise ValueError(f"Invalid webhook URL: {error}")
+        return v
 
 class WebhookResponse(BaseModel):
     webhook_id: str

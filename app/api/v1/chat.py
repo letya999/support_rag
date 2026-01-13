@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Request, BackgroundTasks, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
@@ -14,6 +14,7 @@ from app.services.webhook_service import WebhookService
 from app.settings import settings
 from app.api.v1.models import Envelope, MetaResponse
 from app.observability.filtered_handler import FilteredLangfuseHandler
+from app.api.v1.limiter import standard_limiter, strict_limiter
 
 router = APIRouter(tags=["Chat"])
 logger = logging.getLogger(__name__)
@@ -105,7 +106,7 @@ async def run_pipeline(
 
 # --- Endpoints ---
 
-@router.post("/chat/completions", response_model=Envelope[ChatCompletionData])
+@router.post("/chat/completions", response_model=Envelope[ChatCompletionData], dependencies=[Depends(standard_limiter)])
 async def chat_completions(request: Request, body: ChatCompletionRequest, background_tasks: BackgroundTasks):
     """
     Synchronous generation: get full answer at once.
@@ -177,7 +178,7 @@ async def chat_completions(request: Request, body: ChatCompletionRequest, backgr
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/chat/stream")
+@router.post("/chat/stream", dependencies=[Depends(standard_limiter)])
 async def chat_stream(request: Request, body: ChatCompletionRequest):
     """
     SSE Stream generation.

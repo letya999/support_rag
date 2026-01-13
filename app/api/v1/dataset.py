@@ -9,6 +9,7 @@ from langfuse import Langfuse
 from app.services.dataset_generation.generator import DatasetGenerator
 from app.dataset.schema import EvalItem
 from app.dataset.loader import validate_dataset, sync_dataset_to_langfuse
+from app.utils.file_security import validate_file_path, sanitize_filename
 
 router = APIRouter(prefix="/dataset", tags=["Dataset Generation"])
 logger = logging.getLogger(__name__)
@@ -121,12 +122,19 @@ async def save_dataset(request: SaveDatasetRequest):
         if not os.path.exists(DATASETS_DIR):
             os.makedirs(DATASETS_DIR)
 
-        # Normalize name
+        # Sanitize and validate filename to prevent path traversal
         filename = request.name
         if not filename.endswith(".json"):
             filename += ".json"
-        
-        path = os.path.join(DATASETS_DIR, filename)
+
+        # Validate path stays within DATASETS_DIR
+        try:
+            path = validate_file_path(DATASETS_DIR, filename)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid filename: {str(e)}"
+            )
         
         data_dicts = [item.dict() for item in request.items]
 
