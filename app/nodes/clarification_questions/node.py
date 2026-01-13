@@ -2,6 +2,7 @@ from typing import Dict, Any, List, Optional
 from app.nodes.base_node import BaseNode
 from app.observability.tracing import observe
 from app.services.config_loader.loader import get_node_config
+from app.utils.prompt_sanitization import sanitize_for_prompt
 import logging
 
 logger = logging.getLogger(__name__)
@@ -188,12 +189,16 @@ class ClarificationQuestionsNode(BaseNode):
         If target is english or unknown, return as is.
         """
         if not target_lang or target_lang.lower() in ["en", "english", "unknown"]:
-            return question
-            
+            # Still sanitize even if not translating
+            return sanitize_for_prompt(question)
+
         try:
             from app.integrations.llm import get_llm
             from langchain_core.prompts import ChatPromptTemplate
-            
+
+            # Sanitize question before translation to prevent injection
+            sanitized_question = sanitize_for_prompt(question)
+
             llm = get_llm(temperature=0, streaming=True)
             prompt = ChatPromptTemplate.from_template(
                 "Translate the following support question into {language}. "
@@ -203,12 +208,12 @@ class ClarificationQuestionsNode(BaseNode):
             )
             chain = prompt | llm
             res = await chain.ainvoke(
-                {"language": target_lang, "question": question},
+                {"language": target_lang, "question": sanitized_question},
                 config={"tags": ["clarification_llm"]}
             )
             return res.content.strip()
         except Exception as e:
             logger.error(f"Translation failed: {e}")
-            return question
+            return sanitize_for_prompt(question)
 
 clarification_questions_node = ClarificationQuestionsNode()

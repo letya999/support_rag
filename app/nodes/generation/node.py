@@ -5,6 +5,7 @@ from app.observability.tracing import observe
 from langchain_core.prompts import ChatPromptTemplate
 from app.logging_config import logger
 from app.observability.callbacks import get_langfuse_callback_handler
+from app.utils.prompt_sanitization import sanitize_for_prompt, sanitize_list
 
 class GenerationNode(BaseNode):
     """
@@ -88,8 +89,11 @@ class GenerationNode(BaseNode):
             # Fallback: build from docs + question
             question = state.get("aggregated_query") or state.get("question")
             docs = state.get("docs", [])
-            docs_str = "\n\n".join(docs)
-            human_prompt = f"Context:\n{docs_str}\n\nQuestion: {question}"
+            # Sanitize docs and question to prevent prompt injection
+            sanitized_docs = sanitize_list(docs)
+            sanitized_question = sanitize_for_prompt(question) if question else ""
+            docs_str = "\n\n".join(sanitized_docs)
+            human_prompt = f"Context:\n{docs_str}\n\nQuestion: {sanitized_question}"
         
         # Build chain
         llm = get_llm(streaming=True)
@@ -124,17 +128,20 @@ async def generate_answer_simple(question: str, docs: List[str]) -> str:
     Simple generation helper for evaluation/testing.
     Directly generates an answer from question and docs without full pipeline state.
     """
-    docs_str = "\n\n".join(docs)
-    
+    # Sanitize inputs to prevent prompt injection
+    sanitized_docs = sanitize_list(docs)
+    sanitized_question = sanitize_for_prompt(question)
+    docs_str = "\n\n".join(sanitized_docs)
+
     # Reuse the prompt loaded by the main node (avoids reloading file)
     qa_prompt = generate_node.qa_prompt
     chain = qa_prompt | get_llm()
-    
+
     langfuse_handler = get_langfuse_callback_handler()
-    
+
     # prompt_qa_simple.txt expects {docs} and {question}
     response = await chain.ainvoke(
-        {"docs": docs_str, "question": question},
+        {"docs": docs_str, "question": sanitized_question},
         config={"callbacks": [langfuse_handler]}
     )
     return response.content
