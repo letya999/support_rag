@@ -10,6 +10,7 @@ from app.integrations.llm import get_llm
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
 from app.services.config_loader.loader import load_shared_config
+from app.utils.prompt_sanitization import sanitize_for_prompt, sanitize_list, sanitize_dict_values
 import logging
 import json
 try:
@@ -137,11 +138,15 @@ class PromptRoutingNode(BaseNode):
         question = state.get("question")
         dialog_state = state.get("dialog_state", "INITIAL")
         state_behavior = state.get("state_behavior", {})
-        user_profile = state.get("user_profile", {})
-        extracted_entities = state.get("extracted_entities", {})
-        collected_slots = state.get("collected_slots", {})
+
+        # Sanitize all user-controlled inputs to prevent prompt injection
+        user_profile = sanitize_dict_values(state.get("user_profile", {}))
+        extracted_entities = sanitize_dict_values(state.get("extracted_entities", {}))
+        collected_slots = sanitize_dict_values(state.get("collected_slots", {}))
+
         # Use aggregated query if available, else original question
-        current_query = state.get("aggregated_query") or question
+        raw_query = state.get("aggregated_query") or question
+        current_query = sanitize_for_prompt(raw_query) if raw_query else ""
         
         # 1. Get base instruction based on state
         system_prompt = self._get_instruction(dialog_state)
@@ -161,10 +166,12 @@ class PromptRoutingNode(BaseNode):
         # 4. Append Collected Slots & Clarification Answers
         clarification_context = state.get("clarification_context", {})
         all_details = collected_slots.copy()
-        
+
         if clarification_context and clarification_context.get("answers"):
-            all_details.update(clarification_context["answers"])
-            
+            # Sanitize clarification answers as they contain user input
+            sanitized_answers = sanitize_dict_values(clarification_context["answers"])
+            all_details.update(sanitized_answers)
+
         if all_details:
              slots_str = "\n".join([f"- {k}: {v}" for k, v in all_details.items()])
              system_prompt += f"\n\nKnown Details:\n{slots_str}"
@@ -184,11 +191,11 @@ class PromptRoutingNode(BaseNode):
 
         # 6. Build human prompt with docs
         docs = state.get("docs", [])
-        
+
         if dialog_state in ["NEEDS_CLARIFICATION", "CLARIFY"]:
              # If we are clarifying, DO NOT include docs.
              docs_str = ""
-             
+
              # Check for pending questions (Strict Mode)
              # Try legacy pending_questions OR new clarification_context
              active_questions = state.get("pending_questions")
@@ -199,19 +206,20 @@ class PromptRoutingNode(BaseNode):
                      qs = ctx.get("questions", [])
                      if idx < len(qs):
                          active_questions = [qs[idx]]
-             
+
              if active_questions:
                  # STRICT MODE: Force LLM to just ask the specific question
-                 target_question = active_questions[0]
+                 # Sanitize the target question as it may have come from user-provided metadata
+                 target_question = sanitize_for_prompt(active_questions[0])
                  detected_lang = state.get("detected_language", "en")
-                 
+
                  system_prompt = (
                      "You are a precise technical assistant. "
                      "Your ONLY task is to ask the specific question provided below. "
                      f"Translate the question to '{detected_lang}' (Russian/Spanish/etc) to match the user. "
                      "Do NOT answer the question. Do NOT add pleasantries. Do NOT hallucinate new questions."
                  )
-                 
+
                  # We include the user's last input purely for context, but explicitly tell LLM to ignore it for generation
                  human_prompt = (
                      f"User's previous input: {current_query}\n"
@@ -222,19 +230,23 @@ class PromptRoutingNode(BaseNode):
              else:
                  # Fallback to standard clarification flow (if node didn't run or list empty)
                  human_prompt = f"User's previous input: {current_query}"
-                 
+
                  clarification_task = state.get("clarification_task", {})
                  questions = clarification_task.get("clarifying_questions", [])
                  if not questions:
                      best_doc = state.get("best_doc_metadata", {})
                      questions = best_doc.get("clarifying_questions", [])
-                 
+
                  system_prompt = self._get_instruction("NEEDS_CLARIFICATION")
                  if questions:
-                     questions_str = "\n".join([f"- {q}" for q in questions])
+                     # Sanitize questions as they may come from user-provided metadata
+                     sanitized_questions = sanitize_list(questions)
+                     questions_str = "\n".join([f"- {q}" for q in sanitized_questions])
                      system_prompt += f"\n\nRequired Clarifying Questions:\n{questions_str}"
         else:
-             docs_str = "\n\n".join(docs) if docs else ""
+             # Sanitize docs to prevent injection through retrieved content
+             sanitized_docs = sanitize_list(docs)
+             docs_str = "\n\n".join(sanitized_docs) if sanitized_docs else ""
              if docs_str:
                  human_prompt = f"Context:\n{docs_str}\n\nQuestion: {current_query}"
              else:

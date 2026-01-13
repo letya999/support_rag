@@ -7,13 +7,21 @@ router = APIRouter(tags=["System"])
 
 @router.get("/health", response_model=Envelope[Dict[str, str]])
 async def health_check(request: Request):
+    """
+    Basic health check endpoint.
+
+    For detailed system status, use internal monitoring tools.
+    This endpoint intentionally provides minimal information to prevent
+    information disclosure to potential attackers.
+    """
     trace_id = getattr(request.state, "trace_id", None)
+
+    # Simple health check - only report if system is up
+    # Don't expose configuration details for security
     return Envelope(
         data={
             "status": "healthy",
-            "database": "configured" if settings.DATABASE_URL else "missing",
-            "redis": "configured" if settings.REDIS_URL else "missing",
-            "llm": "configured" if settings.OPENAI_API_KEY else "missing"
+            "version": "1.0.0"
         },
         meta=MetaResponse(trace_id=trace_id)
     )

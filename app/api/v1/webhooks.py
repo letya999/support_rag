@@ -2,16 +2,17 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Depends, Request, Response, BackgroundTasks, Body, Header, Query
 from app.services.webhook_service import WebhookService
 from app.api.webhook_schemas import (
-    WebhookCreate, WebhookResponse, WebhookResponseFull, WebhookUpdate, 
+    WebhookCreate, WebhookResponse, WebhookResponseFull, WebhookUpdate,
     WebhookDeliveryResponse, WebhookSecretResponse,
     IncomingWebhookResponse, IncomingWebhookRequest
 )
+from app.api.v1.limiter import critical_limiter, standard_limiter
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 
 # --- Management Endpoints ---
 
-@router.post("/register", response_model=WebhookResponseFull, status_code=201)
+@router.post("/register", response_model=WebhookResponseFull, status_code=201, dependencies=[Depends(critical_limiter)])
 async def register_webhook(webhook: WebhookCreate):
     result = await WebhookService.register_webhook(webhook)
     # response model expects secret_hash, but we might want to return the plain secret once

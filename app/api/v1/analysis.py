@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
-from pydantic import BaseModel
-from typing import Dict, Any, List
+from pydantic import BaseModel, Field, field_validator
+from typing import Dict, Any, List, Optional
 from app.api.v1.models import Envelope, MetaResponse
 from app.services.webhook_service import WebhookService
 import logging
@@ -10,9 +10,32 @@ router = APIRouter(tags=["Autoclassification categories & intentions"])
 logger = logging.getLogger(__name__)
 
 # Models
+class ChunkMetadata(BaseModel):
+    """
+    Strict metadata schema to prevent mass assignment vulnerabilities.
+    Only allows whitelisted fields that are expected by the system.
+    """
+    category: Optional[str] = Field(None, max_length=100)
+    intent: Optional[str] = Field(None, max_length=100)
+    requires_handoff: Optional[bool] = None
+    confidence_threshold: Optional[float] = Field(None, ge=0.0, le=1.0)
+    clarifying_questions: Optional[List[str]] = Field(None, max_items=10)
+    source: Optional[str] = Field(None, max_length=200)
+
+    @field_validator('clarifying_questions')
+    @classmethod
+    def validate_questions(cls, v):
+        """Validate clarifying questions."""
+        if v is not None:
+            # Limit each question length
+            for q in v:
+                if len(q) > 500:
+                    raise ValueError("Each clarifying question must be <= 500 characters")
+        return v
+
 class ChunkMetadataUpdate(BaseModel):
     chunk_id: str
-    metadata: Dict[str, Any]
+    metadata: ChunkMetadata  # Use strict schema instead of Dict[str, Any]
 
 
 # Helper Functions
