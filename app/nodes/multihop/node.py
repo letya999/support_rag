@@ -115,6 +115,25 @@ class MultihopNode(BaseNode):
         # 1. Complexity Detection
         complexity = _detector.detect(question)
         
+        # 1.5: Check for very low retrieval score
+        # This indicates no relevant documents were found
+        very_low_score_threshold = params.get("very_low_score_threshold", 0.05)
+        max_score = max(scores) if scores else 0.0
+        very_low_retrieval_score = max_score < very_low_score_threshold
+        
+        if very_low_retrieval_score:
+            # Return immediately with flag for state machine to handle
+            return {
+                "complexity_level": "simple",
+                "complexity_score": 0.0,
+                "multihop_used": False,
+                "hops_performed": 0,
+                "merged_context": "",
+                "docs": [],
+                "confidence": max_score,
+                "very_low_retrieval_score": True
+            }
+        
         # 2. Build graph if needed
         if not _graph_built:
             await _relation_builder.load_from_db()

@@ -90,7 +90,13 @@ async def retrieve_context_expanded(
         confidence = scores[0] if scores else 0.0
         # Find metadata for the best reranked doc
         best_doc_content = docs[0] if docs else None
-        best_doc_metadata = next((r.metadata for r in unique_results if r.content == best_doc_content), {})
+        
+        if best_doc_content:
+            # OPTIMIZATION: O(1) lookup
+            content_to_metadata = {r.content: r.metadata for r in unique_results}
+            best_doc_metadata = content_to_metadata.get(best_doc_content, {})
+        else:
+            best_doc_metadata = {}
     else:
         # Just use vector results
         final_results = unique_results[:top_k_retrieval]

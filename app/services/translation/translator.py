@@ -65,6 +65,20 @@ class QueryTranslator:
         Translates query to target language if it's different.
         """
         current_lang = self.detect_language(query)
+        
+        # Normalize cyrillic slavic languages to Russian
+        # Our translation models only support ru-en, so we treat all cyrillic 
+        # slavic languages (Bulgarian, Ukrainian, Belarusian, Macedonian, Serbian) 
+        # as Russian for translation purposes
+        cyrillic_slavic_langs = {'bg', 'uk', 'be', 'mk', 'sr'}
+        
+        if current_lang in cyrillic_slavic_langs:
+            logger.info(
+                f"Detected {current_lang}, treating as Russian for translation", 
+                extra={"query": query, "original_lang": current_lang}
+            )
+            current_lang = "ru"
+        
         # Handle cases where language codes might differ slightly (e.g. "ru" vs "ru-RU")
         # For this simple implementation, we assume simple 2-letter codes.
         

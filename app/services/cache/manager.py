@@ -8,6 +8,7 @@ Refactored to separate concerns:
 """
 
 import json
+import asyncio
 from typing import Optional, Dict, Any, List
 from app.logging_config import logger
 from app.services.cache.models import CacheEntry
@@ -86,9 +87,8 @@ class CacheManager:
                 if data:
                     entry = CacheEntry.model_validate_json(data)
                     entry.hit_count += 1
-                    # Update hit count in Redis to prolong life? 
-                    # Original logic: entry.hit_count += 1, then set() back.
-                    await self.set(query_normalized, entry)
+                    # Update hit count asynchronously to reduce latency
+                    asyncio.create_task(self.set(query_normalized, entry))
                     return entry
             else:
                 entry = self.memory.get(query_normalized)
@@ -142,13 +142,18 @@ class CacheManager:
                 cursor = 0
                 while True:
                     cursor, keys = await self.redis.scan(cursor, match=pattern)
-                    for key in keys:
-                        data = await self.redis.get(key)
-                        if data:
-                            query = key.decode() if isinstance(key, bytes) else key
-                            query = query.replace(self.cache_prefix, "", 1)
-                            entry = CacheEntry.model_validate_json(data)
-                            entries[query] = entry
+                    if keys:
+                        # Batch fetch using MGET
+                        values = await self.redis.mget(keys)
+                        for key, data in zip(keys, values):
+                            if data:
+                                query = key.decode() if isinstance(key, bytes) else key
+                                query = query.replace(self.cache_prefix, "", 1)
+                                try:
+                                    entry = CacheEntry.model_validate_json(data)
+                                    entries[query] = entry
+                                except Exception:
+                                    continue
                     if cursor == 0:
                         break
             else:

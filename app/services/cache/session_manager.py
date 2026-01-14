@@ -19,7 +19,7 @@ class SessionManager:
     """
     def __init__(self, redis_client: Redis):
         self.redis = redis_client
-        self.ttl = int(conversation_config.session_ttl_hours * 3600)
+        self.ttl = conversation_config.conversation_cache_ttl_seconds
         self.prefix = "session:"
 
     async def get_session(self, user_id: str, session_id: str = None) -> Optional[UserSession]:
@@ -149,6 +149,39 @@ class SessionManager:
             await self.save_session(session)
         except Exception as e:
             logger.error("Failed to add message to cache", extra={"session_id": session_id, "error": str(e)})
+
+    async def get_recent_messages(self, session_id: str, limit: int = None) -> list[dict[str, str]]:
+        """
+        Get recent messages from Redis cache.
+        
+        Args:
+            session_id: Session identifier
+            limit: Max messages to return (None = all cached)
+        
+        Returns:
+            List of messages [{"role": "user", "content": "..."}, ...]
+            Empty list if session not found/expired
+        """
+        key = f"{self.prefix}{session_id}"
+        data = await self.redis.get(key)
+        
+        if not data:
+            return []
+        
+        try:
+            session = UserSession.model_validate_json(data)
+            messages = session.recent_messages
+            
+            if limit and len(messages) > limit:
+                return messages[-limit:]  # Last N messages
+            
+            return messages
+        except Exception as e:
+            logger.error(
+                "Failed to get recent messages from Redis", 
+                extra={"session_id": session_id, "error": str(e)}
+            )
+            return []
 
     async def clear_session(self, user_id: str):
         """

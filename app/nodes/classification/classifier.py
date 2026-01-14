@@ -1,5 +1,6 @@
 import asyncio
 from typing import Optional
+from collections import OrderedDict
 from app.logging_config import logger
 from transformers import pipeline
 from app._shared_config.intent_registry import get_registry
@@ -8,7 +9,7 @@ from app.nodes.classification.models import ClassificationOutput
 class ClassificationService:
     _instance = None
     _classifier = None
-    _cache = {}
+    _cache = OrderedDict()
     _cache_size = 1000
 
     def __new__(cls):
@@ -26,11 +27,16 @@ class ClassificationService:
         return cls._instance
 
     def _get_from_cache(self, text: str) -> Optional[ClassificationOutput]:
-        return self._cache.get(text)
+        if text in self._cache:
+            self._cache.move_to_end(text)
+            return self._cache[text]
+        return None
 
     def _add_to_cache(self, text: str, output: ClassificationOutput):
-        if len(self._cache) >= self._cache_size:
-            self._cache.pop(next(iter(self._cache)))
+        if text in self._cache:
+            self._cache.move_to_end(text)
+        elif len(self._cache) >= self._cache_size:
+            self._cache.popitem(last=False)
         self._cache[text] = output
 
     async def classify(self, text: str) -> ClassificationOutput:

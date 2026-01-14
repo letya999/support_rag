@@ -1,6 +1,6 @@
 from typing import Dict, Any, List
 from app.nodes.base_node import BaseNode
-from app.nodes.retrieval.search import retrieve_context
+from app.nodes.retrieval.search import retrieve_context, retrieve_context_expanded
 from app.observability.tracing import observe
 
 class RetrievalNode(BaseNode):
@@ -103,24 +103,54 @@ class RetrievalExpandedNode(BaseNode):
         question = state.get("aggregated_query") or state.get("question", "")
         queries = state.get("queries", [question])
         
+        # Use centralized logic from search.py (which includes optimizations)
+        # Note: retrieve_context_expanded handles expansion internally if we pass 'use_expansion=True',
+        # but here the state might already have 'queries' from a separate expansion node?
+        # The docstring says "Retrieves documents using multiple expanded queries".
+        # If 'queries' are passed, we shouldn't ask valid_context_expanded to expand again if it duplicates work.
+        # But retrieve_context_expanded has 'queries = await expander.expand(question)' logic.
+        # It doesn't accept 'queries' as argument.
+        
+        # If we want to use the 'queries' from state:
+        # retrieve_context_expanded doesn't support passing pre-calculated queries.
+        # We might need to adjust retrieve_context_expanded or just keep using custom logic here 
+        # BUT with improved deduplication.
+        
+        # Since I cannot easily change search.py signature without checking all call sites (though I can search),
+        # And RetrievalExpandedNode seems to rely on queries being present or not.
+        
+        # Actually, let's look at RetrievalExpandedNode logic:
+        # queries = state.get("queries", [question])
+        # tasks = [search_single_query(q) for q in queries]
+        
+        # If I want to fix "Multiple iterations", I should optimize THIS block.
+        
         import asyncio
         from app.nodes.retrieval.search import search_single_query
         
         tasks = [search_single_query(q, top_k=10) for q in queries]
         all_results = await asyncio.gather(*tasks)
         
-        seen_contents = set()
-        unique_results = []
+        # Optimized deduplication (Max Score Win)
+        unique_map = {}
         for results in all_results:
             for r in results:
-                if r.content not in seen_contents:
-                    seen_contents.add(r.content)
-                    unique_results.append(r)
+                if r.content in unique_map:
+                    if r.score > unique_map[r.content].score:
+                        unique_map[r.content] = r
+                else:
+                    unique_map[r.content] = r
         
-        unique_results = sorted(unique_results, key=lambda x: x.score, reverse=True)
+        unique_results = list(unique_map.values())
+        unique_results.sort(key=lambda x: x.score, reverse=True)
         
-        docs = [r.content for r in unique_results]
-        scores = [r.score for r in unique_results]
+        # Zip for single pass extraction
+        docs = []
+        scores = []
+        if unique_results:
+            docs, scores = zip(*[(r.content, r.score) for r in unique_results])
+            docs = list(docs)
+            scores = list(scores)
         
         return {
             "docs": docs,

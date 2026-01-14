@@ -68,25 +68,20 @@ class SessionStarterNode(BaseNode):
         # For now, we assume overwrite behavior or fresh state
         
         try:
-            # 1. Load conversation_history from DB (current session)
-            # We strictly enforce DB as the single source of truth for history
-            max_history = self.params["max_history_messages"]
-            raw_history_db = await PersistenceManager.get_session_messages(
+            # 1. Load conversation_history (Redis-first with PostgreSQL fallback)
+            max_history = self.params.get("max_history_messages", 5)
+            
+            updates["conversation_history"] = await self._load_history_hybrid(
+                user_id=user_id,
                 session_id=session_id,
-                limit=max_history
+                max_messages=max_history
             )
-
-            if raw_history_db:
-                clean_history = filter_conversation_history(raw_history_db)
-                updates["conversation_history"] = clean_history
-                logger.info("Loaded conversation history from DB", extra={"session_id": session_id, "messages": len(clean_history)})
-            else:
-                # No history in DB means new session or empty state
-                updates["conversation_history"] = []
-                logger.info("New session - no history found in DB", extra={"session_id": session_id})
-
+            
         except Exception as e:
-            logger.error("Failed to load conversation history from DB", extra={"session_id": session_id, "error": str(e)})
+            logger.error(
+                "Failed to load conversation history", 
+                extra={"session_id": session_id, "error": str(e)}
+            )
             updates["conversation_history"] = []
 
         # 2. Load User Profile (Lazy or Eager based on config)
@@ -166,6 +161,155 @@ class SessionStarterNode(BaseNode):
         except Exception as e:
             logger.error("Error with Redis session", extra={"user_id": user_id, "session_id": session_id, "error": str(e)})
             return None
+
+    async def _load_history_hybrid(
+        self, 
+        user_id: str,
+        session_id: str, 
+        max_messages: int
+    ) -> List[Dict[str, Any]]:
+        """
+        Load conversation history with hybrid strategy.
+        
+        Strategy:
+            1. Redis: ONLY current session messages (hot cache)
+            2. PostgreSQL session: current session messages if Redis miss
+            3. PostgreSQL cross-session: ALWAYS load recent messages from other sessions for context
+        
+        Final history = [cross-session context (older)] + [current session messages (recent)]
+        
+        Args:
+            user_id: User identifier (for cross-session history)
+            session_id: Current session identifier (for Redis cache key)
+            max_messages: Max messages to load
+        
+        Returns:
+            List of conversation messages in format:
+            [{"role": "user", "content": "...", "created_at": "..."}, ...]
+        """
+        current_session_messages = []
+        
+        # Step 1: Try Redis first for CURRENT SESSION only
+        try:
+            cache_manager = await get_cache_manager()
+            if cache_manager.redis.is_available():
+                session_manager = SessionManager(cache_manager.redis.client)
+                redis_messages = await session_manager.get_recent_messages(
+                    session_id, 
+                    limit=max_messages
+                )
+                
+                if redis_messages:
+                    logger.info(
+                        "✅ Current session loaded from Redis (hot cache)", 
+                        extra={
+                            "session_id": session_id, 
+                            "messages": len(redis_messages),
+                            "source": "redis"
+                        }
+                    )
+                    current_session_messages = redis_messages
+                    
+        except Exception as e:
+            logger.warning(
+                "Redis cache lookup failed", 
+                extra={"session_id": session_id, "error": str(e)}
+            )
+        
+        # Step 2: If Redis miss, load CURRENT SESSION from PostgreSQL
+        if not current_session_messages:
+            logger.info(
+                "🔄 Redis miss - loading current session from PostgreSQL", 
+                extra={"session_id": session_id, "source": "postgresql"}
+            )
+            
+            raw_session_history = await PersistenceManager.get_session_messages(
+                session_id=session_id,
+                limit=max_messages
+            )
+            
+            if raw_session_history:
+                current_session_messages = filter_conversation_history(raw_session_history)
+                
+                # Warm up Redis ONLY with current session messages
+                try:
+                    cache_manager = await get_cache_manager()
+                    if cache_manager.redis.is_available():
+                        session_manager = SessionManager(cache_manager.redis.client)
+                        
+                        for msg in current_session_messages[-50:]:
+                            await session_manager.add_message(
+                                session_id, 
+                                msg.get("role", "user"), 
+                                msg.get("content", "")
+                            )
+                        
+                        logger.info(
+                            "💾 Warmed up Redis with current session",
+                            extra={
+                                "session_id": session_id,
+                                "cached_messages": len(current_session_messages)
+                            }
+                        )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to warm up Redis (non-critical)",
+                        extra={"session_id": session_id, "error": str(e)}
+                    )
+        
+        # Step 3: ALWAYS load cross-session context from PostgreSQL (other sessions)
+        # This gives context even when user switches sessions
+        cross_session_context = []
+        try:
+            # Load recent messages from ALL user's sessions
+            all_messages = await PersistenceManager.get_user_recent_messages(
+                user_id=user_id,
+                limit=max_messages * 2  # Get more for better context
+            )
+            
+            if all_messages:
+                # Filter out messages from current session (already loaded)
+                # Keep only messages from OTHER sessions for context
+                cross_session_context = [
+                    msg for msg in all_messages 
+                    if msg.get("session_id") != session_id
+                ][:max_messages // 2]  # Use half of limit for context
+                
+                if cross_session_context:
+                    logger.info(
+                        "📚 Loaded cross-session context from PostgreSQL",
+                        extra={
+                            "user_id": user_id,
+                            "context_messages": len(cross_session_context),
+                            "excluded_current_session": session_id
+                        }
+                    )
+        except Exception as e:
+            logger.warning(
+                "Failed to load cross-session context (non-critical)",
+                extra={"user_id": user_id, "error": str(e)}
+            )
+        
+        # Step 4: Combine histories - context first, then current session
+        # This maintains chronological order with older context + recent session
+        final_history = cross_session_context + current_session_messages
+        
+        # Trim to max_messages if needed
+        if len(final_history) > max_messages:
+            final_history = final_history[-max_messages:]
+        
+        logger.info(
+            "📖 Final history assembled",
+            extra={
+                "user_id": user_id,
+                "session_id": session_id,
+                "total_messages": len(final_history),
+                "current_session": len(current_session_messages),
+                "cross_session_context": len(cross_session_context)
+            }
+        )
+        
+        return filter_conversation_history(final_history)
 
 # For backward compatibility
 load_session_node = SessionStarterNode()

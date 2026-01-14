@@ -12,6 +12,7 @@ import time
 from collections import defaultdict
 from typing import Optional, Dict, Any
 from datetime import datetime
+from statistics import mean, StatisticsError
 from app.services.cache.models import CacheStats
 from app.logging_config import logger
 
@@ -135,11 +136,17 @@ class CacheMetrics:
         # Calculate average response times
         avg_cached_time = 0.0
         if self.cached_response_times:
-            avg_cached_time = sum(self.cached_response_times) / len(self.cached_response_times)
+            try:
+                avg_cached_time = mean(self.cached_response_times)
+            except StatisticsError:
+                avg_cached_time = 0.0
 
         avg_full_time = 0.0
         if self.full_response_times:
-            avg_full_time = sum(self.full_response_times) / len(self.full_response_times)
+            try:
+                avg_full_time = mean(self.full_response_times)
+            except StatisticsError:
+                avg_full_time = 0.0
 
         # Calculate time savings
         time_per_hit_saved = (avg_full_time - avg_cached_time) / 1000  # Convert ms to seconds

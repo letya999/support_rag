@@ -56,6 +56,7 @@ def build_graph():
         n["name"] for n in pipeline_config 
         if n.get("enabled", False)
     ]
+    active_node_names_set = set(active_node_names)
     
     # Log config loaded
     pipeline_logger.log_config_loaded(len(active_node_names))
@@ -78,10 +79,11 @@ def build_graph():
     start_node = START
     
     # Security: input_guardrails MUST run BEFORE cache check
-    input_guardrails_enabled = "input_guardrails" in active_node_names
+    # Security: input_guardrails MUST run BEFORE cache check
+    input_guardrails_enabled = "input_guardrails" in active_node_names_set
 
     # 1. Determine Start Node Sequence
-    if "session_starter" in active_node_names:
+    if "session_starter" in active_node_names_set:
         workflow.add_edge(START, "session_starter")
         pipeline_logger.log_edge_added("START", "session_starter")
         # After session: guardrails first, then cache
@@ -115,13 +117,13 @@ def build_graph():
         
         # Connect input_guardrails → cache/state_machine/pipeline
         if input_guardrails_enabled:
-            target_if_blocked = "state_machine" if "state_machine" in active_node_names else first_pipeline_node
+            target_if_blocked = "state_machine" if "state_machine" in active_node_names_set else first_pipeline_node
             
             # Determine target for normal continuation
             target_continue = "check_cache" if cache_enabled else first_pipeline_node
 
             # Select routing logic (support clarification bypass if enabled)
-            if "clarification_questions" in active_node_names:
+            if "clarification_questions" in active_node_names_set:
                 gw_logic = check_guardrails_and_clarification
                 gw_map = {
                     "blocked": target_if_blocked,
@@ -161,18 +163,17 @@ def build_graph():
                 }
             )
             pipeline_logger.log_conditional_edge_added("check_cache", "cache_hit_logic", {"store_in_cache": "store_in_cache", "miss": first_pipeline_node})
-        elif start_node == START and "session_starter" not in active_node_names:
+        elif start_node == START and "session_starter" not in active_node_names_set:
             # Direct start to first node if nothing else
             workflow.add_edge(START, first_pipeline_node)
             pipeline_logger.log_edge_added("START", first_pipeline_node)
         
         # Connect Pipeline Nodes sequentially
-        for i in range(len(pipeline_nodes) - 1):
-            current_node = pipeline_nodes[i]
+        for i, current_node in enumerate(pipeline_nodes[:-1]):
             next_node = pipeline_nodes[i+1]
 
             # Special logic: Early exit after dialog_analysis
-            if current_node == "dialog_analysis" and "state_machine" in active_node_names:
+            if current_node == "dialog_analysis" and "state_machine" in active_node_names_set:
                 normal_next_node = next_node
                 
                 workflow.add_conditional_edges(
@@ -187,8 +188,8 @@ def build_graph():
             # Special logic for routing if it's in the middle
             elif current_node == "routing":
                 if "generation" in pipeline_nodes:
-                    target = "prompt_routing" if "prompt_routing" in active_node_names else "generation"
-                    target_exit = "archive_session" if "archive_session" in active_node_names else ("store_in_cache" if cache_enabled else END)
+                    target = "prompt_routing" if "prompt_routing" in active_node_names_set else "generation"
+                    target_exit = "archive_session" if "archive_session" in active_node_names_set else ("store_in_cache" if cache_enabled else END)
                     
                     workflow.add_conditional_edges(
                         "routing",
@@ -200,11 +201,11 @@ def build_graph():
                     )
                     pipeline_logger.log_conditional_edge_added("routing", "router_logic", {"generation": target, "END": target_exit})
                 else:
-                    target_exit = "archive_session" if "archive_session" in active_node_names else ("store_in_cache" if cache_enabled else END)
+                    target_exit = "archive_session" if "archive_session" in active_node_names_set else ("store_in_cache" if cache_enabled else END)
                     workflow.add_edge("routing", target_exit)
                     pipeline_logger.log_edge_added("routing", target_exit)
             # Special logic: state_machine always to routing if present
-            elif current_node == "state_machine" and "routing" in active_node_names:
+            elif current_node == "state_machine" and "routing" in active_node_names_set:
                 workflow.add_edge("state_machine", "routing")
                 pipeline_logger.log_edge_added("state_machine", "routing")
             # Special logic: Clarification Flow (Phase 1)
@@ -214,7 +215,7 @@ def build_graph():
                     skip_target = pipeline_nodes[i+2]
                 else:
                     # Fallback if clarification is last 
-                    if "archive_session" in active_node_names:
+                    if "archive_session" in active_node_names_set:
                         skip_target = "archive_session"
                     elif cache_enabled:
                          skip_target = "store_in_cache"
@@ -237,7 +238,7 @@ def build_graph():
         # Handle End of Pipeline
         last_node = pipeline_nodes[-1]
         if last_node != "routing":
-            if "archive_session" in active_node_names:
+            if "archive_session" in active_node_names_set:
                 workflow.add_edge(last_node, "archive_session")
                 pipeline_logger.log_edge_added(last_node, "archive_session")
             elif cache_enabled:
@@ -248,7 +249,7 @@ def build_graph():
                 pipeline_logger.log_edge_added(last_node, "END")
                   
         # Ensure archive_session has an exit path
-        if "archive_session" in active_node_names:
+        if "archive_session" in active_node_names_set:
             if cache_enabled:
                 workflow.add_edge("archive_session", "store_in_cache")
                 pipeline_logger.log_edge_added("archive_session", "store_in_cache")

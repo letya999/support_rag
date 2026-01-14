@@ -16,6 +16,8 @@ from app.logging_config import logger
 
 from app.api.webhook_schemas import WebhookCreate, WebhookUpdate
 from app.storage.repositories.webhook_repository import WebhookRepository
+from app.utils.url_security import validate_webhook_url_async
+from app.settings import settings
 
 class WebhookService:
     """Service for managing webhooks (registration, verification, delivery)."""
@@ -30,6 +32,14 @@ class WebhookService:
         Returns:
             Dict containing the created webhook and its plaintext secret (shown only once)
         """
+        # Perform Async Security Check (DNS)
+        is_valid, error = await validate_webhook_url_async(
+            str(webhook_data.url), 
+            allow_localhost=settings.ALLOW_LOCALHOST_WEBHOOKS
+        )
+        if not is_valid:
+            raise ValueError(f"Security validation failed: {error}")
+
         webhook_id = f"webhook_{uuid.uuid4().hex[:12]}"
         
         # Generate or use provided secret
@@ -86,7 +96,16 @@ class WebhookService:
     async def update_webhook(webhook_id: str, updates: WebhookUpdate) -> Optional[Dict[str, Any]]:
         update_dict = updates.model_dump(exclude_unset=True)
         if 'url' in update_dict:
-            update_dict['url'] = str(update_dict['url'])
+            url_str = str(update_dict['url'])
+            # Perform Async Security Check (DNS)
+            is_valid, error = await validate_webhook_url_async(
+                url_str, 
+                allow_localhost=settings.ALLOW_LOCALHOST_WEBHOOKS
+            )
+            if not is_valid:
+                raise ValueError(f"Security validation failed: {error}")
+                
+            update_dict['url'] = url_str
             
         return await WebhookRepository.update_webhook(webhook_id, update_dict)
 

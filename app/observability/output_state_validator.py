@@ -12,6 +12,7 @@ from typing import Dict, Any, List, Optional
 import logging
 
 from app.observability.state_validator import OutputContract, ContractViolation, StateValidator
+from app.utils.size_estimator import estimate_size
 
 logger = logging.getLogger(__name__)
 
@@ -130,9 +131,9 @@ class OutputStateValidator:
         missing_guaranteed = set(contract.guaranteed) - all_keys
         
         # Calculate sizes
-        import json
-        original_size = len(json.dumps(output, default=str))
-        filtered_size = len(json.dumps({k: output[k] for k in valid_keys}, default=str))
+        # Calculate sizes
+        original_size = estimate_size(output)
+        filtered_size = estimate_size({k: output[k] for k in valid_keys})
         
         return {
             "node_name": self.node_name,

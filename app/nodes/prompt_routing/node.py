@@ -120,6 +120,7 @@ class PromptRoutingNode(BaseNode):
                 "SAFETY_VIOLATION": self._load_prompt("prompt_instruction_safety_violation.txt"),
                 "NEEDS_CLARIFICATION": self._load_prompt("prompt_instruction_clarify.txt"),  # Add exact match
                 "CLARIFY": self._load_prompt("prompt_instruction_clarify.txt"),
+                "NO_RELEVANT_DOCS": self._load_prompt("prompt_instruction_no_relevant_docs.txt"),
                 "answer_and_handoff": self._load_prompt("prompt_instruction_answer_and_handoff.txt"),
                 "DEFAULT": self._load_prompt("prompt_instruction_default.txt")
             }

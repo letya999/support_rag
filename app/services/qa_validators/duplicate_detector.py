@@ -16,7 +16,7 @@ class DuplicateDetector:
 
     @classmethod
     def find_duplicates(cls, pairs: List[RawQAPair]) -> List[Tuple[int, int]]:
-        """Find duplicate pairs in a list.
+        """Find duplicate pairs in a list using optimized hash pooling.
 
         Args:
             pairs: List of Q&A pairs
@@ -25,11 +25,26 @@ class DuplicateDetector:
             List of (index1, index2) tuples indicating duplicates
         """
         duplicates = []
+        # Bucket pairs by approximate hash
+        buckets: dict[str, List[int]] = {}
+        
+        for i, pair in enumerate(pairs):
+            q_normalized = cls._normalize_question(pair.question)
+            # Use sorted first 10 words as hash to catch reorderings but group by content
+            words = q_normalized.split()
+            hash_key = " ".join(sorted(words[:10]))
+            buckets.setdefault(hash_key, []).append(i)
 
-        for i in range(len(pairs)):
-            for j in range(i + 1, len(pairs)):
-                if cls._are_duplicate(pairs[i], pairs[j]):
-                    duplicates.append((i, j))
+        # Check for duplicates only within buckets
+        for indices in buckets.values():
+            if len(indices) > 1:
+                # Compare all pairs within the bucket
+                for i in range(len(indices)):
+                    idx1 = indices[i]
+                    for j in range(i + 1, len(indices)):
+                        idx2 = indices[j]
+                        if cls._are_duplicate(pairs[idx1], pairs[idx2]):
+                            duplicates.append((idx1, idx2))
 
         return duplicates
 
@@ -43,25 +58,31 @@ class DuplicateDetector:
         Returns:
             List with duplicates removed
         """
-        seen_questions = {}
         unique_pairs = []
+        # Map: hash_key -> List[(normalized_question, pair)]
+        seen_buckets: dict[str, List[Tuple[str, ProcessedQAPair]]] = {}
 
         for pair in pairs:
             q_normalized = cls._normalize_question(pair.question)
+            words = q_normalized.split()
+            hash_key = " ".join(sorted(words[:10]))
 
-            # Check if we've seen similar question
+            candidates = seen_buckets.get(hash_key, [])
+            
             duplicate_found = False
-            for seen_q, idx in seen_questions.items():
-                if cls._are_questions_similar(q_normalized, seen_q):
+            for seen_q_norm, _ in candidates:
+                if cls._are_questions_similar(q_normalized, seen_q_norm):
                     logger.debug(
                         f"Removing duplicate of: {pair.question[:50]}..."
                     )
                     duplicate_found = True
                     break
-
+            
             if not duplicate_found:
-                seen_questions[q_normalized] = len(unique_pairs)
                 unique_pairs.append(pair)
+                if hash_key not in seen_buckets:
+                    seen_buckets[hash_key] = []
+                seen_buckets[hash_key].append((q_normalized, pair))
 
         logger.info(
             f"Removed {len(pairs) - len(unique_pairs)} duplicates "

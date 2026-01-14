@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, Field, HttpUrl, field_validator
-from app.utils.url_security import validate_webhook_url
+from app.utils.url_security import validate_url_syntax
 from app.settings import settings
 
 # --- Webhook Management Schemas ---
@@ -19,12 +19,12 @@ class WebhookCreate(BaseModel):
     @field_validator('url')
     @classmethod
     def validate_url_security(cls, v):
-        """Validate URL to prevent SSRF attacks."""
+        """Validate URL syntax (SSRF check performed in service)."""
         url_str = str(v)
-        is_valid, error = validate_webhook_url(
+        # Only syntax check here to avoid blocking DNS
+        is_valid, error, _ = validate_url_syntax(
             url_str,
-            allow_private=True,  # Internal network - allow private IPs
-            allow_localhost=settings.ALLOW_LOCALHOST_WEBHOOKS  # Allow localhost in dev mode
+            allow_localhost=settings.ALLOW_LOCALHOST_WEBHOOKS
         )
         if not is_valid:
             raise ValueError(f"Invalid webhook URL: {error}")
@@ -45,10 +45,9 @@ class WebhookUpdate(BaseModel):
         """Validate URL to prevent SSRF attacks."""
         if v is not None:
             url_str = str(v)
-            is_valid, error = validate_webhook_url(
+            is_valid, error, _ = validate_url_syntax(
                 url_str,
-                allow_private=True,  # Internal network - allow private IPs
-                allow_localhost=settings.ALLOW_LOCALHOST_WEBHOOKS  # Allow localhost in dev mode
+                allow_localhost=settings.ALLOW_LOCALHOST_WEBHOOKS
             )
             if not is_valid:
                 raise ValueError(f"Invalid webhook URL: {error}")

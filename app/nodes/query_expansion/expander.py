@@ -32,5 +32,5 @@ class QueryExpander:
         """
         expanded_queries = await self.chain.ainvoke({"question": question})
         # Add original question to the list and deduplicate
-        all_queries = list(set([question] + [q.strip() for q in expanded_queries if q.strip()]))
+        all_queries = list(dict.fromkeys([question] + [q.strip() for q in expanded_queries if q.strip()]))
         return all_queries

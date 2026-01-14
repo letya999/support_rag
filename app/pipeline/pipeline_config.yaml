@@ -76,6 +76,7 @@ details:
       persist_to_postgres: true
       session_ttl_hours: 24
       session_timeout_minutes: 30
+      conversation_cache_ttl_minutes: 30
       session_idle_threshold_minutes: 5
       timeout_ms: 5000
       retry_count: 3

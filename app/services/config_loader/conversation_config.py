@@ -28,6 +28,20 @@ class ConversationConfig:
         return get_global_param("session_timeout_minutes", 30)
 
     @property
+    def conversation_cache_ttl_seconds(self) -> int:
+        """
+        TTL for Redis conversation history cache (hot storage).
+        Returns: Seconds (default: 1800 = 30 minutes)
+        """
+        ttl_minutes = get_global_param("conversation_cache_ttl_minutes", None)
+        if ttl_minutes is not None:
+            return ttl_minutes * 60
+        
+        # Fallback: use 1/24 of session_ttl (if 24h, then 1h)
+        session_ttl_hours = get_global_param("session_ttl_hours", 24)
+        return int(session_ttl_hours * 3600 / 24)
+
+    @property
     def session_idle_threshold_minutes(self) -> int:
         return get_global_param("session_idle_threshold_minutes", 5)
 

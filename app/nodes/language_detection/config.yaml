@@ -2,10 +2,15 @@ node:
   name: language_detection
   enabled: true
 
+# Настройки определения языка
 parameters:
-  fallback_language: "ru"
-  confidence_threshold: 0.5
-  use_fallback_heuristic: true
+  fallback_language: "ru"  # Язык по умолчанию при ошибке определения
+  confidence_threshold: 0.5  # Минимальный порог уверенности
+  use_fallback_heuristic: true  # Использовать простую эвристику (кириллица = ru)
+  
+  # Примечание: Славянские языки с кириллицей (bg, uk, be, mk, sr) автоматически
+  # нормализуются к "ru" при низкой уверенности (<0.8) для унифицированного RAG поиска.
+  # Это исправляет частую ошибку langdetect на коротких фразах.
 
 config:
   supported_languages:

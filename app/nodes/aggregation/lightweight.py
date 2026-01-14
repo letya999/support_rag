@@ -30,7 +30,7 @@ def extract_entities(text: str) -> Dict[str, List[str]]:
     date_pattern = r'\d{2}\.\d{2}\.\d{4}|\d{4}-\d{2}-\d{2}'
     entities["dates"] = re.findall(date_pattern, text)
     
-    return {k: list(set(v)) for k, v in entities.items() if v}
+    return {k: list(dict.fromkeys(v)) for k, v in entities.items() if v}
 
 def is_context_dependent(text: str) -> bool:
     """
@@ -97,7 +97,7 @@ def lightweight_aggregation_node(state: State) -> Dict[str, Any]:
         
         if extras:
             # Deduplicate
-            extras = list(set(extras))
+            extras = list(dict.fromkeys(extras))
             aggregated_query = f"{question} (Context: {', '.join(extras)})"
             
     # If we have a lot of user history but no specific entities, we might just leave it 
@@ -127,4 +127,4 @@ def extract_keywords(text: str) -> List[str]:
     keywords = [w for w in words if w not in STOPWORDS and len(w) > 2 and not w.isdigit()]
     
     # Limit to top 5 unique to avoid noise
-    return list(set(keywords))[:5]
+    return list(dict.fromkeys(keywords))[:5]

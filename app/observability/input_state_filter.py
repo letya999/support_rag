@@ -12,6 +12,7 @@ from typing import Dict, Any, Optional, Set, List
 import logging
 
 from app.observability.state_validator import InputContract, StateValidator
+from app.utils.size_estimator import estimate_size
 
 logger = logging.getLogger(__name__)
 
@@ -114,9 +115,9 @@ class InputStateFilter:
         missing_required = set(contract.required) - all_keys
         
         # Calculate size reduction (approximate)
-        import json
-        original_size = len(json.dumps({k: state[k] for k in all_keys}, default=str))
-        filtered_size = len(json.dumps({k: state[k] for k in kept_keys}, default=str))
+        # Calculate size reduction (approximate)
+        original_size = estimate_size({k: state[k] for k in all_keys})
+        filtered_size = estimate_size({k: state[k] for k in kept_keys})
         
         return {
             "node_name": self.node_name,

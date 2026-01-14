@@ -85,6 +85,22 @@ class PersistenceManager:
         return await MessageRepository.get_session_messages(session_id, limit)
 
     @staticmethod
+    async def get_user_recent_messages(user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """
+        Get recent messages for a user across ALL sessions.
+        
+        Used for cross-session conversation context.
+
+        Args:
+            user_id: User identifier
+            limit: Maximum messages to retrieve
+
+        Returns:
+            List of message dicts with conversation history from all user's sessions
+        """
+        return await MessageRepository.get_user_recent_messages(user_id, limit)
+
+    @staticmethod
     async def update_session(
         session_id: str, 
         user_id: str, 

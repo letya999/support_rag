@@ -7,6 +7,7 @@ from app.settings import settings
 from app.services.ingestion.ingestion_service import DocumentIngestionService
 from app.services.document_loaders import ProcessedQAPair
 from app.logging_config import logger
+from app.services.redis_pool import RedisPool
 
 class StagingService:
     """Service for managing staging drafts in Redis before they are committed to permanent storage."""
@@ -18,7 +19,7 @@ class StagingService:
         self.redis_url = settings.REDIS_URL
     
     async def _get_redis(self):
-        return await aioredis.from_url(self.redis_url, encoding="utf-8", decode_responses=True)
+        return await RedisPool.get_pool()
 
     def _generate_id(self):
         return str(uuid.uuid4())
@@ -68,8 +69,9 @@ class StagingService:
                 await pipe.execute()
                 
             return draft_data
-        finally:
-            await redis.close()
+        except Exception as e:
+            logger.error(f"Error creating draft: {e}")
+            raise
 
     async def get_draft(self, draft_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -88,8 +90,9 @@ class StagingService:
             if data:
                 return json.loads(data)
             return None
-        finally:
-            await redis.close()
+        except Exception as e:
+            logger.error(f"Error getting draft {draft_id}: {e}")
+            return None
             
     async def get_draft_by_file(self, file_id: str) -> Optional[Dict[str, Any]]:
         redis = await self._get_redis()
@@ -99,8 +102,9 @@ class StagingService:
             if draft_id:
                 return await self.get_draft(draft_id)
             return None
-        finally:
-            await redis.close()
+        except Exception as e:
+            logger.error(f"Error getting draft by file {file_id}: {e}")
+            return None
 
     async def update_chunk(self, draft_id: str, chunk_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         redis = await self._get_redis()
@@ -122,8 +126,9 @@ class StagingService:
                 await redis.set(key, json.dumps(draft), ex=self.EXPIRY)
                 return draft
             return None
-        finally:
-            await redis.close()
+        except Exception as e:
+            logger.error(f"Error updating chunk {chunk_id}: {e}")
+            return None
 
     async def update_chunk_metadata_batch(self, draft_id: str, updates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """
@@ -155,8 +160,9 @@ class StagingService:
                 await redis.set(key, json.dumps(draft), ex=self.EXPIRY)
                 return draft
             return draft # Return draft even if no updates happened, but it exists
-        finally:
-            await redis.close()
+        except Exception as e:
+            logger.error(f"Error batch updating chunks: {e}")
+            return None
 
     async def add_chunks(self, draft_id: str, new_chunks_data: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         redis = await self._get_redis()
@@ -178,8 +184,9 @@ class StagingService:
             
             await redis.set(key, json.dumps(draft), ex=self.EXPIRY)
             return draft
-        finally:
-            await redis.close()
+        except Exception as e:
+            logger.error(f"Error adding chunks: {e}")
+            return None
 
     async def delete_chunk(self, draft_id: str, chunk_id: str) -> bool:
         redis = await self._get_redis()
@@ -197,8 +204,9 @@ class StagingService:
                 await redis.set(key, json.dumps(draft), ex=self.EXPIRY)
                 return True
             return False
-        finally:
-            await redis.close()
+        except Exception as e:
+            logger.error(f"Error deleting chunk {chunk_id}: {e}")
+            return False
             
     async def delete_draft(self, draft_id: str) -> bool:
         redis = await self._get_redis()
@@ -223,8 +231,9 @@ class StagingService:
                 res = await pipe.execute()
                 
             return res[0] > 0
-        finally:
-            await redis.close()
+        except Exception as e:
+            logger.error(f"Error deleting draft {draft_id}: {e}")
+            return False
             
     async def commit_draft(self, draft_id: str) -> Dict[str, Any]:
         """
@@ -270,50 +279,47 @@ class StagingService:
     async def list_drafts(self, draft_ids: Optional[List[str]] = None, search_term: Optional[str] = None) -> List[Dict[str, Any]]:
         redis = await self._get_redis()
         try:
-            # This uses SCAN which is safe but might be slow if millions of keys.
-            # Ideally we'd have a set of active drafts, but given this is staging, it's likely small.
+            # Pre-compute target keys for early filtering
+            target_keys_set = None
+            if draft_ids:
+                target_keys_set = {f"{self.PREFIX}{did}" for did in draft_ids}
+            
+            results = []
+            search_term_lower = search_term.lower() if search_term else None
+            
+            # Process during SCAN to avoid accumulating all keys in memory
             cursor = 0
-            keys = []
             while True:
-                cursor, new_keys = await redis.scan(cursor, match=f"{self.PREFIX}*", count=100)
-                keys.extend(new_keys)
+                cursor, keys = await redis.scan(cursor, match=f"{self.PREFIX}*", count=100)
+                
+                if keys:
+                    # Early key filtering
+                    if target_keys_set:
+                        keys = [k for k in keys if k in target_keys_set]
+                    
+                    if keys:
+                        # MGET for current batch
+                        batch_data = await redis.mget(keys)
+                        
+                        for d_json in batch_data:
+                            if d_json:
+                                try:
+                                    d = json.loads(d_json)
+                                    # Text search filter
+                                    if search_term_lower:
+                                        if search_term_lower not in d.get("filename", "").lower():
+                                            continue
+                                    results.append(d)
+                                except json.JSONDecodeError:
+                                    continue
+                
                 if cursor == 0:
                     break
             
-            if not keys:
-                return []
-
-            # Determine which keys to fetch
-            # If draft_ids provided, filter keys first (optimization)
-            keys_to_fetch = []
-            if draft_ids:
-                draft_keys = set(f"{self.PREFIX}{did}" for did in draft_ids)
-                keys_to_fetch = [k for k in keys if k in draft_keys]
-            else:
-                keys_to_fetch = keys
-
-            if not keys_to_fetch:
-                return []
-
-            # MGET for all filtered keys
-            drafts_json = await redis.mget(keys_to_fetch)
-            
-            results = []
-            for d_json in drafts_json:
-                if d_json:
-                    try:
-                        d = json.loads(d_json)
-                        # Text search (LIKE) on filename
-                        if search_term:
-                            if search_term.lower() not in d.get("filename", "").lower():
-                                continue
-                        results.append(d)
-                    except:
-                        continue
-            
             return results
-        finally:
-            await redis.close()
+        except Exception as e:
+            logger.error(f"Error listing drafts: {e}")
+            return []
 
     async def clear_all_drafts(self) -> int:
         """
@@ -322,36 +328,37 @@ class StagingService:
         """
         redis = await self._get_redis()
         try:
-            # Find all draft keys
-            cursor = 0
-            keys_to_delete = []
-            while True:
-                cursor, new_keys = await redis.scan(cursor, match=f"{self.PREFIX}*", count=100)
-                keys_to_delete.extend(new_keys)
-                if cursor == 0:
-                    break
-            
-            # Find all file mapping keys
-            cursor = 0
-            while True:
-                cursor, new_keys = await redis.scan(cursor, match=f"{self.FILE_PREFIX}*", count=100)
-                keys_to_delete.extend(new_keys)
-                if cursor == 0:
-                    break
-            
-            if not keys_to_delete:
-                return 0
-                
-            # Delete in batches of 100 to be safe
             deleted_count = 0
             batch_size = 100
-            for i in range(0, len(keys_to_delete), batch_size):
-                batch = keys_to_delete[i:i + batch_size]
-                if batch:
-                    deleted_count += await redis.delete(*batch)
+            
+            # Process draft keys during SCAN (avoid accumulating all keys)
+            cursor = 0
+            while True:
+                cursor, keys = await redis.scan(cursor, match=f"{self.PREFIX}*", count=batch_size)
+                if keys:
+                    # Use pipeline for batch delete
+                    async with redis.pipeline() as pipe:
+                        await pipe.delete(*keys)
+                        results = await pipe.execute()
+                        deleted_count += sum(results)
+                if cursor == 0:
+                    break
+            
+            # Process file mapping keys during SCAN
+            cursor = 0
+            while True:
+                cursor, keys = await redis.scan(cursor, match=f"{self.FILE_PREFIX}*", count=batch_size)
+                if keys:
+                    async with redis.pipeline() as pipe:
+                        await pipe.delete(*keys)
+                        results = await pipe.execute()
+                        deleted_count += sum(results)
+                if cursor == 0:
+                    break
                     
             return deleted_count
-        finally:
-            await redis.close()
+        except Exception as e:
+            logger.error(f"Error clearing drafts: {e}")
+            return 0
 
 staging_service = StagingService()

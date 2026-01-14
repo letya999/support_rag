@@ -142,6 +142,19 @@ rules:
       - type: log
         message: "Issue resolved via gratitude signal"
 
+  # Priority 3.5: No Relevant Documents - Very low retrieval score
+  - name: no_relevant_documents
+    priority: 3.5
+    description: "Retrieval score extremely low - no relevant information found"
+    condition:
+      field: very_low_retrieval_score
+      operator: equals
+      value: true
+    target_state: NO_RELEVANT_DOCS
+    actions:
+      - type: log
+        message: "No relevant documents found - asking user to rephrase"
+
   # Priority 4: High frustration - Switch to empathy mode
   - name: frustration_detected
     priority: 4
@@ -314,3 +327,12 @@ state_behaviors:
     escalation_reason: "conversation_loop"
     prompt_hint: "handoff_suggestion"
 
+  NO_RELEVANT_DOCS:
+    tone: apologetic
+    action: auto_reply
+    prompt_hint: "rephrase_request"
+
+  NEEDS_CLARIFICATION:
+    tone: professional
+    action: auto_reply
+    prompt_hint: "standard"

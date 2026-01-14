@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 from app.logging_config import logger
 from app.services.classification.semantic_service import SemanticClassificationService
 from app.integrations.embeddings import get_embedding
+from statistics import mean, StatisticsError
 from .models import ClassificationResult, MetadataConfig
 
 
@@ -162,17 +163,23 @@ class EmbeddingClassifier:
             if intent_result:
                 intent_confidences.append(intent_result.confidence)
 
+        avg_category_confidence = 0.0
+        if category_confidences:
+            try:
+                avg_category_confidence = mean(category_confidences)
+            except StatisticsError:
+                avg_category_confidence = 0.0
+
+        avg_intent_confidence = 0.0
+        if intent_confidences:
+            try:
+                avg_intent_confidence = mean(intent_confidences)
+            except StatisticsError:
+                avg_intent_confidence = 0.0
+
         return {
-            "avg_category_confidence": (
-                sum(category_confidences) / len(category_confidences)
-                if category_confidences
-                else 0.0
-            ),
-            "avg_intent_confidence": (
-                sum(intent_confidences) / len(intent_confidences)
-                if intent_confidences
-                else 0.0
-            ),
+            "avg_category_confidence": avg_category_confidence,
+            "avg_intent_confidence": avg_intent_confidence,
             "llm_validations_needed": llm_validations_needed,
             "llm_percentage": (
                 (llm_validations_needed / len(classification_results)) * 100

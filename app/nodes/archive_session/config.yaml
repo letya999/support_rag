@@ -6,6 +6,7 @@ node:
 parameters:
   save_to_postgres: true
   update_redis_session: true
+  cache_messages_in_redis: true
   filter_system_messages: true
   generate_summary: true
   max_summary_length: 200

@@ -55,7 +55,10 @@ class PDFLoader(BaseDocumentLoader):
                                 continue
                             
                             # Clean table data
-                            clean_table = [[(cell or "").strip() for cell in row] for row in table_data]
+                            def _clean_rows(data):
+                                for row in data:
+                                    yield [(cell or "").strip() for cell in row]
+                            clean_table = list(_clean_rows(table_data))
                             
                             # Use top position for sorting
                             top_pos = table.bbox[1]
@@ -75,6 +78,9 @@ class PDFLoader(BaseDocumentLoader):
 
                     # 2. Extract words (filtering out tables)
                     if table_rects:
+                        # Optimization: Sort tables by X coordinate used for early exit
+                        table_rects.sort(key=lambda t: t[0])
+
                         def not_inside_tables(obj):
                             """Check if object is inside any identified table."""
                             # Use object center to check inclusion
@@ -87,6 +93,9 @@ class PDFLoader(BaseDocumentLoader):
                             cy = (top + bottom) / 2
                             
                             for (tx0, ttop, tx1, tbottom) in table_rects:
+                                # Optimization: Early exit if table is to the right
+                                if cx < tx0:
+                                    break
                                 if tx0 <= cx <= tx1 and ttop <= cy <= tbottom:
                                     return False
                             return True
@@ -141,7 +150,11 @@ class PDFLoader(BaseDocumentLoader):
                                 if page_blocks and page_blocks[-1].type == b_type and \
                                    page_blocks[-1].metadata.get("page") == page_idx + 1 and \
                                    page_blocks[-1].type != BlockType.TABLE:
-                                    page_blocks[-1].content += " " + line_text
+                                    # Use list accumulation for O(1) append
+                                    if isinstance(page_blocks[-1].content, list):
+                                        page_blocks[-1].content.append(line_text)
+                                    else:
+                                        page_blocks[-1].content = [page_blocks[-1].content, line_text]
                                     # Don't update top, keep original top
                                 else:
                                     page_blocks.append(Block(
@@ -173,7 +186,10 @@ class PDFLoader(BaseDocumentLoader):
                         if page_blocks and page_blocks[-1].type == b_type and \
                            page_blocks[-1].metadata.get("page") == page_idx + 1 and \
                            page_blocks[-1].type != BlockType.TABLE:
-                            page_blocks[-1].content += " " + line_text
+                            if isinstance(page_blocks[-1].content, list):
+                                page_blocks[-1].content.append(line_text)
+                            else:
+                                page_blocks[-1].content = [page_blocks[-1].content, line_text]
                         else:
                             page_blocks.append(Block(
                                 type=b_type,
@@ -192,6 +208,11 @@ class PDFLoader(BaseDocumentLoader):
                     # Add to document
                     for pb in page_blocks:
                         pb.original_index = len(doc.blocks)
+                        
+                        # Finalize content: join accumulated text lists
+                        if isinstance(pb.content, list) and pb.type != BlockType.TABLE:
+                            pb.content = " ".join(pb.content)
+                        
                         doc.blocks.append(pb)
                         
                         # Update raw text

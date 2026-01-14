@@ -289,12 +289,15 @@ class ArchiveSessionNode(BaseNode):
                 # Use update_state for bulk updates
                 await session_manager.update_state(session_id, updates)
                 
-                # Add messages to recent list for cache API
-                if question:
-                    await session_manager.add_message(session_id, "user", question)
-                
-                if answer and not _is_system_message(answer):
-                    await session_manager.add_message(session_id, "assistant", answer)
+                # Add messages to Redis cache (if enabled)
+                # Used by SessionStarterNode for fast history loading (hot cache)
+                params = _get_params()
+                if params.get("cache_messages_in_redis", True):
+                    if question:
+                        await session_manager.add_message(session_id, "user", question)
+                    
+                    if answer and not _is_system_message(answer):
+                        await session_manager.add_message(session_id, "assistant", answer)
 
         except Exception as e:
             logger.warning("Redis session update failed (non-critical)", extra={"error": str(e), "session_id": session_id})

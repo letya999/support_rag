@@ -9,6 +9,7 @@ parameters:
   complexity_threshold: 2
   skip_if_high_confidence: true
   high_confidence_threshold: 0.5
+  very_low_score_threshold: 0.05  # Trigger NO_RELEVANT_DOCS if score < 5%
   min_query_length: 10
 
 # Текстовые настройки и словари
